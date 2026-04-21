@@ -5,7 +5,7 @@ import ChannelCard from './components/ChannelCard';
 import Player from './components/Player';
 import Hero from './components/Hero';
 import Carousel from './components/Carousel';
-import { Tv2, Sparkles } from 'lucide-react';
+import { Tv2, Sparkles, Heart, Compass, Zap } from 'lucide-react';
 
 function App() {
   const [activeCategory, setActiveCategory] = useState('Todos');
@@ -105,42 +105,39 @@ function App() {
   }, [channelData, favorites]);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/30">
+    <div className="flex h-[100dvh] bg-[#050508] text-white overflow-hidden w-full relative selection:bg-primary/30">
       
-      {/* Background Effects */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+      {/* Intense Background Glow Effects */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <Sidebar 
-        categories={dynamicCategories} 
-        activeCategory={activeCategory} 
-        setActiveCategory={setActiveCategory} 
-      />
-      
-      <main className="flex-1 flex flex-col relative z-0 h-full overflow-hidden">
+      <main className="flex-1 flex flex-col relative z-10 w-full h-full overflow-hidden custom-scrollbar bg-transparent">
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+        {/* Modern Mobile Horizontal Top-Pill Navigation (Replaces Sidebar) */}
+        <div className="w-full px-4 md:px-8 py-4 overflow-x-auto custom-scrollbar sticky top-0 z-40 bg-[#050508]/80 backdrop-blur-2xl border-b border-white/5 flex gap-3 items-center snap-x">
+          {dynamicCategories.map((cat) => {
+            const catName = typeof cat === 'string' ? cat : cat.name;
+            const isActive = activeCategory === catName;
+            return (
+              <button
+                key={catName}
+                onClick={() => setActiveCategory(catName)}
+                className={`snap-center shrink-0 flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all duration-300 border ${isActive ? 'bg-indigo-600 text-white border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.5)]' : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
+              >
+                {catName === 'Todos' && <Compass className="w-4 h-4" />}
+                {catName === 'Favoritos' && <Heart className={`w-4 h-4 ${isActive ? 'fill-white' : ''}`} />}
+                {catName !== 'Todos' && catName !== 'Favoritos' && <Zap className="w-4 h-4" />}
+                {catName}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-6 relative" id="scrollArea">
           
-          <div className="mb-8">
-            {isAppLoading ? (
-              <div className="h-10 bg-white/10 animate-pulse rounded-lg w-64"></div>
-            ) : (
-              <>
-                <h1 className="text-3xl font-bold flex items-center gap-3">
-                  {activeCategory === 'Todos' ? (
-                    <> <Sparkles className="text-primary w-8 h-8" /> Canales de Anime </>
-                  ) : activeCategory === 'Favoritos' ? (
-                    <> <Tv2 className="text-primary w-8 h-8" /> Mis Canales Favoritos </>
-                  ) : (
-                    <> <Tv2 className="text-primary w-8 h-8" /> Canal de {activeCategory} </>
-                  )}
-                </h1>
-                <p className="text-gray-400 mt-2 text-sm">
-                  Mostrando {filteredChannels.length} canales
-                </p>
-              </>
-            )}
+          <div className="mb-8 hidden">
+            {/* Ocultamos el título viejo aburrido para dejarle protagonismo al Hero */}
           </div>
 
           {isAppLoading ? (

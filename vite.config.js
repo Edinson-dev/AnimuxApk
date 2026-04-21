@@ -28,6 +28,9 @@ export default defineConfig({
             type: 'image/jpeg'
           }
         ]
+      },
+      devOptions: {
+        enabled: true
       }
     })
   ],

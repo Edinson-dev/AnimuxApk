@@ -9,6 +9,12 @@
     @apply bg-background text-white font-sans overflow-hidden;
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
+    width: 100vw;
+  }
+
+  html, body, #root {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 
