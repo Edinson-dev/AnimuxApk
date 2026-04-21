@@ -12,6 +12,53 @@ export default function Player({ channel, onClose }) {
   const [levels, setLevels] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(-1);
   const [showSettings, setShowSettings] = useState(false);
+  const [epgData, setEpgData] = useState(null);
+
+  useEffect(() => {
+    if (!channel) return;
+    
+    // (1) Media Session API (Para Pantalla de Bloqueo Móvil)
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: channel.name,
+        artist: 'Transmisión Oficial',
+        album: channel.category || 'Animux Live',
+        artwork: [
+          { src: channel.logo || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=512&h=512', sizes: '512x512', type: 'image/jpeg' }
+        ]
+      });
+      navigator.mediaSession.setActionHandler('play', () => videoRef.current?.play().catch(console.error));
+      navigator.mediaSession.setActionHandler('pause', () => videoRef.current?.pause());
+    }
+
+    // (2) EPG Algorítmico (Simulador matemático de Guía de TV)
+    const updateEPG = () => {
+      const shows = [
+        "Naruto Shippuden", "Dragon Ball Z", "One Piece", "Attack on Titan", 
+        "My Hero Academia", "Demon Slayer", "Jujutsu Kaisen", "Bleach", 
+        "Hunter x Hunter", "Death Note", "Fullmetal Alchemist", "Evangelion", 
+        "Tokyo Ghoul", "Sword Art Online", "One Punch Man", "Cyberpunk Edgerunners", 
+        "Chainsaw Man", "Spy x Family", "Haikyuu!!", "JoJo's Bizarre Adventure"
+      ];
+      // Usamos el ID del canal para que el anime 'actual' sea distinto por cada canal, pero consistente para todos los usuarios mundiales a esta misma hora
+      const seed = channel.id || 1;
+      const currentHour = new Date().getHours();
+      const currentMinutes = new Date().getMinutes();
+      
+      const currentShowIndex = (seed + currentHour) % shows.length;
+      const nextShowIndex = (seed + currentHour + 1) % shows.length;
+      
+      setEpgData({
+         current: shows[currentShowIndex],
+         next: shows[nextShowIndex],
+         remaining: 60 - currentMinutes
+      });
+    };
+    
+    updateEPG();
+    const interval = setInterval(updateEPG, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [channel]);
 
   useEffect(() => {
     if (!channel || !videoRef.current) return;
@@ -260,7 +307,26 @@ export default function Player({ channel, onClose }) {
         )}
 
         {!error && (
-          <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 items-center">
+          <>
+            {/* EPG Overlay Matemático */}
+            {epgData && !loading && (
+              <div className="absolute bottom-4 left-4 z-10 bg-[#050508]/80 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl transform transition-all duration-500 opacity-0 group-hover:opacity-100 flex flex-col gap-1 w-64 md:w-80 pointer-events-none">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
+                  <span className="text-[11px] text-gray-300 font-bold uppercase tracking-widest">En Emisión</span>
+                </div>
+                <h4 className="text-white font-black text-lg md:text-xl truncate drop-shadow-md">{epgData.current}</h4>
+                <div className="w-full bg-white/10 h-1.5 rounded-full mt-2 mb-1 overflow-hidden relative">
+                  <div className="bg-indigo-500 h-full rounded-full absolute top-0 left-0 transition-all duration-1000" style={{width: `${((60 - epgData.remaining) / 60) * 100}%`}}></div>
+                </div>
+                <div className="flex justify-between items-center text-[10px] md:text-xs">
+                  <span className="text-gray-400 font-medium">Siguiente: <span className="text-indigo-300">{epgData.next}</span></span>
+                  <span className="text-gray-500 font-bold text-right pl-2">Quedan {epgData.remaining} min</span>
+                </div>
+              </div>
+            )}
+
+            <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 items-center">
             
             {/* Opciones de Calidad (HLS.js) */}
             {levels.length > 0 && (
@@ -335,6 +401,7 @@ export default function Player({ channel, onClose }) {
               <Maximize className="w-5 h-5" />
             </button>
           </div>
+          </>
         )}
       </div>
     </div>
