@@ -32,7 +32,9 @@ export default function ChannelCard({ channel, isFavorite, toggleFavorite, onPla
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 overflow-hidden">
             <h3 className="font-bold text-white text-base truncate group-hover:text-indigo-300 transition-colors">{channel.name}</h3>
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mt-0.5">{channel.category}</p>
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mt-0.5 truncate">
+              {channel.category ? channel.category.split(';')[0].trim() : 'General'}
+            </p>
           </div>
           
           <button 

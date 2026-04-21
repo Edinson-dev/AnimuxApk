@@ -15,17 +15,22 @@ export default function Header({ searchQuery, setSearchQuery }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   return (
-    <header className="h-20 bg-background/40 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 z-40 sticky top-0 transition-all duration-300">
-      <div className="flex items-center gap-3 text-white font-black text-2xl tracking-tight group cursor-pointer">
-        <div className="p-2 bg-primary/20 rounded-xl group-hover:bg-primary/30 transition-colors">
-          <Tv size={28} className="text-primary drop-shadow-[0_0_15px_rgba(99,102,241,0.8)] group-hover:scale-110 transition-transform duration-300" />
+    <header className="h-auto md:h-20 bg-[#050508]/60 backdrop-blur-3xl border-b border-white/5 flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 md:py-0 z-40 sticky top-0 transition-all duration-300 gap-4">
+      <div className="flex items-center justify-between w-full md:w-auto">
+        <div className="flex items-center gap-3 text-white font-black text-2xl tracking-tight group cursor-pointer">
+          <div className="p-2 bg-indigo-600/20 rounded-xl border border-indigo-500/30 group-hover:bg-indigo-600/30 transition-colors">
+            <Tv size={28} className="text-indigo-400 drop-shadow-[0_0_15px_rgba(99,102,241,0.8)] group-hover:scale-110 transition-transform duration-300" />
+          </div>
+          <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-300 drop-shadow-sm">
+            Animux
+          </span>
         </div>
-        <span className="hidden sm:block bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-          Animux
-        </span>
+        <div className="flex md:hidden items-center justify-center w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+          <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.8)]"></div>
+        </div>
       </div>
       
-      <div className="relative w-full max-w-xl group">
+      <div className="relative w-full md:flex-1 md:max-w-xl group">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
           <Search className="text-gray-400 w-5 h-5 group-focus-within:text-primary transition-colors duration-300" />
         </div>

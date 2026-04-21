@@ -86,14 +86,17 @@ function App() {
       
       if (activeCategory === 'Todos') return matchesSearch;
       if (activeCategory === 'Favoritos') return matchesSearch && favorites.includes(channel.id);
-      return matchesSearch && channel.category === activeCategory;
+      
+      const cleanCategory = channel.category ? channel.category.split(';')[0].trim() : 'General';
+      return matchesSearch && cleanCategory === activeCategory;
     });
   }, [searchQuery, activeCategory, favorites, channelData]);
 
   const dynamicCategories = useMemo(() => {
     const catsAndCounts = {};
     channelData.channels.forEach(c => {
-      catsAndCounts[c.category] = (catsAndCounts[c.category] || 0) + 1;
+      const cleanCat = c.category ? c.category.split(';')[0].trim() : 'General';
+      catsAndCounts[cleanCat] = (catsAndCounts[cleanCat] || 0) + 1;
     });
     
     const sortedNames = Object.keys(catsAndCounts).sort();
