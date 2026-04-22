@@ -18,14 +18,14 @@ export default function App() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
-  const channelsPerPage = 48; // More channels per page for smaller cards
+  const channelsPerPage = 48;
 
   const loadData = async () => {
     try {
       setIsAppLoading(true);
       setError(null);
       const response = await fetch('/channels.json');
-      if (!response.ok) throw new Error('Catálogo no encontrado');
+      if (!response.ok) throw new Error('Error de conexión');
       const data = await response.json();
       setChannelData(data);
     } catch (err) {
@@ -79,7 +79,7 @@ export default function App() {
 
     return result.map(channel => ({
        ...channel,
-       displayName: channel.name.split(' - ')[0].split(' Cap ')[0].trim()
+       displayName: (channel.name || "").split(' - ')[0].split(' Cap ')[0].trim()
     })).filter(Boolean);
   }, [searchQuery, activeCategory, favorites, channelData, brokenChannels]);
 
@@ -108,24 +108,14 @@ export default function App() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-black p-6 text-center">
-        <AlertCircle className="w-12 h-12 text-rose-500 mb-4" />
-        <h2 className="text-lg font-bold text-white uppercase tracking-widest mb-6">Error de conexión</h2>
-        <button onClick={loadData} className="px-10 py-3 bg-white text-black rounded-full font-bold text-[10px] uppercase">Reintentar</button>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-[100dvh] bg-[#000000] text-white overflow-hidden w-full relative">
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative pt-20" id="scrollArea">
-        <div className="p-4 md:p-12 pt-8 max-w-[1920px] mx-auto">
+      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative pt-20 px-4 md:px-8" id="scrollArea">
+        <div className="max-w-[1920px] mx-auto py-6">
           {activeCategory === 'Todos' && !searchQuery ? (
-            <div className="space-y-16 md:space-y-24 animate-fade-in">
+            <div className="space-y-10 md:space-y-16 animate-fade-in">
               <Hero 
                 featuredChannel={channelData.channels.find(c => c.category?.includes('Cine') || c.category?.includes('Series'))} 
                 onPlay={setActiveChannel} 
@@ -139,19 +129,19 @@ export default function App() {
                     if (cat === 'Filmes') return chCat.includes('cine') || chCat.includes('movie');
                     return chCat.includes(cat.toLowerCase());
                   })
-                  .slice(0, 20);
+                  .slice(0, 18);
                 
                 if (items.length === 0) return null;
 
                 return (
-                  <div key={cat} className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                       <h3 className="text-2xl md:text-3xl font-normal text-white uppercase tracking-widest">{cat}</h3>
-                       <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all">Ver Todo</button>
+                  <div key={cat} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-xl md:text-2xl font-normal text-white uppercase tracking-widest">{cat}</h3>
+                       <button onClick={() => setActiveCategory(cat)} className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-white">Ver Todo</button>
                     </div>
-                    <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-8 px-2">
+                    <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
                        {items.map(channel => (
-                         <div key={channel.id} className="w-[120px] md:w-[180px] shrink-0">
+                         <div key={channel.id} className="w-[110px] md:w-[160px] shrink-0">
                            <ChannelCard channel={{...channel, displayName: channel.name.split(' - ')[0]}} onPlay={setActiveChannel} />
                          </div>
                        ))}
@@ -161,12 +151,12 @@ export default function App() {
               })}
             </div>
           ) : (
-            <div className="animate-fade-in">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 px-2">
-                 <h2 className="text-3xl md:text-5xl font-normal text-white uppercase tracking-widest">
+            <div className="animate-fade-in space-y-10">
+              <div className="flex items-end justify-between border-b border-white/5 pb-4">
+                 <h2 className="text-2xl md:text-4xl font-normal text-white uppercase tracking-widest">
                     {searchQuery ? `Resultados: ${searchQuery}` : activeCategory}
                  </h2>
-                 <span className="text-[10px] font-bold text-gray-600 tracking-[0.2em] uppercase">{filteredChannels.length} Canales</span>
+                 <span className="text-[9px] font-bold text-gray-600 tracking-widest uppercase">{filteredChannels.length} Canales</span>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4 md:gap-6">
                 {displayedChannels.map(channel => (
@@ -179,8 +169,8 @@ export default function App() {
               </div>
               
               {displayedChannels.length < filteredChannels.length && (
-                <div className="flex justify-center mt-20 mb-12">
-                  <button onClick={loadMore} className="px-12 py-4 bg-white/5 border border-white/10 hover:border-white/30 text-white rounded-full font-bold text-[10px] tracking-[0.3em] uppercase transition-all">Ver más contenido</button>
+                <div className="flex justify-center mt-12 mb-12">
+                  <button onClick={loadMore} className="px-10 py-3 bg-white/5 border border-white/10 hover:border-white/30 text-white rounded-full font-bold text-[9px] tracking-widest uppercase transition-all">Ver más</button>
                 </div>
               )}
             </div>
@@ -188,7 +178,7 @@ export default function App() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[70] bg-black/60 backdrop-blur-3xl border-t border-white/[0.03] py-4 flex justify-around items-center md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-[70] bg-black/80 backdrop-blur-3xl border-t border-white/[0.03] py-4 flex justify-around items-center md:hidden">
          <button onClick={() => { setActiveCategory('Todos'); setSearchQuery(''); }} className={`p-2 ${activeCategory === 'Todos' ? 'text-white' : 'text-gray-500'}`}><Home className="w-6 h-6" /></button>
          <button onClick={() => setActiveCategory('Series')} className={`p-2 ${activeCategory === 'Series' ? 'text-white' : 'text-gray-500'}`}><Tv className="w-6 h-6" /></button>
          <button onClick={() => setActiveCategory('Filmes')} className={`p-2 ${activeCategory === 'Filmes' ? 'text-white' : 'text-gray-500'}`}><Film className="w-6 h-6" /></button>

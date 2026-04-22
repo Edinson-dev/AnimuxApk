@@ -10,7 +10,7 @@
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
     width: 100vw;
-    font-family: 'ar', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
   html, body, #root {
@@ -31,7 +31,7 @@
   }
 
   .glass-panel {
-    @apply bg-black/60 backdrop-blur-3xl border-b border-white/[0.03];
+    @apply bg-black/80 backdrop-blur-3xl border-b border-white/[0.03];
   }
   
   .glass-card {
@@ -49,22 +49,14 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 100px;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
 
   .nav-link {
     @apply text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all cursor-pointer;
   }
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(10px); }
