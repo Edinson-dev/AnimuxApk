@@ -60,15 +60,19 @@ function parseM3u(data, overrideCategory = null) {
 }
 
 async function buildList() {
-  console.log('Descargando TODOS los canales en español del mundo (iptv-org)...');
-  const spanishM3u = await fetchM3u('https://iptv-org.github.io/iptv/languages/spa.m3u');
-  const spanishChannels = parseM3u(spanishM3u);
+  console.log('Descargando canales estables (TDTChannels)...');
+  const tdtM3u = await fetchM3u('https://raw.githubusercontent.com/LaQuay/TDTChannels/master/lists/tv.m3u');
+  const tdtChannels = parseM3u(tdtM3u);
+
+  console.log('Descargando canales internacionales en español...');
+  const spaM3u = await fetchM3u('https://iptv-org.github.io/iptv/languages/spa.m3u');
+  const spaChannels = parseM3u(spaM3u);
   
-  console.log('Descargando TODOS los canales de Anime (iptv-org)...');
+  console.log('Descargando canales de Anime...');
   const animeM3u = await fetchM3u('https://iptv-org.github.io/iptv/categories/animation.m3u');
   const animeChannels = parseM3u(animeM3u, 'Anime');
   
-  const allChannels = [...spanishChannels, ...animeChannels];
+  const allChannels = [...tdtChannels, ...spaChannels, ...animeChannels];
   
   // Limpiar duplicados por URL de stream
   const urls = new Set();
