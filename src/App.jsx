@@ -14,6 +14,11 @@ function App() {
   const [recentlyWatched, setRecentlyWatched] = useState(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [channelData, setChannelData] = useState({ channels: [] });
+  const [visibleCount, setVisibleCount] = useState(24);
+  
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [activeCategory, searchQuery]);
   
   const featuredHeroChannel = useMemo(() => {
     if (!channelData.channels.length) return null;
@@ -165,7 +170,7 @@ function App() {
 
               {/* Dynamic Grids Categories */}
               {dynamicCategories.filter(cat => cat.name !== 'Todos' && cat.name !== 'Favoritos').map(category => {
-                const categoryChannels = channelData.channels.filter(c => c.category === category.name).slice(0, 50); // limit for perf
+                const categoryChannels = channelData.channels.filter(c => c.category === category.name).slice(0, 14); // Optimized limit for mobile perf
                 if (categoryChannels.length === 0) return null;
                 
                 return (
@@ -207,17 +212,29 @@ function App() {
               </div>
               
               {filteredChannels.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5 animate-fade-in">
-                  {filteredChannels.map(channel => (
-                    <ChannelCard 
-                      key={channel.id}
-                      channel={channel}
-                      isFavorite={favorites.includes(channel.id)}
-                      toggleFavorite={toggleFavorite}
-                      onPlay={handlePlayChannel}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5 animate-fade-in">
+                    {filteredChannels.slice(0, visibleCount).map(channel => (
+                      <ChannelCard 
+                        key={channel.id}
+                        channel={channel}
+                        isFavorite={favorites.includes(channel.id)}
+                        toggleFavorite={toggleFavorite}
+                        onPlay={handlePlayChannel}
+                      />
+                    ))}
+                  </div>
+                  {filteredChannels.length > visibleCount && (
+                    <div className="flex justify-center mt-12 mb-8">
+                      <button 
+                        onClick={() => setVisibleCount(prev => prev + 24)}
+                        className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-full border border-white/20 transition-all hover:scale-105 shadow-[0_4px_20px_rgba(255,255,255,0.05)]"
+                      >
+                        Cargar más canales...
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-32 text-center glass-panel rounded-[3rem] mt-10">
                   <div className="bg-white/[0.03] p-8 rounded-full mb-8 border border-white/[0.05]">

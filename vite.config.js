@@ -11,21 +11,22 @@ export default defineConfig({
       manifest: {
         name: 'Animux',
         short_name: 'Animux',
-        description: 'La mejor experiencia de Anime puro',
-        theme_color: '#0f1115',
-        background_color: '#0f1115',
+        description: 'Plataforma Premium de Televisión y Streaming',
+        theme_color: '#030305',
+        background_color: '#030305',
         display: 'standalone',
         icons: [
           {
-            src: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=192&h=192',
+            src: 'https://ui-avatars.com/api/?name=AX&background=020617&color=4f46e5&size=192&font-size=0.4',
             sizes: '192x192',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=512&h=512',
+            src: 'https://ui-avatars.com/api/?name=AX&background=020617&color=4f46e5&size=512&font-size=0.4',
             sizes: '512x512',
-            type: 'image/jpeg'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       },
