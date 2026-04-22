@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play, Info, Star, Calendar, Clock } from 'lucide-react';
 
-export default function Hero({ featuredChannel, onPlay }) {
+export default function Hero({ featuredChannel, onPlay, onDetails }) {
   if (!featuredChannel) return null;
 
   const displayName = featuredChannel.displayName || featuredChannel.name;
@@ -52,10 +52,10 @@ export default function Hero({ featuredChannel, onPlay }) {
             className="group flex items-center gap-3 px-8 md:px-12 py-4 bg-white text-black rounded-full font-black text-sm md:text-base hover:bg-indigo-600 hover:text-white transition-all duration-500 shadow-xl shadow-white/5 active:scale-95"
           >
             <Play className="w-5 h-5 fill-current" />
-            SINTONIZAR
+            REPRODUCIR
           </button>
           <button 
-            onClick={() => onPlay(featuredChannel)}
+            onClick={() => onDetails(featuredChannel)}
             className="flex items-center gap-3 px-8 md:px-10 py-4 bg-white/5 backdrop-blur-md text-white rounded-full font-bold text-sm md:text-base hover:bg-white/10 border border-white/10 transition-all active:scale-95 shadow-lg"
           >
             <Info className="w-5 h-5" />

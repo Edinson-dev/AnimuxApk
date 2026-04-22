@@ -13,7 +13,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
       ></div>
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-4xl bg-[#0a0a0c] md:rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 animate-slide-up flex flex-col md:flex-row h-[85vh] md:h-auto">
+      <div className="relative w-full max-w-4xl bg-[#0a0a0c] md:rounded-3xl overflow-y-auto md:overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 animate-slide-up flex flex-col md:flex-row h-[90vh] md:h-auto custom-scrollbar">
         
         {/* Poster / Image Section */}
         <div className="w-full md:w-2/5 aspect-[2/3] md:aspect-auto relative group">

@@ -88,7 +88,7 @@ function App() {
         <div className="p-4 md:p-12 pt-8">
           {activeCategory === 'Todos' && !searchQuery ? (
             <div className="space-y-12 animate-fade-in max-w-[1800px] mx-auto">
-              <Hero channel={channelData.channels.find(c => c.groupId === 'DBZ-Cloverway-Episodes' || c.groupId === 'los-simpsons-latino-temporadas-1-10')} onPlay={setSelectedDetail} />
+              <Hero featuredChannel={channelData.channels.find(c => c.groupId === 'DBZ-Cloverway-Episodes' || c.groupId === 'los-simpsons-latino-temporadas-1-10')} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
               
               {['Series', 'Cine', 'Infantil & Anime', 'Deportes', 'Documentales'].map((cat) => {
                 const items = channelData.channels
