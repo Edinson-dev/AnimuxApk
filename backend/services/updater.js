@@ -106,10 +106,13 @@ const EXTRA_M3U_SOURCES = [
   'https://iptv-org.github.io/iptv/countries/ar.m3u',
   'https://iptv-org.github.io/iptv/countries/co.m3u',
   'https://iptv-org.github.io/iptv/categories/movies.m3u',
-  'https://iptv-org.github.io/iptv/categories/animation.m3u',
-  // --- Nuevas fuentes Raw de m3u8-xtream-playlist ---
-  'https://aymrgknetzpucldhpkwm.supabase.co/storage/v1/object/public/tmdb/trending-series.m3u',
-  'https://aymrgknetzpucldhpkwm.supabase.co/storage/v1/object/public/tmdb/top-movies.m3u'
+  'https://iptv-org.github.io/iptv/categories/animation.m3u'
+];
+
+const KEYWORD_BLACKLIST = [
+  'geo-blocked', 'offline', 'trial', 'test', 'demo', 'restricted', 
+  'adult', 'XXX', 'sex', 'porn', '18+', 'bunny', 'playboy',
+  'mexico', 'mex', 'latino-mex', 'error de emisión'
 ];
 
 const fetchAndValidateChannels = async () => {

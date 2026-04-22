@@ -5,7 +5,13 @@ export default function Header({ searchQuery, setSearchQuery }) {
   return (
     <header className="sticky top-0 z-[60] glass-panel border-b border-white/5 px-6 py-4 flex items-center justify-between gap-8 bg-[#060608]/80 backdrop-blur-3xl">
       {/* Brand Logo - Cuevana Style */}
-      <div className="flex items-center gap-3 shrink-0 cursor-pointer group">
+      <div 
+        onClick={() => {
+          setSearchQuery('');
+          if (window.onGoHome) window.onGoHome();
+        }}
+        className="flex items-center gap-3 shrink-0 cursor-pointer group"
+      >
         <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
           <PlayCircle className="w-6 h-6 text-white fill-current" />
         </div>
