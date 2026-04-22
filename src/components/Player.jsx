@@ -132,7 +132,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               <h2 className="text-white font-black text-xl md:text-2xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase">
                 {currentName}
               </h2>
-              <span className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
+              <span className="text-rose-500 text-[10px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
           {loading && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20">
-              <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-3" />
+              <Loader2 className="w-10 h-10 text-rose-600 animate-spin mb-3" />
               <p className="text-white font-black text-xs tracking-[0.3em] uppercase">Sintonizando...</p>
             </div>
           )}
@@ -195,18 +195,18 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                    <div 
                      key={item.id}
                      onClick={() => !isActive && onPlayNext(item)}
-                     className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-indigo-600/20 border-indigo-500/40' : 'hover:bg-white/[0.03] border-transparent'}`}
+                     className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-rose-600/10 border-rose-600/40' : 'hover:bg-white/[0.03] border-transparent'}`}
                    >
                      <div className={`rounded-lg overflow-hidden shrink-0 relative bg-black shadow-lg ${item.isVOD ? 'w-12 aspect-[2/3]' : 'w-24 aspect-video'}`}>
                         <img src={item.logo} alt="" className={`w-full h-full transition-opacity ${item.isVOD ? 'object-cover' : 'object-contain p-2'} ${isActive ? 'opacity-30' : 'opacity-100'}`} />
                         {isActive && (
                           <div className="absolute inset-0 flex items-center justify-center">
-                             <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping" />
+                             <div className="w-2 h-2 bg-rose-600 rounded-full animate-ping" />
                           </div>
                         )}
                      </div>
                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <h4 className={`text-sm md:text-base font-black truncate leading-tight tracking-tight ${isActive ? 'text-indigo-400' : 'text-white'}`}>
+                        <h4 className={`text-sm md:text-base font-black truncate leading-tight tracking-tight ${isActive ? 'text-rose-500' : 'text-white'}`}>
                            {itemName}
                         </h4>
                         <p className="text-[10px] text-gray-600 uppercase font-black tracking-widest mt-1">

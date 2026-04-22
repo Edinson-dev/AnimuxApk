@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-[#000000] text-white overflow-hidden selection:bg-indigo-500/30;
+    @apply bg-[#000000] text-white overflow-hidden selection:bg-rose-600/30;
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
     width: 100vw;
@@ -31,7 +31,7 @@
   }
 
   .glass-panel {
-    @apply bg-black/80 backdrop-blur-3xl border-b border-white/[0.03];
+    @apply bg-black/85 backdrop-blur-3xl border-b border-white/[0.03];
   }
   
   .glass-card {
@@ -46,11 +46,20 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-white/10 rounded-full hover:bg-white/30;
+    @apply bg-rose-600/20 rounded-full hover:bg-rose-600/40;
   }
 
   .nav-link {
-    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-all cursor-pointer;
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-rose-500 transition-all cursor-pointer;
+  }
+
+  /* Red Cinema Accent */
+  .accent-red {
+    @apply text-rose-600;
+  }
+  
+  .bg-accent-red {
+    @apply bg-rose-600;
   }
 }
 

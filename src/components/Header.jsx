@@ -23,7 +23,7 @@ export default function Header({ searchQuery, setSearchQuery }) {
             onClick={() => window.onGoHome && window.onGoHome()}
             className="flex items-center gap-3 cursor-pointer group shrink-0"
           >
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg flex items-center justify-center shadow-2xl group-hover:bg-indigo-500 transition-all duration-500">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg flex items-center justify-center shadow-2xl group-hover:bg-rose-500 transition-all duration-500">
                <PlayCircle className="w-5 h-5 md:w-6 md:h-6 text-black fill-current" />
             </div>
             <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase italic hidden sm:block">
@@ -69,7 +69,7 @@ export default function Header({ searchQuery, setSearchQuery }) {
 
            <div className="flex items-center gap-4">
               <button className="hidden sm:block text-[11px] font-black tracking-widest text-gray-400 hover:text-white uppercase transition-colors">Ingresa</button>
-              <button className="px-5 py-2 bg-white text-black rounded-full text-[10px] font-black tracking-widest uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-xl">Suscríbete</button>
+              <button className="px-5 py-2 bg-white text-black rounded-full text-[10px] font-black tracking-widest uppercase hover:bg-rose-600 hover:text-white transition-all shadow-xl">Suscríbete</button>
            </div>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function Header({ searchQuery, setSearchQuery }) {
       {isMobileSearchOpen && (
         <div className="absolute top-0 left-0 right-0 h-24 bg-black flex items-center px-6 animate-fade-in md:hidden border-b border-white/10">
            <div className="flex-1 relative flex items-center gap-4">
-              <Search className="w-5 h-5 text-indigo-500" />
+              <Search className="w-5 h-5 text-rose-500" />
               <input 
                 autoFocus
                 type="text"
