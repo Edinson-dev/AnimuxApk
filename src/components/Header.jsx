@@ -44,15 +44,15 @@ export default function Header({ searchQuery, setSearchQuery }) {
         </div>
       </div>
       
-      {/* Category Quick Links (Mobile Only) */}
-      <div className="md:hidden flex gap-3 overflow-x-auto no-scrollbar px-4 pb-3">
-         {['Todos', 'Cine', 'Series', 'Deportes', 'Infantil', 'Favoritos'].map(cat => (
+      {/* Category Quick Links (Responsive) */}
+      <div className="flex gap-2 md:gap-4 overflow-x-auto no-scrollbar px-4 md:px-8 pb-3 md:pb-4">
+         {['Todos', 'Cine', 'Series', 'Infantil', 'Anime', 'Deportes', 'Documentales', 'Noticias', 'Favoritos'].map(cat => (
            <button 
              key={cat}
              onClick={() => {
                 if (window.setActiveCategory) window.setActiveCategory(cat);
              }}
-             className="shrink-0 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-400 active:bg-indigo-600 active:text-white transition-all"
+             className="shrink-0 px-4 md:px-6 py-1.5 md:py-2 rounded-full bg-white/5 border border-white/5 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/10 active:bg-indigo-600 active:text-white transition-all"
            >
              {cat}
            </button>
