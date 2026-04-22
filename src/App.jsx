@@ -177,17 +177,20 @@ function App() {
                 }).filter(Boolean);
 
                 return (
-                  <div key={cat} className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                       <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                          <span className="w-1.5 h-8 bg-indigo-500 rounded-full" /> {cat}
-                       </h3>
-                       <button onClick={() => setActiveCategory(cat)} className="text-indigo-400 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all">Ver Todo</button>
+                  <div key={cat} className="space-y-8 mb-20">
+                    <div className="flex items-end justify-between px-2">
+                       <div className="space-y-1">
+                          <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tighter italic">
+                             {cat}
+                          </h3>
+                          <div className="w-12 h-1 bg-white/20 rounded-full" />
+                       </div>
+                       <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-all">VER TODO</button>
                     </div>
-                    <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-8 snap-x scroll-smooth px-2">
+                    <div className="flex gap-4 md:gap-5 overflow-x-auto no-scrollbar pb-10 snap-x scroll-smooth px-2">
                        {groupedHome.map(channel => (
-                         <div key={channel.id} className="w-[140px] md:w-[220px] shrink-0 snap-start">
-                           <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} />
+                         <div key={channel.id} className="w-[150px] md:w-[240px] shrink-0 snap-start">
+                           <ChannelCard channel={channel} onPlay={setSelectedDetail} />
                          </div>
                        ))}
                     </div>

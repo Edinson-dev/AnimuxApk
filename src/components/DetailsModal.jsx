@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Heart, Share2, HelpCircle, Laptop, ChevronRight, Star, X } from 'lucide-react';
+import { Play, Heart, Share2, ChevronRight, X, Info } from 'lucide-react';
 import Player from './Player';
 import ChannelCard from './ChannelCard';
 
-export default function DetailsModal({ channel, onClose, onPlay, isFavorite, toggleFavorite, onReportBroken, allChannels = [], onSelect }) {
+export default function DetailsModal({ channel, onClose, onPlay, isFavorite, toggleFavorite, allChannels = [], onSelect }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTab, setActiveTab] = useState('Resumen');
 
@@ -16,42 +16,34 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
   const displayName = channel.displayName || channel.name;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#060608] flex flex-col animate-fade-in overflow-hidden">
-      {/* Top Navigation Bar (Mobile) */}
-      <div className="absolute top-0 left-0 right-0 z-[110] p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
-        <button onClick={onClose} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 text-white active:scale-95 transition-all">
-          <ChevronRight className="w-6 h-6 rotate-180" />
-        </button>
-        <div className="flex items-center gap-3">
-          <button className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 text-white"><Share2 className="w-5 h-5" /></button>
-          <button 
-            onClick={() => toggleFavorite(channel.id)}
-            className={`w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center border transition-all ${isFavorite ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400' : 'bg-black/20 border-white/10 text-white'}`}
-          >
-            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-          </button>
-        </div>
-      </div>
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-fade-in overflow-hidden">
+      {/* HBO Style Close Button */}
+      <button 
+        onClick={onClose} 
+        className="absolute top-6 right-6 z-[120] w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all"
+      >
+        <X className="w-6 h-6" />
+      </button>
 
-      {/* Hero Section / Video Player */}
-      <div className="relative w-full aspect-video md:aspect-[21/9] bg-black shrink-0">
+      {/* Main Video/Hero Area */}
+      <div className="relative w-full aspect-video md:h-[70vh] bg-black shrink-0 overflow-hidden">
         {!isPlaying ? (
           <div className="relative w-full h-full group">
             <img 
               src={channel.logo} 
               alt={displayName}
-              className="w-full h-full object-cover opacity-50 transition-all duration-1000 scale-105 group-hover:scale-100"
+              className="w-full h-full object-cover opacity-60 scale-105 group-hover:scale-100 transition-all duration-1000"
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <button 
                 onClick={() => setIsPlaying(true)}
-                className="w-16 h-16 md:w-24 md:h-24 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.2)] transition-all hover:scale-110 active:scale-95"
+                className="w-20 h-20 md:w-32 md:h-32 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
               >
-                <Play className="w-8 h-8 md:w-12 md:h-12 fill-current ml-1" />
+                <Play className="w-10 h-10 md:w-14 md:h-14 fill-current ml-2" />
               </button>
             </div>
-            {/* Ambient Shadow */}
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#060608] to-transparent"></div>
+            {/* HBO Style Bottom Fade */}
+            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
           </div>
         ) : (
           <div className="w-full h-full relative">
@@ -65,92 +57,82 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="flex-1 overflow-y-auto no-scrollbar bg-[#060608]">
-        <div className="px-6 md:px-16 py-8 space-y-8 max-w-7xl mx-auto">
-          {/* Header Info */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-black rounded uppercase">98% para ti</span>
-              <span className="text-gray-500 text-[10px] font-bold">2024</span>
-              <span className="px-1.5 py-0.5 border border-gray-700 text-gray-400 text-[9px] font-bold rounded">HD</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">
-              {displayName}
-            </h1>
+      {/* Content Area - HBO Style (Vast Spacing, Bold Typography) */}
+      <div className="flex-1 overflow-y-auto no-scrollbar bg-black">
+        <div className="px-6 md:px-24 py-12 space-y-12 max-w-[1800px] mx-auto">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* Left Info */}
+            <div className="lg:col-span-2 space-y-8">
+               <div className="space-y-4">
+                  <div className="flex items-center gap-4 text-[10px] font-black tracking-[0.3em] text-white/40 uppercase">
+                    <span>{channel.category || 'Animux Max'}</span>
+                    <span className="w-1 h-1 bg-white/20 rounded-full" />
+                    <span>2024</span>
+                    <span className="w-1 h-1 bg-white/20 rounded-full" />
+                    <span>4K UHD</span>
+                  </div>
+                  <h1 className="text-5xl md:text-8xl font-black text-white uppercase italic tracking-tighter leading-[0.85]">
+                    {displayName}
+                  </h1>
+               </div>
 
-            <div className="flex flex-wrap gap-2">
-               {['Acción', 'Drama', 'Streaming'].map(tag => (
-                 <span key={tag} className="text-[9px] text-gray-500 font-bold uppercase tracking-widest px-2 py-1 bg-white/5 rounded-full">{tag}</span>
+               <div className="flex flex-wrap gap-4 pt-4">
+                  <button 
+                    onClick={() => setIsPlaying(true)}
+                    className="flex-1 md:flex-none md:px-16 py-5 bg-white text-black rounded-full font-black text-sm hover:bg-gray-200 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-widest"
+                  >
+                    <Play className="w-5 h-5 fill-current" /> Reproducir
+                  </button>
+                  <button 
+                    onClick={() => toggleFavorite(channel.id)}
+                    className={`w-14 h-14 rounded-full border flex items-center justify-center transition-all ${isFavorite ? 'bg-white text-black border-white' : 'bg-white/5 border-white/20 text-white hover:bg-white/10'}`}
+                  >
+                    <Heart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
+                  </button>
+                  <button className="w-14 h-14 rounded-full border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all">
+                    <Share2 className="w-6 h-6" />
+                  </button>
+               </div>
+
+               <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-4xl font-medium">
+                  {channel.description || 'Una obra maestra del entretenimiento digital. Disfruta de esta selección curada exclusivamente para Animux Max, con una calidad de imagen sorprendente y una narrativa que te atrapará desde el primer segundo.'}
+               </p>
+            </div>
+
+            {/* Right Side Info */}
+            <div className="space-y-8 lg:border-l lg:border-white/5 lg:pl-12">
+               <div className="space-y-4">
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Reparto</h4>
+                  <p className="text-gray-500 text-sm">Animux Community, Edinson Dev, IA Visionary</p>
+               </div>
+               <div className="space-y-4">
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Director</h4>
+                  <p className="text-gray-500 text-sm">IA Creative Director</p>
+               </div>
+               <div className="space-y-4">
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Géneros</h4>
+                  <p className="text-gray-500 text-sm">{channel.category}, Acción, Drama</p>
+               </div>
+            </div>
+          </div>
+
+          {/* HBO Style "Related" Grid */}
+          <div className="space-y-8 pt-12 border-t border-white/5">
+            <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tighter italic">Más como esto</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+               {recommended.map(item => (
+                 <ChannelCard 
+                   key={item.id} 
+                   channel={item} 
+                   onPlay={() => {
+                      onSelect(item);
+                      setIsPlaying(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                   }} 
+                 />
                ))}
             </div>
-          </div>
-
-          {/* Action Buttons (Desktop style inline) */}
-          <div className="flex gap-4">
-             <button 
-               onClick={() => setIsPlaying(true)}
-               className="flex-1 md:flex-none md:px-12 py-4 bg-white text-black rounded-xl font-black text-xs md:text-sm hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
-             >
-               <Play className="w-4 h-4 fill-current" /> REPRODUCIR
-             </button>
-             <button className="p-4 bg-white/5 rounded-xl border border-white/10 text-white hover:bg-white/10 transition-all">
-                <Share2 className="w-5 h-5" />
-             </button>
-          </div>
-
-          {/* Tabs Navigation */}
-          <div className="flex gap-8 border-b border-white/5">
-            {['Resumen', 'Similares', 'Detalles'].map(tab => (
-              <button 
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-              >
-                {tab}
-                {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500 rounded-full animate-scale-x" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content */}
-          <div className="animate-fade-in pb-20">
-            {activeTab === 'Resumen' && (
-              <div className="space-y-6">
-                <p className="text-gray-400 text-sm md:text-lg leading-relaxed max-w-4xl">
-                  {channel.description || 'Disfruta de la mejor programación en vivo y bajo demanda. Esta producción ofrece una experiencia inmersiva con alta definición y sonido envolvente. Explora los límites de la narrativa moderna con Animux.'}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
-                   <p className="text-gray-500"><span className="text-gray-400 font-bold">Protagonistas:</span> Animux Community, Edinson Dev</p>
-                   <p className="text-gray-500"><span className="text-gray-400 font-bold">Director:</span> IA Visionary</p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'Similares' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                 {recommended.map(item => (
-                   <ChannelCard 
-                     key={item.id} 
-                     channel={item} 
-                     onPlay={() => {
-                        onSelect(item);
-                        setIsPlaying(false);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                     }} 
-                   />
-                 ))}
-              </div>
-            )}
-
-            {activeTab === 'Detalles' && (
-              <div className="space-y-4 text-sm text-gray-400">
-                 <p><span className="text-white font-bold">Géneros:</span> Entretenimiento, Variedades, Internacional</p>
-                 <p><span className="text-white font-bold">Este título es:</span> Emocionante, Visualmente impactante</p>
-                 <p><span className="text-white font-bold">Clasificación:</span> +13</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
