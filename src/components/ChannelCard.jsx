@@ -7,70 +7,56 @@ export default function ChannelCard({ channel, isFavorite, toggleFavorite, onPla
   
   return (
     <div 
-      className={`group relative rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-700 hover:-translate-y-3 hover:shadow-[0_20px_50px_rgba(79,70,229,0.3)] glass-card animate-fade-in ${channel.isVOD ? 'aspect-[2/3]' : 'aspect-video'} border-white/5 hover:border-indigo-500/50`}
+      className={`group relative rounded-[2rem] md:rounded-[2.5rem] overflow-hidden cursor-pointer transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.6)] glass-card animate-fade-in ${channel.isVOD ? 'aspect-[2/3]' : 'aspect-video'} border-white/[0.03] hover:border-indigo-500/40`}
       onClick={() => onPlay(channel)}
     >
       
       {/* Poster Background */}
-      <div className="absolute inset-0 z-0 bg-[#12121e]">
+      <div className="absolute inset-0 z-0 bg-[#0a0a0f]">
         <img 
           src={channel.logo} 
           alt={displayName} 
-          className={`w-full h-full transition-all duration-700 group-hover:scale-110 ${channel.isVOD ? 'object-cover' : 'object-contain p-6 md:p-8'}`}
+          className={`w-full h-full transition-all duration-700 group-hover:scale-105 ${channel.isVOD ? 'object-cover' : 'object-contain p-4 md:p-8'}`}
           onError={(e) => { 
             e.target.onerror = null; 
             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1e1b4b&color=c7d2fe&size=512&font-size=0.33`; 
           }}
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060608] via-transparent to-transparent opacity-90 group-hover:opacity-100 transition-opacity"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060608] via-[#060608]/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
       </div>
 
       {/* Badges Overlay */}
-      <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
-        <div className="flex gap-2">
-          <span className="bg-indigo-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30">HD</span>
+      <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          <span className="bg-indigo-600/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white shadow-lg">HD</span>
           {channel.isVOD && (
-             <span className="bg-green-500/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-lg">Dual</span>
+             <span className="bg-emerald-500/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white shadow-lg">Dual</span>
           )}
         </div>
         {!channel.isVOD && (
-          <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 w-fit">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
-            <span className="text-[7px] font-black text-white uppercase tracking-widest">EN VIVO</span>
+          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5 w-fit">
+            <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
+            <span className="text-[6px] md:text-[7px] font-black text-white uppercase tracking-widest">LIVE</span>
           </div>
         )}
       </div>
 
-      <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFavorite(channel.id);
-          }}
-          className="p-2 rounded-xl bg-black/60 backdrop-blur-md hover:bg-rose-600 transition-all border border-white/10 shadow-xl"
-        >
-          <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'text-white fill-current' : 'text-white/60'}`} />
-        </button>
-      </div>
-
-      {/* Play Icon Placeholder (Centered) */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-         <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.4)] transform scale-50 group-hover:scale-100 transition-transform duration-500">
-            <Play className="w-6 h-6 fill-current" />
+      {/* Center Play Icon */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+         <div className="w-10 h-10 md:w-12 md:h-12 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
+            <Play className="w-5 h-5 md:w-6 md:h-6 fill-current ml-1" />
          </div>
       </div>
 
       {/* Bottom Content Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 z-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+      <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 z-20">
         <div className="space-y-0.5">
-          <h3 className="font-bold text-white text-[11px] md:text-sm tracking-tight leading-tight line-clamp-1 group-hover:text-indigo-400 transition-colors">
+          <h3 className="font-bold text-white text-[10px] md:text-sm tracking-tight leading-tight line-clamp-1 group-hover:text-indigo-400 transition-colors">
             {displayName}
           </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] text-gray-400 font-medium">2024</span>
-            <span className="w-1 h-1 rounded-full bg-gray-600"></span>
-            <span className="text-[8px] text-gray-400 uppercase font-black tracking-widest truncate">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[7px] md:text-[9px] text-gray-400 font-bold uppercase tracking-tighter truncate max-w-[80%]">
               {channel.category || 'General'}
             </span>
           </div>

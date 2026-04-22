@@ -18,6 +18,7 @@ function App() {
   const [visibleCount, setVisibleCount] = useState(500);
   
   window.onGoHome = () => setActiveCategory('Todos');
+  window.setActiveCategory = (cat) => setActiveCategory(cat);
   
   useEffect(() => {
     fetch('/channels.json')
@@ -121,10 +122,10 @@ function App() {
     <div className="flex flex-col h-[100dvh] bg-[#060608] text-white overflow-hidden w-full relative selection:bg-indigo-500/30">
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar" id="scrollArea">
+      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative" id="scrollArea">
         <div className="p-4 md:p-12 pt-8">
           {activeCategory === 'Todos' && !searchQuery ? (
-            <div className="space-y-16 animate-fade-in max-w-[1800px] mx-auto">
+            <div className="space-y-12 md:space-y-16 animate-fade-in max-w-[1800px] mx-auto">
               <Hero featuredChannel={channelData.channels.find(c => c.groupId === 'DBZ-Cloverway-Episodes' || c.groupId === 'los-simpsons-latino-temporadas-1-10')} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
               
               {['Series', 'Cine', 'Infantil & Anime', 'Deportes', 'Documentales'].map((cat) => {
@@ -153,9 +154,9 @@ function App() {
                        </div>
                        <button onClick={() => setActiveCategory(cat)} className="px-5 py-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Explorar Todo</button>
                     </div>
-                    <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 snap-x scroll-smooth px-2">
+                    <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-8 snap-x scroll-smooth px-2">
                        {groupedHome.map(channel => (
-                         <div key={channel.id} className="w-[160px] md:w-[260px] shrink-0 snap-start">
+                         <div key={channel.id} className="w-[140px] md:w-[260px] shrink-0 snap-start">
                            <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
                          </div>
                        ))}
@@ -179,7 +180,7 @@ function App() {
                 </button>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-10">
                 {displayedChannels.map(channel => (
                   <ChannelCard key={channel.id} channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
                 ))}
@@ -200,16 +201,20 @@ function App() {
         </div>
       </main>
 
-      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] h-16 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full z-50 flex justify-around items-center px-4 shadow-2xl">
+      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] h-20 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] z-50 flex justify-around items-center px-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {[
           { id: 'Todos', icon: Home, label: 'Inicio' },
           { id: 'Cine', icon: Play, label: 'Cine' },
           { id: 'Series', icon: Grid, label: 'Series' },
-          { id: 'Favoritos', icon: Heart, label: 'Favs' }
+          { id: 'Favoritos', icon: Heart, label: 'Favoritos' }
         ].map((item) => (
-          <button key={item.id} onClick={() => setActiveCategory(item.id)} className={`flex flex-col items-center gap-1 ${activeCategory === item.id ? 'text-indigo-400 scale-110' : 'text-gray-500'}`}>
-            <item.icon className="w-5 h-5" />
-            <span className="text-[9px] font-black uppercase">{item.label}</span>
+          <button 
+            key={item.id} 
+            onClick={() => setActiveCategory(item.id)} 
+            className={`flex flex-col items-center justify-center gap-1.5 transition-all duration-300 w-16 h-16 rounded-3xl ${activeCategory === item.id ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <item.icon className={`w-5 h-5 ${activeCategory === item.id ? 'animate-bounce-short' : ''}`} />
+            <span className="text-[8px] font-black uppercase tracking-tighter">{item.label}</span>
           </button>
         ))}
       </nav>
