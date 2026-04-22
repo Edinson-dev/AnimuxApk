@@ -146,8 +146,8 @@ export default function App() {
                 return (
                   <div key={cat} className="space-y-6">
                     <div className="flex items-center justify-between px-2">
-                       <h3 className="text-lg md:text-xl font-bold text-white uppercase tracking-[0.2em]">{cat}</h3>
-                       <button onClick={() => setActiveCategory(cat)} className="text-[9px] font-bold uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-all">Ver Todo</button>
+                       <h3 className="text-2xl md:text-3xl font-normal text-white uppercase tracking-widest">{cat}</h3>
+                       <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all">Ver Todo</button>
                     </div>
                     <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-8 px-2">
                        {items.map(channel => (
@@ -163,10 +163,10 @@ export default function App() {
           ) : (
             <div className="animate-fade-in">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 px-2">
-                 <h2 className="text-2xl md:text-4xl font-bold text-white uppercase tracking-[0.1em]">
+                 <h2 className="text-3xl md:text-5xl font-normal text-white uppercase tracking-widest">
                     {searchQuery ? `Resultados: ${searchQuery}` : activeCategory}
                  </h2>
-                 <span className="text-[9px] font-bold text-gray-600 tracking-[0.3em] uppercase">{filteredChannels.length} Canales</span>
+                 <span className="text-[10px] font-bold text-gray-600 tracking-[0.2em] uppercase">{filteredChannels.length} Canales</span>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4 md:gap-6">
                 {displayedChannels.map(channel => (
