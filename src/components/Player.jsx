@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { X, Maximize, AlertCircle, Loader2, MessageSquare, Settings, PictureInPicture, Play } from 'lucide-react';
 
-export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken }) {
+export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
@@ -11,6 +11,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [useEmbed, setUseEmbed] = useState(false);
   
   const isYouTube = channel?.url?.includes('youtube.com') || channel?.url?.includes('youtu.be');
+
+  // ... (rest of logic)
 
   // Logic to handle next episode
   const handleEnded = () => {
@@ -96,23 +98,25 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const currentName = String(channel.displayName || channel.name || 'Cargando...').replace('undefined - ', '');
 
   return (
-    <div className="fixed inset-0 z-[110] flex flex-col bg-[#060608] animate-fade-in font-sans">
+    <div className={`${isInline ? 'relative h-full' : 'fixed inset-0'} z-[110] flex flex-col bg-[#060608] animate-fade-in font-sans`}>
       {/* Top Header */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black to-transparent z-50">
-        <div className="flex items-center gap-4">
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
-            <X className="w-6 h-6 text-white" />
-          </button>
-          <div>
-            <h2 className="text-white font-black text-sm md:text-xl tracking-tighter truncate max-w-[200px] md:max-w-md">
-              {currentName}
-            </h2>
-            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">
-              {channel.category}
-            </p>
+      {!isInline && (
+        <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black to-transparent z-50">
+          <div className="flex items-center gap-4">
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <div>
+              <h2 className="text-white font-black text-sm md:text-xl tracking-tighter truncate max-w-[200px] md:max-w-md">
+                {currentName}
+              </h2>
+              <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                {channel.category}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Main Player Area */}

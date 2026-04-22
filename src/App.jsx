@@ -204,9 +204,8 @@ function App() {
       <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] h-20 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] z-50 flex justify-around items-center px-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {[
           { id: 'Todos', icon: Home, label: 'Inicio' },
-          { id: 'Cine', icon: Play, label: 'Cine' },
-          { id: 'Series', icon: Grid, label: 'Series' },
-          { id: 'Favoritos', icon: Heart, label: 'Favoritos' }
+          { id: 'Cine', icon: Tv2, label: 'Canales' },
+          { id: 'Favoritos', icon: Star, label: 'Favoritos' }
         ].map((item) => (
           <button 
             key={item.id} 
@@ -224,7 +223,18 @@ function App() {
         return <Player channel={activeChannel} onClose={() => setActiveChannel(null)} playlist={playerPlaylist} onPlayNext={setActiveChannel} onReportBroken={toggleBroken} />;
       })()}
 
-      {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} toggleFavorite={toggleFavorite} onReportBroken={toggleBroken} />}
+      {selectedDetail && (
+        <DetailsModal 
+          channel={selectedDetail} 
+          onClose={() => setSelectedDetail(null)} 
+          onPlay={setActiveChannel} 
+          isFavorite={favorites.includes(String(selectedDetail.id))} 
+          toggleFavorite={toggleFavorite} 
+          onReportBroken={toggleBroken}
+          allChannels={channelData.channels}
+          onSelect={setSelectedDetail}
+        />
+      )}
     </div>
   );
 }
