@@ -57,6 +57,11 @@ function App() {
     });
   };
 
+  const channelsPerPage = 40;
+  const [displayedChannels, setDisplayedChannels] = useState([]);
+  const [page, setPage] = useState(1);
+
+  // Filter broken and handle search/category
   const filteredChannels = useMemo(() => {
     if (!channelData?.channels) return [];
     const basicFiltered = channelData.channels.filter(channel => {
@@ -79,7 +84,23 @@ function App() {
        const cleanName = rawName.split(' - ')[0].split(' Cap ')[0].split(' Ep ')[0].trim();
        return { ...channel, displayName: cleanName };
     }).filter(Boolean);
-  }, [searchQuery, activeCategory, favorites, channelData]);
+  }, [searchQuery, activeCategory, favorites, channelData, brokenChannels]);
+
+  // Reset page when filtering changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, activeCategory]);
+
+  // Update displayed slice
+  useEffect(() => {
+    setDisplayedChannels(filteredChannels.slice(0, page * channelsPerPage));
+  }, [filteredChannels, page]);
+
+  const loadMore = () => {
+    if (displayedChannels.length < filteredChannels.length) {
+      setPage(prev => prev + 1);
+    }
+  };
 
   if (isAppLoading) {
     return (
@@ -100,15 +121,15 @@ function App() {
     <div className="flex flex-col h-[100dvh] bg-[#060608] text-white overflow-hidden w-full relative selection:bg-indigo-500/30">
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      <main className="flex-1 overflow-y-auto pb-32 md:pb-12" id="scrollArea">
+      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar" id="scrollArea">
         <div className="p-4 md:p-12 pt-8">
           {activeCategory === 'Todos' && !searchQuery ? (
-            <div className="space-y-12 animate-fade-in max-w-[1800px] mx-auto">
+            <div className="space-y-16 animate-fade-in max-w-[1800px] mx-auto">
               <Hero featuredChannel={channelData.channels.find(c => c.groupId === 'DBZ-Cloverway-Episodes' || c.groupId === 'los-simpsons-latino-temporadas-1-10')} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
               
               {['Series', 'Cine', 'Infantil & Anime', 'Deportes', 'Documentales'].map((cat) => {
                 const items = channelData.channels
-                  .filter(c => (c.category || "").toLowerCase().includes(cat.toLowerCase()))
+                  .filter(c => (c.category || "").toLowerCase().includes(cat.toLowerCase()) && !brokenChannels.includes(String(c.id)))
                   .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
                   .slice(0, 30);
                 
@@ -122,16 +143,19 @@ function App() {
                 }).filter(Boolean);
 
                 return (
-                  <div key={cat} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                       <h3 className="text-sm md:text-xl font-black text-white/90 uppercase tracking-widest flex items-center gap-2">
-                          <span className="w-1 h-5 bg-indigo-500 rounded-full" /> {cat}
-                       </h3>
-                       <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-bold text-indigo-400 hover:text-white uppercase">Explorar Todo</button>
+                  <div key={cat} className="space-y-6">
+                    <div className="flex items-center justify-between px-2">
+                       <div className="flex flex-col">
+                          <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                             <span className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-full" /> {cat}
+                          </h3>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em] ml-5">Contenido seleccionado</p>
+                       </div>
+                       <button onClick={() => setActiveCategory(cat)} className="px-5 py-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Explorar Todo</button>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
+                    <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 snap-x scroll-smooth px-2">
                        {groupedHome.map(channel => (
-                         <div key={channel.id} className="w-[140px] md:w-[220px] shrink-0 snap-start transform transition-transform hover:scale-105">
+                         <div key={channel.id} className="w-[160px] md:w-[260px] shrink-0 snap-start">
                            <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
                          </div>
                        ))}
@@ -141,21 +165,36 @@ function App() {
               })}
             </div>
           ) : (
-            <div className="max-w-[1400px] mx-auto animate-fade-in">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter text-white/10">{activeCategory}</h2>
+            <div className="max-w-[1500px] mx-auto animate-fade-in">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 px-4">
+                <div className="space-y-2">
+                   <h2 className="text-4xl md:text-7xl font-black italic uppercase tracking-tighter text-white/5 leading-none">{activeCategory}</h2>
+                   <p className="text-indigo-500/60 font-black text-xs tracking-[0.4em] uppercase ml-1">Mostrando {displayedChannels.length} de {filteredChannels.length} resultados</p>
+                </div>
                 <button 
                   onClick={() => setActiveCategory('Todos')} 
-                  className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border border-white/5"
+                  className="px-8 py-3 bg-white/5 hover:bg-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border border-white/5 hover:border-indigo-500 shadow-xl"
                 >
                   Regresar al Inicio
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
-                {filteredChannels.slice(0, visibleCount || 500).map(channel => (
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-10">
+                {displayedChannels.map(channel => (
                   <ChannelCard key={channel.id} channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
                 ))}
               </div>
+
+              {displayedChannels.length < filteredChannels.length && (
+                <div className="flex justify-center mt-20 mb-10">
+                  <button 
+                    onClick={loadMore}
+                    className="px-12 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs transition-all shadow-[0_0_40px_rgba(79,70,229,0.3)] hover:scale-105 active:scale-95"
+                  >
+                    Cargar más contenido
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
