@@ -4,7 +4,8 @@ import ChannelCard from './components/ChannelCard';
 import Player from './components/Player';
 import Hero from './components/Hero';
 import DetailsModal from './components/DetailsModal';
-import { Tv2, Heart, Compass, Grid, Play, Home, Search, Star, MessageSquare, PlayCircle } from 'lucide-react';
+import Skeleton from './components/Skeleton';
+import { Tv2, Heart, Compass, Grid, Play, Home, Search, Star, MessageSquare, PlayCircle, AlertCircle } from 'lucide-react';
 
 function App() {
   const [activeCategory, setActiveCategory] = useState('Todos');
@@ -14,20 +15,36 @@ function App() {
   const [activeChannel, setActiveChannel] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [channelData, setChannelData] = useState({ channels: [] });
-  const [visibleCount, setVisibleCount] = useState(500);
   
   window.onGoHome = () => setActiveCategory('Todos');
   window.setActiveCategory = (cat) => setActiveCategory(cat);
   
-  useEffect(() => {
+  const loadData = () => {
+    setIsAppLoading(true);
+    setError(null);
     fetch('/channels.json')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.channels) setChannelData(data);
+      .then(res => {
+        if (!res.ok) throw new Error('No se pudo cargar el catálogo');
+        return res.json();
       })
-      .catch(err => console.error("Error cargando canales:", err))
+      .then(data => {
+        if (data && data.channels) {
+          setChannelData(data);
+        } else {
+          throw new Error('Catálogo vacío');
+        }
+      })
+      .catch(err => {
+        console.error("Error cargando canales:", err);
+        setError(err.message);
+      })
       .finally(() => setIsAppLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
 
     const savedFavorites = localStorage.getItem('viciontv_favorites');
     if (savedFavorites) {
@@ -59,10 +76,8 @@ function App() {
   };
 
   const channelsPerPage = 40;
-  const [displayedChannels, setDisplayedChannels] = useState([]);
   const [page, setPage] = useState(1);
 
-  // Filter broken and handle search/category
   const filteredChannels = useMemo(() => {
     if (!channelData?.channels) return [];
     const basicFiltered = channelData.channels.filter(channel => {
@@ -87,14 +102,12 @@ function App() {
     }).filter(Boolean);
   }, [searchQuery, activeCategory, favorites, channelData, brokenChannels]);
 
-  // Reset page when filtering changes
   useEffect(() => {
     setPage(1);
   }, [searchQuery, activeCategory]);
 
-  // Update displayed slice
-  useEffect(() => {
-    setDisplayedChannels(filteredChannels.slice(0, page * channelsPerPage));
+  const displayedChannels = useMemo(() => {
+    return filteredChannels.slice(0, page * channelsPerPage);
   }, [filteredChannels, page]);
 
   const loadMore = () => {
@@ -105,15 +118,31 @@ function App() {
 
   if (isAppLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#050507]">
-        <div className="relative">
-          <div className="w-24 h-24 border-b-4 border-indigo-600 rounded-full animate-spin"></div>
-          <PlayCircle className="absolute inset-0 m-auto w-10 h-10 text-white fill-indigo-500/20" />
+      <div className="flex flex-col h-screen bg-[#060608]">
+        <Header searchQuery="" setSearchQuery={() => {}} />
+        <div className="flex-1 overflow-hidden">
+          <Skeleton />
         </div>
-        <div className="mt-8 text-center space-y-2">
-          <h2 className="text-white font-black text-2xl tracking-tighter uppercase italic">Animux<span className="text-indigo-500">Live</span></h2>
-          <p className="text-gray-500 text-xs font-bold tracking-[0.3em] animate-pulse">Sincronizando Servidores...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#060608] p-6 text-center space-y-6">
+        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center border border-rose-500/20">
+          <AlertCircle className="w-10 h-10 text-rose-500" />
         </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Ops! Algo salió mal</h2>
+          <p className="text-gray-500 text-sm max-w-xs mx-auto">{error}. Verifica tu conexión o intenta de nuevo.</p>
+        </div>
+        <button 
+          onClick={loadData}
+          className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-black text-xs transition-all shadow-lg active:scale-95"
+        >
+          REINTENTAR CARGA
+        </button>
       </div>
     );
   }
@@ -128,9 +157,13 @@ function App() {
             <div className="space-y-12 md:space-y-16 animate-fade-in max-w-[1800px] mx-auto">
               <Hero featuredChannel={channelData.channels.find(c => c.groupId === 'DBZ-Cloverway-Episodes' || c.groupId === 'los-simpsons-latino-temporadas-1-10')} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
               
-              {['Series', 'Cine', 'Infantil & Anime', 'Deportes', 'Documentales'].map((cat) => {
+              {['Series', 'Filmes', 'Infantil', 'Anime', 'Deportes', 'Documentales'].map((cat) => {
                 const items = channelData.channels
-                  .filter(c => (c.category || "").toLowerCase().includes(cat.toLowerCase()) && !brokenChannels.includes(String(c.id)))
+                  .filter(c => {
+                    const chCat = (c.category || "").toLowerCase();
+                    if (cat === 'Filmes') return chCat.includes('cine') || chCat.includes('movie');
+                    return chCat.includes(cat.toLowerCase());
+                  })
                   .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
                   .slice(0, 30);
                 
@@ -146,18 +179,15 @@ function App() {
                 return (
                   <div key={cat} className="space-y-6">
                     <div className="flex items-center justify-between px-2">
-                       <div className="flex flex-col">
-                          <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                             <span className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-full" /> {cat}
-                          </h3>
-                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em] ml-5">Contenido seleccionado</p>
-                       </div>
-                       <button onClick={() => setActiveCategory(cat)} className="px-5 py-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Explorar Todo</button>
+                       <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                          <span className="w-1.5 h-8 bg-indigo-500 rounded-full" /> {cat}
+                       </h3>
+                       <button onClick={() => setActiveCategory(cat)} className="text-indigo-400 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all">Ver Todo</button>
                     </div>
                     <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-8 snap-x scroll-smooth px-2">
                        {groupedHome.map(channel => (
-                         <div key={channel.id} className="w-[140px] md:w-[260px] shrink-0 snap-start">
-                           <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
+                         <div key={channel.id} className="w-[140px] md:w-[220px] shrink-0 snap-start">
+                           <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} />
                          </div>
                        ))}
                     </div>
@@ -168,31 +198,19 @@ function App() {
           ) : (
             <div className="max-w-[1500px] mx-auto animate-fade-in">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 px-4">
-                <div className="space-y-2">
-                   <h2 className="text-4xl md:text-7xl font-black italic uppercase tracking-tighter text-white/5 leading-none">{activeCategory}</h2>
-                   <p className="text-indigo-500/60 font-black text-xs tracking-[0.4em] uppercase ml-1">Mostrando {displayedChannels.length} de {filteredChannels.length} resultados</p>
-                </div>
-                <button 
-                  onClick={() => setActiveCategory('Todos')} 
-                  className="px-8 py-3 bg-white/5 hover:bg-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border border-white/5 hover:border-indigo-500 shadow-xl"
-                >
-                  Regresar al Inicio
-                </button>
+                 <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white leading-none">{activeCategory}</h2>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-8">
                 {displayedChannels.map(channel => (
-                  <ChannelCard key={channel.id} channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
+                  <ChannelCard key={channel.id} channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} />
                 ))}
               </div>
 
               {displayedChannels.length < filteredChannels.length && (
                 <div className="flex justify-center mt-20 mb-10">
-                  <button 
-                    onClick={loadMore}
-                    className="px-12 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs transition-all shadow-[0_0_40px_rgba(79,70,229,0.3)] hover:scale-105 active:scale-95"
-                  >
-                    Cargar más contenido
+                  <button onClick={loadMore} className="px-12 py-5 bg-white/5 hover:bg-indigo-600 text-white rounded-full font-black uppercase tracking-widest text-[10px] transition-all border border-white/10">
+                    Cargar más
                   </button>
                 </div>
               )}
@@ -201,19 +219,19 @@ function App() {
         </div>
       </main>
 
-      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] h-20 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] z-50 flex justify-around items-center px-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] h-20 bg-[#0d0d0f]/80 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] z-50 flex justify-around items-center px-4 shadow-2xl">
         {[
           { id: 'Todos', icon: Home, label: 'Inicio' },
-          { id: 'Cine', icon: Tv2, label: 'Canales' },
+          { id: 'Filmes', icon: Tv2, label: 'Canales' },
           { id: 'Favoritos', icon: Star, label: 'Favoritos' }
         ].map((item) => (
           <button 
             key={item.id} 
             onClick={() => setActiveCategory(item.id)} 
-            className={`flex flex-col items-center justify-center gap-1.5 transition-all duration-300 w-16 h-16 rounded-3xl ${activeCategory === item.id ? 'text-indigo-400 bg-indigo-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+            className={`flex flex-col items-center justify-center gap-1.5 transition-all duration-300 w-16 h-16 rounded-3xl ${activeCategory === item.id ? 'text-indigo-500' : 'text-gray-500'}`}
           >
-            <item.icon className={`w-5 h-5 ${activeCategory === item.id ? 'animate-bounce-short' : ''}`} />
-            <span className="text-[8px] font-black uppercase tracking-tighter">{item.label}</span>
+            <item.icon className="w-6 h-6" />
+            <span className="text-[9px] font-bold uppercase tracking-tighter">{item.label}</span>
           </button>
         ))}
       </nav>

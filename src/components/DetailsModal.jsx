@@ -1,46 +1,57 @@
-import React, { useState } from 'react';
-import { Play, Heart, Share2, HelpCircle, Laptop, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, Heart, Share2, HelpCircle, Laptop, ChevronRight, Star, X } from 'lucide-react';
 import Player from './Player';
 import ChannelCard from './ChannelCard';
 
 export default function DetailsModal({ channel, onClose, onPlay, isFavorite, toggleFavorite, onReportBroken, allChannels = [], onSelect }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [activeTab, setActiveTab] = useState('Resumen');
+
   if (!channel) return null;
 
   const recommended = allChannels
     .filter(c => c.category === channel.category && c.id !== channel.id)
-    .slice(0, 6);
+    .slice(0, 12);
+
+  const displayName = channel.displayName || channel.name;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#060608] flex flex-col animate-fade-in overflow-y-auto no-scrollbar">
-      {/* Player Section (Top) */}
-      <div className="relative w-full aspect-video bg-black shrink-0">
+    <div className="fixed inset-0 z-[100] bg-[#060608] flex flex-col animate-fade-in overflow-hidden">
+      {/* Top Navigation Bar (Mobile) */}
+      <div className="absolute top-0 left-0 right-0 z-[110] p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+        <button onClick={onClose} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 text-white active:scale-95 transition-all">
+          <ChevronRight className="w-6 h-6 rotate-180" />
+        </button>
+        <div className="flex items-center gap-3">
+          <button className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 text-white"><Share2 className="w-5 h-5" /></button>
+          <button 
+            onClick={() => toggleFavorite(channel.id)}
+            className={`w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center border transition-all ${isFavorite ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400' : 'bg-black/20 border-white/10 text-white'}`}
+          >
+            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Hero Section / Video Player */}
+      <div className="relative w-full aspect-video md:aspect-[21/9] bg-black shrink-0">
         {!isPlaying ? (
           <div className="relative w-full h-full group">
             <img 
               src={channel.logo} 
-              alt={channel.name}
-              className="w-full h-full object-cover opacity-60"
+              alt={displayName}
+              className="w-full h-full object-cover opacity-50 transition-all duration-1000 scale-105 group-hover:scale-100"
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <button 
                 onClick={() => setIsPlaying(true)}
-                className="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95"
+                className="w-16 h-16 md:w-24 md:h-24 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.2)] transition-all hover:scale-110 active:scale-95"
               >
-                <Play className="w-10 h-10 fill-current ml-1" />
+                <Play className="w-8 h-8 md:w-12 md:h-12 fill-current ml-1" />
               </button>
             </div>
-            
-            {/* Player Top Controls */}
-            <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10">
-                <ChevronRight className="w-6 h-6 text-white rotate-180" />
-              </button>
-              <div className="flex items-center gap-4">
-                <button className="p-2 rounded-full hover:bg-white/10"><HelpCircle className="w-6 h-6 text-white" /></button>
-                <button className="p-2 rounded-full hover:bg-white/10"><Laptop className="w-6 h-6 text-white" /></button>
-              </div>
-            </div>
+            {/* Ambient Shadow */}
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#060608] to-transparent"></div>
           </div>
         ) : (
           <div className="w-full h-full relative">
@@ -48,73 +59,98 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
               channel={channel} 
               onClose={() => setIsPlaying(false)} 
               playlist={allChannels.filter(c => c.category === channel.category)}
-              onPlayNext={(next) => {/* handle next */}}
-              onReportBroken={onReportBroken}
               isInline={true}
             />
-            <button 
-              onClick={() => setIsPlaying(false)}
-              className="absolute top-4 left-4 z-[120] p-2 rounded-full bg-black/40 text-white"
-            >
-              <ChevronRight className="w-6 h-6 rotate-180" />
-            </button>
           </div>
         )}
       </div>
 
-      {/* Info Section */}
-      <div className="px-6 py-6 space-y-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-black text-white flex items-center gap-2">
-              {channel.name} <span className="text-indigo-500 text-lg italic">6.3</span>
-            </h1>
-            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">
-              United States | 2024 | {channel.category || 'General'}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button className="p-3 rounded-full bg-white/5 border border-white/10 text-white"><Share2 className="w-5 h-5" /></button>
-            <button 
-              onClick={() => toggleFavorite(channel.id)}
-              className={`p-3 rounded-full border transition-all ${isFavorite ? 'bg-indigo-500/20 border-indigo-500 text-indigo-500' : 'bg-white/5 border-white/10 text-white'}`}
-            >
-              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-gray-400 text-sm leading-relaxed">
-            {channel.description || 'La historia se desarrolla en el transcurso de una sola mañana y está protagonizada por una producción de alta calidad. El espectador se sumerge en una trama llena de suspense y emoción...'}
-            <span className="text-indigo-500 ml-1 cursor-pointer">vea más</span>
-          </p>
-
-          <div className="space-y-1 text-xs">
-            <p className="text-gray-500"><span className="text-gray-400 font-bold">Director:</span> Antoine Fuqua</p>
-            <p className="text-gray-500"><span className="text-gray-400 font-bold">Actores:</span> Animux Studios, Edinson Dev</p>
-          </div>
-        </div>
-
-        {/* Ad Banner Placeholder */}
-        <div className="w-full h-24 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 rounded-xl border border-white/10 flex items-center justify-center overflow-hidden relative">
-            <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-yellow-500 rounded text-[8px] font-black text-black uppercase">Anuncio</div>
-            <div className="text-center">
-              <p className="text-indigo-400 font-black text-xs uppercase tracking-widest">Sube de Nivel</p>
-              <p className="text-white text-[10px] font-bold">Consigue Animux Premium para evitar anuncios</p>
+      {/* Content Section */}
+      <div className="flex-1 overflow-y-auto no-scrollbar bg-[#060608]">
+        <div className="px-6 md:px-16 py-8 space-y-8 max-w-7xl mx-auto">
+          {/* Header Info */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-black rounded uppercase">98% para ti</span>
+              <span className="text-gray-500 text-[10px] font-bold">2024</span>
+              <span className="px-1.5 py-0.5 border border-gray-700 text-gray-400 text-[9px] font-bold rounded">HD</span>
             </div>
-        </div>
+            
+            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">
+              {displayName}
+            </h1>
 
-        {/* Recommendations */}
-        <div className="space-y-4 pt-4">
-          <h3 className="text-sm font-black text-white uppercase tracking-widest">También podría gustarte</h3>
-          <div className="grid grid-cols-3 gap-3">
-             {recommended.map(item => (
-               <ChannelCard key={item.id} channel={item} onPlay={() => {
-                 if (onSelect) onSelect(item);
-                 setIsPlaying(false);
-               }} />
-             ))}
+            <div className="flex flex-wrap gap-2">
+               {['Acción', 'Drama', 'Streaming'].map(tag => (
+                 <span key={tag} className="text-[9px] text-gray-500 font-bold uppercase tracking-widest px-2 py-1 bg-white/5 rounded-full">{tag}</span>
+               ))}
+            </div>
+          </div>
+
+          {/* Action Buttons (Desktop style inline) */}
+          <div className="flex gap-4">
+             <button 
+               onClick={() => setIsPlaying(true)}
+               className="flex-1 md:flex-none md:px-12 py-4 bg-white text-black rounded-xl font-black text-xs md:text-sm hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
+             >
+               <Play className="w-4 h-4 fill-current" /> REPRODUCIR
+             </button>
+             <button className="p-4 bg-white/5 rounded-xl border border-white/10 text-white hover:bg-white/10 transition-all">
+                <Share2 className="w-5 h-5" />
+             </button>
+          </div>
+
+          {/* Tabs Navigation */}
+          <div className="flex gap-8 border-b border-white/5">
+            {['Resumen', 'Similares', 'Detalles'].map(tab => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                {tab}
+                {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500 rounded-full animate-scale-x" />}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="animate-fade-in pb-20">
+            {activeTab === 'Resumen' && (
+              <div className="space-y-6">
+                <p className="text-gray-400 text-sm md:text-lg leading-relaxed max-w-4xl">
+                  {channel.description || 'Disfruta de la mejor programación en vivo y bajo demanda. Esta producción ofrece una experiencia inmersiva con alta definición y sonido envolvente. Explora los límites de la narrativa moderna con Animux.'}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
+                   <p className="text-gray-500"><span className="text-gray-400 font-bold">Protagonistas:</span> Animux Community, Edinson Dev</p>
+                   <p className="text-gray-500"><span className="text-gray-400 font-bold">Director:</span> IA Visionary</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Similares' && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                 {recommended.map(item => (
+                   <ChannelCard 
+                     key={item.id} 
+                     channel={item} 
+                     onPlay={() => {
+                        onSelect(item);
+                        setIsPlaying(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                     }} 
+                   />
+                 ))}
+              </div>
+            )}
+
+            {activeTab === 'Detalles' && (
+              <div className="space-y-4 text-sm text-gray-400">
+                 <p><span className="text-white font-bold">Géneros:</span> Entretenimiento, Variedades, Internacional</p>
+                 <p><span className="text-white font-bold">Este título es:</span> Emocionante, Visualmente impactante</p>
+                 <p><span className="text-white font-bold">Clasificación:</span> +13</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

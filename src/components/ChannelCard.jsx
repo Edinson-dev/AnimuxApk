@@ -7,15 +7,15 @@ export default function ChannelCard({ channel, isFavorite, toggleFavorite, onPla
   
   return (
     <div 
-      className="group relative flex flex-col gap-2 cursor-pointer transition-all duration-300 active:scale-95"
+      className="group relative flex flex-col gap-3 cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-95"
       onClick={() => onPlay(channel)}
     >
       {/* Poster Image Container */}
-      <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#0a0a0f] border border-white/5">
+      <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#0d0d0f] border border-white/5 shadow-lg group-hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] group-hover:border-indigo-500/50 transition-all duration-500">
         <img 
           src={channel.logo} 
           alt={displayName} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => { 
             e.target.onerror = null; 
             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1e1b4b&color=c7d2fe&size=512&font-size=0.33`; 
@@ -24,32 +24,31 @@ export default function ChannelCard({ channel, isFavorite, toggleFavorite, onPla
         />
         
         {/* Rating Badge (Top Left) */}
-        <div className="absolute top-1.5 left-1.5 z-10">
-           <div className="bg-indigo-600 px-1 py-0.5 rounded text-[8px] font-black text-white shadow-lg">
-             7.4
+        <div className="absolute top-2 left-2 z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+           <div className="bg-indigo-600 px-2 py-1 rounded-lg text-[9px] font-black text-white shadow-xl flex items-center gap-1">
+             <Star className="w-2.5 h-2.5 fill-current" /> 7.4
            </div>
         </div>
 
-        {/* Center Play Icon Overlay */}
-        <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
-           <div className="w-10 h-10 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center border border-white/30">
-              <Play className="w-5 h-5 fill-current ml-0.5" />
+        {/* Play Icon Overlay */}
+        <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/40 backdrop-blur-[2px]">
+           <div className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transform scale-50 group-hover:scale-100 transition-all duration-500">
+              <Play className="w-6 h-6 fill-current ml-1" />
            </div>
         </div>
       </div>
 
       {/* Title Below Image */}
-      <div className="px-1">
-        <h3 className="font-bold text-white text-[11px] md:text-sm tracking-tight leading-tight line-clamp-1 group-hover:text-indigo-400 transition-colors">
+      <div className="px-1 space-y-1">
+        <h3 className="font-bold text-white text-xs md:text-[13px] tracking-tight leading-tight line-clamp-1 group-hover:text-indigo-400 transition-colors duration-300">
           {displayName}
         </h3>
-        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
-          {channel.category || 'General'}
-        </p>
+        <div className="flex items-center gap-2">
+           <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest px-1.5 py-0.5 bg-white/5 rounded">
+             {channel.category || 'Varios'}
+           </span>
+        </div>
       </div>
-
-      {/* Gloss Effect */}
-      <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-10 bg-gradient-to-tr from-white/20 via-transparent to-transparent pointer-events-none"></div>
     </div>
   );
 }
