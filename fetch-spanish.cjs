@@ -33,7 +33,21 @@ https.get(m3uUrl, (res) => {
         // Extraemos dinámicamente la categoría de la lista oficial de iptv-org
         const groupMatch = line.match(/group-title="([^"]*)"/);
         const rawGroup = groupMatch ? groupMatch[1] : "General";
-        const category = rawGroup ? rawGroup.split(';')[0].trim() : "General";
+        let category = rawGroup ? rawGroup.split(';')[0].trim() : "General";
+        
+        // Mejorar categorías
+        const catLower = category.toLowerCase();
+        if (catLower.includes('movie') || catLower.includes('cine')) category = "Cine";
+        else if (catLower.includes('news') || catLower.includes('noticias')) category = "Noticias";
+        else if (catLower.includes('sport') || catLower.includes('deporte')) category = "Deportes";
+        else if (catLower.includes('music') || catLower.includes('música') || catLower.includes('musica')) category = "Música";
+        else if (catLower.includes('kids') || catLower.includes('niños') || catLower.includes('animation') || catLower.includes('anime')) category = "Infantil & Anime";
+        else if (catLower.includes('documentary') || catLower.includes('documental')) category = "Documentales";
+        else if (catLower.includes('religion') || catLower.includes('religious') || catLower.includes('religioso')) category = "Religión";
+        else if (catLower.includes('entertainment') || catLower.includes('entretenimiento')) category = "Entretenimiento";
+        else if (catLower.includes('series') || catLower.includes('drama') || catLower.includes('comedy')) category = "Series";
+        else if (catLower.includes('education') || catLower.includes('educación')) category = "Educación";
+        else category = "General";
 
         const nameMatch = line.split(',');
         const name = nameMatch.length > 1 ? nameMatch[1].trim() : "Canal TV";
@@ -42,7 +56,7 @@ https.get(m3uUrl, (res) => {
           id: idCounter++,
           name: name,
           logo: logo,
-          category: category !== "" ? category : "General"
+          category: category
         };
       } else if (line.startsWith('http')) {
         if (currentChannel.name) {
@@ -53,8 +67,8 @@ https.get(m3uUrl, (res) => {
       }
     }
 
-    // Guardamos en el JSON
-    const outputFilePath = path.join(__dirname, 'src', 'data', 'channels.json');
+    // Guardamos en el JSON en public para uso inmediato
+    const outputFilePath = path.join(__dirname, 'public', 'channels.json');
     const jsonOutput = { channels: channels };
     
     fs.writeFileSync(outputFilePath, JSON.stringify(jsonOutput, null, 2));

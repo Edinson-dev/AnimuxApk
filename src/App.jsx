@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
 import ChannelCard from './components/ChannelCard';
 import Player from './components/Player';
 import Hero from './components/Hero';
 import Carousel from './components/Carousel';
-import { Tv2, Sparkles, Heart, Compass, Zap } from 'lucide-react';
+import { Tv2, Heart, Compass, Grid, Zap, Play } from 'lucide-react';
 
 function App() {
   const [activeCategory, setActiveCategory] = useState('Todos');
@@ -16,22 +15,18 @@ function App() {
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [channelData, setChannelData] = useState({ channels: [] });
   
-  // Pick a featured channel for the Hero section. We can pick a popular one or random.
-  // Using memo to keep it consistent per render.
   const featuredHeroChannel = useMemo(() => {
     if (!channelData.channels.length) return null;
-    const defaultFeatured = channelData.channels.find(c => c.category === '24/7' || c.category === 'Anime') || channelData.channels[0];
+    const defaultFeatured = channelData.channels.find(c => c.category === 'Series' || c.category === 'Cine') || channelData.channels[0];
     return defaultFeatured;
   }, [channelData]);
 
   useEffect(() => {
-    // 1. Fetch channel data asynchronously
     fetch('/channels.json')
       .then(res => res.json())
       .then(data => {
         setChannelData(data);
         
-        // Handle Direct Play via URL Parameter
         const urlParams = new URLSearchParams(window.location.search);
         const playId = urlParams.get('play');
         if (playId) {
@@ -40,11 +35,9 @@ function App() {
              setActiveChannel(channel);
              setRecentlyWatched(channel);
              localStorage.setItem('viciontv_recent', channel.id.toString());
-             // Limpiar la URL para evitar que al refrescar por el sistema automático siga
              window.history.replaceState({}, document.title, "/");
            }
         } else {
-          // 2. Load recent channel after data is ready if no direct play link provided
           const savedRecent = localStorage.getItem('viciontv_recent');
           if (savedRecent) {
             const channel = data.channels.find(c => c.id === parseInt(savedRecent));
@@ -54,7 +47,7 @@ function App() {
       })
       .catch(err => console.error("Error loading channels:", err))
       .finally(() => {
-        setIsAppLoading(false); // Stop loading when fetch completes
+        setIsAppLoading(false);
       });
 
     const savedFavorites = localStorage.getItem('viciontv_favorites');
@@ -71,10 +64,7 @@ function App() {
 
   const toggleFavorite = (id) => {
     setFavorites(prev => {
-      const newFavs = prev.includes(id) 
-        ? prev.filter(f => f !== id)
-        : [...prev, id];
-      
+      const newFavs = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
       localStorage.setItem('viciontv_favorites', JSON.stringify(newFavs));
       return newFavs;
     });
@@ -99,7 +89,8 @@ function App() {
       catsAndCounts[cleanCat] = (catsAndCounts[cleanCat] || 0) + 1;
     });
     
-    const sortedNames = Object.keys(catsAndCounts).sort();
+    // Filtramos categorias muy raras de iptv-org si hay pocas (opcional, pero las agrupamos)
+    const sortedNames = Object.keys(catsAndCounts).filter(k => catsAndCounts[k] > 2).sort();
     return [
       { name: 'Todos', count: channelData.channels.length },
       ...sortedNames.map(name => ({name, count: catsAndCounts[name]})),
@@ -108,17 +99,17 @@ function App() {
   }, [channelData, favorites]);
 
   return (
-    <div className="flex h-[100dvh] bg-[#050508] text-white overflow-hidden w-full relative selection:bg-primary/30">
+    <div className="flex h-[100dvh] bg-[#030305] text-white overflow-hidden w-full relative selection:bg-indigo-500/30 font-sans">
       
-      {/* Intense Background Glow Effects */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Immersive Deep Glows */}
+      <div className="absolute top-[-30%] left-[-20%] w-[80%] h-[80%] bg-indigo-900/20 rounded-full blur-[200px] pointer-events-none mix-blend-screen opacity-50"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[150px] pointer-events-none mix-blend-screen opacity-50"></div>
 
       <main className="flex-1 flex flex-col relative z-10 w-full h-full overflow-hidden custom-scrollbar bg-transparent">
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         
-        {/* Modern Mobile Horizontal Top-Pill Navigation (Replaces Sidebar) */}
-        <div className="w-full px-4 md:px-8 py-4 overflow-x-auto custom-scrollbar sticky top-0 z-40 bg-[#050508]/80 backdrop-blur-2xl border-b border-white/5 flex gap-3 items-center snap-x">
+        {/* Sleek Categories Navigation */}
+        <div className="w-full px-6 md:px-12 py-6 overflow-x-auto custom-scrollbar sticky top-0 z-40 bg-gradient-to-b from-[#030305] via-[#030305]/95 to-transparent flex gap-4 items-center snap-x mask-fade overflow-y-hidden">
           {dynamicCategories.map((cat) => {
             const catName = typeof cat === 'string' ? cat : cat.name;
             const isActive = activeCategory === catName;
@@ -126,44 +117,42 @@ function App() {
               <button
                 key={catName}
                 onClick={() => setActiveCategory(catName)}
-                className={`snap-center shrink-0 flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all duration-300 border ${isActive ? 'bg-indigo-600 text-white border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.5)]' : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
+                className={`snap-center shrink-0 flex items-center gap-2.5 px-7 py-3 rounded-2xl font-semibold tracking-wide transition-all duration-300 transform active:scale-95 ${isActive ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-[0_4px_25px_rgba(79,70,229,0.5)] border border-indigo-400/50' : 'glass-panel text-gray-400 hover:text-white hover:bg-white/[0.05] hover:-translate-y-0.5 border border-white/[0.05] shadow-lg hover:border-white/20'}`}
               >
                 {catName === 'Todos' && <Compass className="w-4 h-4" />}
                 {catName === 'Favoritos' && <Heart className={`w-4 h-4 ${isActive ? 'fill-white' : ''}`} />}
-                {catName !== 'Todos' && catName !== 'Favoritos' && <Zap className="w-4 h-4" />}
+                {catName !== 'Todos' && catName !== 'Favoritos' && <Grid className="w-4 h-4" />}
                 {catName}
               </button>
             );
           })}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-6 relative" id="scrollArea">
+        <div className="flex-1 overflow-y-auto p-6 md:p-12 pt-4 relative custom-scrollbar scroll-smooth" id="scrollArea">
           
-          <div className="mb-8 hidden">
-            {/* Ocultamos el título viejo aburrido para dejarle protagonismo al Hero */}
-          </div>
-
           {isAppLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden animate-pulse aspect-video flex flex-col">
-                  <div className="w-full h-full bg-white/10"></div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-[2000px] mx-auto">
+              {[...Array(15)].map((_, i) => (
+                <div key={i} className="glass-panel rounded-3xl overflow-hidden animate-pulse aspect-square md:aspect-video flex flex-col border border-white/[0.03]">
+                  <div className="w-full h-full bg-white/[0.02]"></div>
                 </div>
               ))}
             </div>
           ) : activeCategory === 'Todos' && !searchQuery ? (
-            <>
-              {/* Hero Section */}
+            <div className="max-w-[2000px] mx-auto space-y-16">
+              {/* Cinematic Hero */}
               <Hero featuredChannel={featuredHeroChannel} onPlay={handlePlayChannel} />
               
               {/* Continue Watching Section */}
               {recentlyWatched && (
-                <div className="mb-10">
-                   <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                     <span className="w-1.5 h-6 bg-primary rounded-full inline-block"></span>
+                <div className="mb-12 animate-fade-in">
+                   <h2 className="text-3xl font-black text-white mb-6 flex items-center gap-3 tracking-tight">
+                     <div className="p-1.5 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg">
+                       <Play className="w-5 h-5 text-white fill-current" />
+                     </div>
                      Seguir Viendo
                    </h2>
-                   <div className="w-[300px]">
+                   <div className="w-full sm:w-[350px] transition-transform duration-300 hover:-translate-y-1">
                      <ChannelCard 
                        channel={recentlyWatched}
                        isFavorite={favorites.includes(recentlyWatched.id)}
@@ -174,30 +163,51 @@ function App() {
                 </div>
               )}
 
-              {/* Carousels for each category */}
+              {/* Dynamic Grids Categories */}
               {dynamicCategories.filter(cat => cat.name !== 'Todos' && cat.name !== 'Favoritos').map(category => {
-                const categoryChannels = channelData.channels.filter(c => c.category === category.name);
+                const categoryChannels = channelData.channels.filter(c => c.category === category.name).slice(0, 50); // limit for perf
                 if (categoryChannels.length === 0) return null;
                 
                 return (
-                  <Carousel key={category.name} title={category.name}>
-                    {categoryChannels.map(channel => (
-                      <ChannelCard 
-                        key={channel.id}
-                        channel={channel}
-                        isFavorite={favorites.includes(channel.id)}
-                        toggleFavorite={toggleFavorite}
-                        onPlay={handlePlayChannel}
-                      />
-                    ))}
-                  </Carousel>
+                  <div key={category.name} className="animate-fade-in-up">
+                    <div className="flex justify-between items-end mb-6 px-1">
+                      <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight relative cursor-pointer group inline-block">
+                        {category.name}
+                        <span className="absolute -bottom-2 left-0 w-1/3 h-1 bg-indigo-500 rounded-full group-hover:w-full transition-all duration-500"></span>
+                      </h2>
+                      <button onClick={() => setActiveCategory(category.name)} className="text-indigo-400 hover:text-white font-medium text-sm transition-colors cursor-pointer hidden md:block">
+                        Ver todo →
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5">
+                      {categoryChannels.map(channel => (
+                        <ChannelCard 
+                          key={channel.id}
+                          channel={channel}
+                          isFavorite={favorites.includes(channel.id)}
+                          toggleFavorite={toggleFavorite}
+                          onPlay={handlePlayChannel}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 );
               })}
-            </>
+            </div>
           ) : (
-            <>
+            <div className="max-w-[2000px] mx-auto pb-20">
+              <div className="flex items-center gap-4 mb-10">
+                <h2 className="text-4xl font-black text-white tracking-tight">
+                  {searchQuery ? 'Resultados de ' : ''} <span className="text-indigo-400">{searchQuery || activeCategory}</span>
+                </h2>
+                <span className="bg-white/10 text-white font-medium px-4 py-1.5 rounded-full text-sm border border-white/5">
+                  {filteredChannels.length} canales
+                </span>
+              </div>
+              
               {filteredChannels.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5 animate-fade-in">
                   {filteredChannels.map(channel => (
                     <ChannelCard 
                       key={channel.id}
@@ -209,20 +219,21 @@ function App() {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center p-20 text-center glass rounded-3xl mt-10">
-                  <Tv2 className="w-20 h-20 text-gray-600 mb-6" />
-                  <h3 className="text-2xl font-bold text-gray-300 mb-2">No encontramos resultados</h3>
-                  <p className="text-gray-500 max-w-md">
-                    No hay canales disponibles para tu búsqueda o en esta categoría. Intenta buscar otra cosa.
+                <div className="flex flex-col items-center justify-center py-32 text-center glass-panel rounded-[3rem] mt-10">
+                  <div className="bg-white/[0.03] p-8 rounded-full mb-8 border border-white/[0.05]">
+                    <Tv2 className="w-20 h-20 text-gray-500" />
+                  </div>
+                  <h3 className="text-4xl font-black text-gray-200 mb-4">No encontramos resultados</h3>
+                  <p className="text-gray-400 max-w-lg text-lg">
+                    Revisa si está bien escrito o intenta con otra categoría.
                   </p>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </main>
 
-      {/* Video Player Modal */}
       {activeChannel && (
         <Player 
           channel={activeChannel} 
@@ -232,18 +243,23 @@ function App() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
+          .mask-fade {
+             -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+             mask-image: linear-gradient(to right, black 80%, transparent 100%);
           }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
           }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2d313a;
-            border-radius: 10px;
+          .animate-fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #4f46e5;
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
           }
         `
       }} />
