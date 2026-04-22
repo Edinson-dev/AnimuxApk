@@ -26,7 +26,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
       </button>
 
       {/* Main Video/Hero Area */}
-      <div className="relative w-full aspect-video md:h-[70vh] bg-black shrink-0 overflow-hidden">
+      <div className="relative w-full aspect-video md:h-[60vh] bg-black shrink-0 overflow-hidden">
         {!isPlaying ? (
           <div className="relative w-full h-full group">
             <img 
@@ -37,13 +37,13 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
             <div className="absolute inset-0 flex items-center justify-center">
               <button 
                 onClick={() => setIsPlaying(true)}
-                className="w-20 h-20 md:w-32 md:h-32 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
+                className="w-16 h-16 md:w-24 md:h-24 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
               >
-                <Play className="w-10 h-10 md:w-14 md:h-14 fill-current ml-2" />
+                <Play className="w-8 h-8 md:w-12 md:h-12 fill-current ml-1" />
               </button>
             </div>
             {/* HBO Style Bottom Fade */}
-            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
           </div>
         ) : (
           <div className="w-full h-full relative">
@@ -59,7 +59,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
 
       {/* Content Area - HBO Style (Vast Spacing, Bold Typography) */}
       <div className="flex-1 overflow-y-auto no-scrollbar bg-black">
-        <div className="px-6 md:px-24 py-12 space-y-12 max-w-[1800px] mx-auto">
+        <div className="px-6 md:px-24 py-8 space-y-8 max-w-[1800px] mx-auto">
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Left Info */}
@@ -72,31 +72,31 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
                     <span className="w-1 h-1 bg-white/20 rounded-full" />
                     <span>4K UHD</span>
                   </div>
-                  <h1 className="text-5xl md:text-8xl font-black text-white uppercase italic tracking-tighter leading-[0.85]">
+                  <h1 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">
                     {displayName}
                   </h1>
                </div>
 
-               <div className="flex flex-wrap gap-4 pt-4">
+               <div className="flex flex-wrap gap-3 pt-2">
                   <button 
                     onClick={() => setIsPlaying(true)}
-                    className="flex-1 md:flex-none md:px-16 py-5 bg-white text-black rounded-full font-black text-sm hover:bg-gray-200 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-widest"
+                    className="flex-1 md:flex-none md:px-10 py-3.5 bg-white text-black rounded-full font-black text-xs hover:bg-gray-200 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
                   >
-                    <Play className="w-5 h-5 fill-current" /> Reproducir
+                    <Play className="w-4 h-4 fill-current" /> Reproducir
                   </button>
                   <button 
                     onClick={() => toggleFavorite(channel.id)}
-                    className={`w-14 h-14 rounded-full border flex items-center justify-center transition-all ${isFavorite ? 'bg-white text-black border-white' : 'bg-white/5 border-white/20 text-white hover:bg-white/10'}`}
+                    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${isFavorite ? 'bg-white text-black border-white' : 'bg-white/5 border-white/20 text-white hover:bg-white/10'}`}
                   >
-                    <Heart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
+                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
                   </button>
-                  <button className="w-14 h-14 rounded-full border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all">
-                    <Share2 className="w-6 h-6" />
+                  <button className="w-12 h-12 rounded-full border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all">
+                    <Share2 className="w-5 h-5" />
                   </button>
                </div>
 
-               <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-4xl font-medium">
-                  {channel.description || 'Una obra maestra del entretenimiento digital. Disfruta de esta selección curada exclusivamente para Animux, con una calidad de imagen sorprendente y una narrativa que te atrapará desde el primer segundo.'}
+               <p className="text-gray-400 text-sm md:text-base leading-relaxed max-w-3xl font-medium">
+                  {channel.description || 'Una obra maestra del entretenimiento digital. Disfruta de esta selección curada exclusivamente para Animux, con una calidad de imagen sorprendente.'}
                </p>
             </div>
 
