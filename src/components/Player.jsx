@@ -1,347 +1,198 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { X, Maximize, AlertCircle, Loader2, MessageSquare, Settings, PictureInPicture } from 'lucide-react';
+import { X, Maximize, AlertCircle, Loader2, MessageSquare, Settings, PictureInPicture, Play } from 'lucide-react';
 
-export default function Player({ channel, onClose }) {
+export default function Player({ channel, onClose, playlist = [], onPlayNext }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [hasSubtitles, setHasSubtitles] = useState(false);
-  const [levels, setLevels] = useState([]);
-  const [currentLevel, setCurrentLevel] = useState(-1);
-  const [showSettings, setShowSettings] = useState(false);
+  const [useEmbed, setUseEmbed] = useState(false);
+  
+  const isYouTube = channel?.url?.includes('youtube.com') || channel?.url?.includes('youtu.be');
+
+  // Logic to handle next episode
+  const handleEnded = () => {
+    if (onPlayNext && playlist.length > 0) {
+      const currentIndex = playlist.findIndex(item => String(item.id) === String(channel.id));
+      if (currentIndex !== -1 && currentIndex < playlist.length - 1) {
+        onPlayNext(playlist[currentIndex + 1]);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!channel) return;
-    
-    // (1) Media Session API (Para Pantalla de Bloqueo Móvil)
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: channel.name,
-        artist: 'Transmisión Oficial',
-        album: channel.category || 'Animux Live',
-        artwork: [
-          { src: channel.logo || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=512&h=512', sizes: '512x512', type: 'image/jpeg' }
-        ]
-      });
-      navigator.mediaSession.setActionHandler('play', () => videoRef.current?.play().catch(console.error));
-      navigator.mediaSession.setActionHandler('pause', () => videoRef.current?.pause());
-    }
-  }, [channel]);
-
-  useEffect(() => {
-    if (!channel || !videoRef.current) return;
-
-    const video = videoRef.current;
+    setUseEmbed(false);
     setError(false);
     setLoading(true);
 
-    let hls;
+    if (videoRef.current) {
+      videoRef.current.onended = handleEnded;
+    }
+  }, [channel]);
+
+  useEffect(() => {
+    if (!channel || !videoRef.current || isYouTube) {
+       if (isYouTube) setLoading(false);
+       return;
+    }
     
-    // Timeout de 12 segundos para detener la carga infinita (por CORS o canal caído)
+    const video = videoRef.current;
+    let hls;
+    const isDirectVideo = channel?.url?.toLowerCase()?.includes('.mp4') || channel.isVOD;
+
     const timeoutId = setTimeout(() => {
-      setError(true);
-      setLoading(false);
-    }, 12000);
+      if (channel.isVOD && channel.embedUrl) {
+         setUseEmbed(true);
+         setLoading(false);
+      } else {
+         setError(true);
+         setLoading(false);
+      }
+    }, 15000);
 
-    const clearTimer = () => clearTimeout(timeoutId);
-
-    if (Hls.isSupported()) {
-      hls = new Hls({ 
-        maxBufferLength: 30, 
-        enableWorker: true,
-        debug: false
-      });
+    if (isDirectVideo) {
+      video.src = channel.url;
+      video.oncanplay = () => {
+        clearTimeout(timeoutId);
+        setLoading(false);
+        video.play().catch(() => {});
+      };
+      video.onerror = () => {
+        if (channel.embedUrl && !useEmbed) {
+           setUseEmbed(true);
+           setLoading(false);
+        } else {
+           setError(true);
+           setLoading(false);
+        }
+      };
+    } else if (Hls.isSupported()) {
+      hls = new Hls();
       hlsRef.current = hls;
-      
       hls.loadSource(channel.url);
       hls.attachMedia(video);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        clearTimer();
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        clearTimeout(timeoutId);
         setLoading(false);
-        if (hls.levels) setLevels(hls.levels);
-        video.play().catch(e => console.error("Auto-play prevented:", e));
+        video.play().catch(() => {});
       });
-      
-      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
-        const tracks = data.subtitleTracks;
-        if (tracks && tracks.length > 0) {
-          setHasSubtitles(true);
-          const esTrackIndex = tracks.findIndex(t => 
-            t.lang && (t.lang.toLowerCase().startsWith('es') || t.lang.toLowerCase().startsWith('spa'))
-          );
-          if (esTrackIndex !== -1) {
-            hls.subtitleTrack = esTrackIndex;
-          }
-        }
+      hls.on(Hls.Events.ERROR, () => {
+         setError(true);
+         setLoading(false);
       });
-
-      hls.on(Hls.Events.ERROR, function (event, data) {
-        if (data.fatal) {
-           switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              clearTimer();
-              // A veces NETWORK_ERROR es CORS estricto. Si no carga, marcamos error.
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              clearTimer();
-              setError(true);
-              setLoading(false);
-              hls.destroy();
-              break;
-           }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = channel.url;
-      video.addEventListener('loadedmetadata', () => {
-        clearTimer();
-        setLoading(false);
-        
-        // Native Apple Subtitles check
-        if (video.textTracks && video.textTracks.length > 0) {
-          let foundEs = false;
-          for (let i = 0; i < video.textTracks.length; i++) {
-            const track = video.textTracks[i];
-            if (track.language && (track.language.toLowerCase().startsWith('es') || track.language.toLowerCase().startsWith('spa'))) {
-              track.mode = 'showing';
-              foundEs = true;
-            } else {
-               track.mode = 'hidden';
-            }
-          }
-          if (video.textTracks.length > 0) setHasSubtitles(true);
-        }
-
-        video.play().catch(e => console.error("Auto-play prevented:", e));
-      });
-      video.addEventListener('error', () => {
-        clearTimer();
-        setError(true);
-        setLoading(false);
-      });
-    } else {
-      clearTimer();
-      setError(true);
-      setLoading(false);
     }
 
     return () => {
-      clearTimer();
+      clearTimeout(timeoutId);
       if (hls) hls.destroy();
-      hlsRef.current = null;
     };
   }, [channel]);
 
-  const toggleSubtitles = () => {
-    if (hlsRef.current) {
-      const currentTrack = hlsRef.current.subtitleTrack;
-      if (currentTrack === -1) {
-        const tracks = hlsRef.current.subtitleTracks;
-        const esTrackIndex = tracks.findIndex(t => 
-            t.lang && (t.lang.toLowerCase().startsWith('es') || t.lang.toLowerCase().startsWith('spa'))
-        );
-        hlsRef.current.subtitleTrack = esTrackIndex !== -1 ? esTrackIndex : 0;
-      } else {
-        hlsRef.current.subtitleTrack = -1;
-      }
-    } else if (videoRef.current && videoRef.current.textTracks) {
-        let isShowing = false;
-        for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-            if (videoRef.current.textTracks[i].mode === 'showing') isShowing = true;
-        }
-        for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-            videoRef.current.textTracks[i].mode = isShowing ? 'hidden' : 'showing';
-        }
-    }
-  };
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen().catch(e => console.log(e));
-    }
-  };
-
-  const togglePiP = () => {
-    if (videoRef.current !== document.pictureInPictureElement) {
-      videoRef.current?.requestPictureInPicture().catch(console.error);
-    } else {
-      document.exitPictureInPicture().catch(console.error);
-    }
-  };
-
-  const changeQuality = (index) => {
-    if (hlsRef.current) {
-      hlsRef.current.currentLevel = index;
-      setCurrentLevel(index);
-      setShowSettings(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ignorar si el usuario está escribiendo en algún hipotético input dentro del player (aunque no hay por ahora)
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (!videoRef.current) return;
-      
-      switch(e.key.toLowerCase()) {
-        case ' ':
-          e.preventDefault();
-          videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause();
-          break;
-        case 'm':
-          e.preventDefault();
-          videoRef.current.muted = !videoRef.current.muted;
-          break;
-        case 'f':
-          e.preventDefault();
-          toggleFullScreen();
-          break;
-        default:
-          break;
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Removed duplicate togglePiP
-
   if (!channel) return null;
 
+  const currentName = String(channel.displayName || channel.name || 'Cargando...').replace('undefined - ', '');
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
-      <div 
-        ref={containerRef}
-        className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group"
-      >
-        <div className={`absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-50 flex justify-between items-center transition-opacity duration-300 ${loading || error ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-          <div className="flex items-center gap-3">
-            <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              En Vivo
-            </span>
-            <h2 className="text-white font-bold text-lg drop-shadow-md">{channel.name}</h2>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Opciones de Calidad (HLS.js) */}
-            {levels.length > 0 && (
-              <div className="relative">
-                <button 
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="p-2 bg-black/40 hover:bg-primary/80 backdrop-blur-md text-white rounded-full transition-colors border border-white/5 shadow-lg"
-                  title="Calidad de Video"
-                >
-                  <Settings className="w-5 h-5" />
-                </button>
-                
-                {showSettings && (
-                  <div className="absolute top-full right-0 mt-3 bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden flex flex-col w-36 shadow-2xl animate-fade-in z-50">
-                    <button 
-                      className={`px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors ${currentLevel === -1 ? 'text-indigo-400 font-bold bg-indigo-500/10' : 'text-gray-200'}`}
-                      onClick={() => changeQuality(-1)}
-                    >
-                      Automático
-                    </button>
-                    {levels.map((level, index) => (
-                      <button 
-                        key={index}
-                        className={`px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors ${currentLevel === index ? 'text-indigo-400 font-bold bg-indigo-500/10' : 'text-gray-200'}`}
-                        onClick={() => changeQuality(index)}
-                      >
-                        {level.height}p
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {hasSubtitles && (
-              <button 
-                onClick={toggleSubtitles}
-                className="p-2 bg-black/40 hover:bg-primary/80 backdrop-blur-md text-white rounded-full transition-colors border border-white/5 shadow-lg"
-                title="Activar/Desactivar Subtítulos"
-              >
-                <MessageSquare className="w-5 h-5" />
-              </button>
-            )}
-
-            {/* PiP Mode */}
-            <button 
-              onClick={togglePiP}
-              className="p-2 bg-black/40 hover:bg-indigo-500/80 backdrop-blur-md text-white rounded-full transition-colors border border-white/5 shadow-lg scale-90 hover:scale-100"
-              title="Mini Reproductor (Picture in Picture)"
-            >
-              <PictureInPicture className="w-5 h-5" />
-            </button>
-
-            {/* Compartir Canal */}
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/?play=${channel.id}`);
-                alert('¡Enlace de canal copiado para compartir!');
-              }}
-              className="p-2 bg-black/40 hover:bg-primary/80 backdrop-blur-md text-white rounded-full transition-colors border border-white/5 shadow-lg"
-              title="Copiar enlace de canal"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-            </button>
-
-            <div className="w-px h-6 bg-white/20 mx-1"></div>
-
-            <button 
-              onClick={onClose}
-              className="p-2 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white transition-colors shadow-[0_0_15px_rgba(244,63,94,0.4)]"
-              title="Cerrar Reproductor"
-            >
-              <X className="w-6 h-6" />
-            </button>
+    <div className="fixed inset-0 z-[110] flex flex-col bg-[#060608] animate-fade-in font-sans">
+      {/* Top Header */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black to-transparent z-50">
+        <div className="flex items-center gap-4">
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <div>
+            <h2 className="text-white font-black text-sm md:text-xl tracking-tighter truncate max-w-[200px] md:max-w-md">
+              {currentName}
+            </h2>
+            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+              {channel.category}
+            </p>
           </div>
         </div>
+      </div>
 
-        <video
-          ref={videoRef}
-          className="w-full h-full object-contain"
-          controls
-          autoPlay
-          playsInline
-          autoPictureInPicture
-        />
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Main Player Area */}
+        <div className="relative flex-1 bg-black flex items-center justify-center group overflow-hidden">
+          {useEmbed || isYouTube ? (
+            <iframe
+              src={isYouTube ? `https://www.youtube.com/embed/${channel.url.split('v=')[1] || channel.url.split('/').pop()}?autoplay=1` : channel.embedUrl}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          ) : (
+            <video
+              ref={videoRef}
+              className="w-full h-full object-contain bg-black"
+              controls
+              autoPlay
+              playsInline
+            />
+          )}
 
-        {loading && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-20">
-            <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-            <p className="text-white font-medium text-lg animate-pulse">Conectando a la señal...</p>
-          </div>
-        )}
+          {loading && !error && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20">
+              <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
+              <p className="text-white font-black text-lg animate-pulse tracking-widest uppercase">Optimizando Stream...</p>
+            </div>
+          )}
 
-        {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 p-6 text-center">
-            <AlertCircle className="w-16 h-16 text-rose-500 mb-4 animate-bounce" />
-            <h3 className="text-xl font-bold text-white mb-2">Canal Caído o Bloqueado (CORS)</h3>
-            <p className="text-gray-300 max-w-md text-sm">
-              La transmisión de <strong className="text-white">{channel.name}</strong> tardó demasiado o no está disponible. 
-              Muchos enlaces gratuitos de internet están geobloqueados o duran poco tiempo (caídos periódicamente).
-            </p>
-            <button 
-              onClick={onClose}
-              className="mt-6 px-8 py-3 bg-white/10 hover:bg-rose-500/30 text-white border border-white/20 hover:border-rose-500/50 rounded-full font-bold transition-all shadow-[0_4px_20px_rgba(255,255,255,0.05)] hover:shadow-[0_4px_30px_rgba(244,63,94,0.3)]"
-            >
-              Cerrar y buscar otro canal
-            </button>
-          </div>
-        )}
+          {error && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 p-6 text-center">
+              <AlertCircle className="w-16 h-16 text-rose-500 mb-4 animate-bounce" />
+              <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Error de Emisión</h3>
+              <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Este contenido está restringido o el enlace ha caducado. Intentando buscar espejos...</p>
+              <button onClick={onClose} className="mt-8 px-10 py-4 bg-indigo-600 text-white rounded-full font-black uppercase tracking-widest text-xs hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20">Cerrar Reproductor</button>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar: Next Episodes */}
+        <div className="w-full lg:w-[400px] bg-[#0a0a0f] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-2/5 lg:h-full overflow-hidden">
+           <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Más Contenido</h3>
+              <span className="text-[10px] bg-indigo-600/20 px-3 py-1 rounded-full text-indigo-400 font-black border border-indigo-500/20">
+                {playlist.length} ITEMS
+              </span>
+           </div>
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+              {playlist.map((item, idx) => {
+                 const isActive = String(item.id) === String(channel.id);
+                 const itemName = String(item.displayName || item.name || 'Sin Título').replace('undefined - ', '');
+                 return (
+                   <div 
+                     key={item.id}
+                     onClick={() => !isActive && onPlayNext(item)}
+                     className={`flex gap-4 p-4 rounded-3xl cursor-pointer transition-all duration-300 border ${isActive ? 'bg-indigo-600/10 border-indigo-500/40 shadow-2xl' : 'hover:bg-white/5 border-transparent'}`}
+                   >
+                     <div className={`rounded-xl overflow-hidden shrink-0 relative bg-[#12121e] ${item.isVOD ? 'w-16 aspect-[2/3]' : 'w-24 aspect-video'}`}>
+                        <img src={item.logo} alt="" className={`w-full h-full transition-opacity duration-500 ${item.isVOD ? 'object-cover' : 'object-contain p-2'} ${isActive ? 'opacity-40' : 'opacity-60'}`} />
+                        {isActive && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                             <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center animate-pulse shadow-lg">
+                                <Play className="w-3 h-3 text-white fill-current" />
+                             </div>
+                          </div>
+                        )}
+                        <span className="absolute bottom-1 right-1 text-[8px] bg-black/80 px-1.5 py-0.5 rounded font-black text-white/70">HD</span>
+                     </div>
+                     <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <h4 className={`text-xs font-black truncate tracking-tight ${isActive ? 'text-indigo-400' : 'text-white/90'}`}>
+                           {itemName}
+                        </h4>
+                        <p className="text-[9px] text-white/30 uppercase font-black tracking-widest mt-1">
+                          {item.category || 'General'}
+                        </p>
+                     </div>
+                   </div>
+                 );
+              })}
+           </div>
+        </div>
       </div>
     </div>
   );

@@ -1,71 +1,40 @@
-import React, { useEffect, useRef } from 'react';
-import { Search, Tv, User, Bell } from 'lucide-react';
+import React from 'react';
+import { Search, Bell, PlayCircle } from 'lucide-react';
 
 export default function Header({ searchQuery, setSearchQuery }) {
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
   return (
-    <header className="h-auto md:h-24 bg-transparent flex flex-col md:flex-row items-center justify-between px-6 md:px-12 py-4 md:py-0 z-50 sticky top-0 w-full">
-      {/* Premium Glass Effect Behind Header purely for scroll */}
-      <div className="absolute inset-0 bg-[#030305]/70 backdrop-blur-3xl border-b border-white/[0.03] -z-10 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"></div>
-      
-      {/* Brand logo */}
-      <div className="flex items-center justify-between w-full md:w-auto">
-        <div className="flex items-center gap-4 cursor-pointer group">
-          <div className="relative flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 border border-white/10 group-hover:border-indigo-500/50 transition-all duration-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] group-hover:shadow-[0_0_30px_rgba(79,70,229,0.6)]">
-            <Tv size={26} className="text-white group-hover:text-indigo-300 transition-colors duration-300" />
-            <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,1)] animate-pulse -translate-y-1/3 translate-x-1/3"></div>
-          </div>
-          <span className="text-3xl font-black tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-indigo-400 transition-all duration-300">
-            Animux
-          </span>
+    <header className="sticky top-0 z-[60] glass-panel border-b border-white/5 px-6 py-4 flex items-center justify-between gap-8 bg-[#060608]/80 backdrop-blur-3xl">
+      {/* Brand Logo - Cuevana Style */}
+      <div className="flex items-center gap-3 shrink-0 cursor-pointer group">
+        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
+          <PlayCircle className="w-6 h-6 text-white fill-current" />
         </div>
+        <span className="text-2xl font-black tracking-tighter text-white uppercase hidden md:block">
+          Animux<span className="text-indigo-500">Live</span>
+        </span>
       </div>
-      
-      {/* Search Bar - Center */}
-      <div className="relative w-full md:flex-1 md:max-w-2xl mt-4 md:mt-0 group">
-        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-          <Search className="text-gray-400 w-5 h-5 group-focus-within:text-indigo-400 transition-colors duration-300" />
-        </div>
-        <input
-          ref={inputRef}
+
+      {/* Modern Search Bar */}
+      <div className="flex-1 max-w-2xl relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-indigo-400 transition-colors" />
+        <input 
           type="text"
-          placeholder="Buscar anime, canal, género..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] group-focus-within:bg-[#08080C] group-focus-within:border-indigo-500/50 group-focus-within:shadow-[0_0_30px_rgba(79,70,229,0.15)] rounded-full py-4 pl-14 pr-16 text-white placeholder-gray-500 font-medium outline-none transition-all duration-500"
+          placeholder="Busca tus series, películas o canales favoritos..."
+          className="w-full bg-white/[0.03] border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white/[0.08] transition-all placeholder:text-gray-500 shadow-inner"
         />
-        <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
-          <div className="hidden sm:flex items-center gap-1 font-bold text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-1 rounded-lg">
-            <span>CTRL</span>
-            <span>K</span>
-          </div>
+      </div>
+
+      {/* User Actions */}
+      <div className="flex items-center gap-4 shrink-0">
+        <button className="p-2.5 rounded-xl bg-white/5 text-gray-400 hover:text-white transition-all hidden md:block">
+          <Bell className="w-5 h-5" />
+        </button>
+        <div className="w-10 h-10 rounded-full border-2 border-indigo-500/30 overflow-hidden cursor-pointer hover:border-indigo-500 transition-all p-0.5">
+          <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" className="w-full h-full rounded-full" alt="User" />
         </div>
       </div>
-      
-      {/* Profile & Notifications - Right */}
-      <div className="hidden md:flex items-center gap-6">
-        <button className="relative p-3 rounded-full hover:bg-white/5 transition-colors group">
-          <Bell className="w-6 h-6 text-gray-300 group-hover:text-white transition-colors" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.8)]"></span>
-        </button>
-        <button className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.08] hover:border-white/10 transition-all cursor-pointer">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center p-[2px]">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&h=100" alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-[#050508]" />
-          </div>
-          <span className="font-semibold text-sm text-gray-200">Usuario</span>
-        </button>
-      </div> 
     </header>
   );
 }
