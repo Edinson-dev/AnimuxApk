@@ -1,7 +1,7 @@
 import React from 'react';
-import { X, Play, Star, Calendar, Clock, Info, Heart } from 'lucide-react';
+import { X, Play, Star, Calendar, Clock, Info, Heart, AlertCircle } from 'lucide-react';
 
-export default function DetailsModal({ channel, onClose, onPlay, isFavorite, toggleFavorite }) {
+export default function DetailsModal({ channel, onClose, onPlay, isFavorite, toggleFavorite, onReportBroken }) {
   if (!channel) return null;
 
   return (
@@ -80,6 +80,20 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
              >
                <Heart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
                <span className="md:hidden font-bold">Favoritos</span>
+             </button>
+
+             <button 
+               onClick={() => {
+                 if(window.confirm('¿Reportar este canal como caído? Se ocultará de tu lista.')) {
+                   onReportBroken(channel.id);
+                   onClose();
+                 }
+               }}
+               className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2"
+               title="Reportar Error de Emisión"
+             >
+               <AlertCircle className="w-6 h-6" />
+               <span className="md:hidden font-bold">Reportar</span>
              </button>
 
              <button className="hidden md:flex p-4 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all items-center justify-center">

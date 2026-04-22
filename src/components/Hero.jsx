@@ -7,20 +7,21 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
   const displayName = featuredChannel.displayName || featuredChannel.name;
 
   return (
-    <div className="relative w-full h-[60vh] md:h-[80vh] rounded-[2rem] overflow-hidden group mb-12 shadow-2xl animate-fade-in border border-white/5 bg-[#060608]">
+    <div className="relative w-full h-[65vh] md:h-[85vh] rounded-[3rem] overflow-hidden group mb-16 shadow-2xl animate-fade-in border border-white/5 bg-[#060608]">
       {/* Background Image with animated zoom */}
       <div className="absolute inset-0 z-0">
         <img 
           src={featuredChannel.logo} 
           alt={displayName}
-          className="w-full h-full object-cover opacity-40 scale-110 group-hover:scale-100 transition-all duration-[5s] ease-out filter blur-[2px] md:blur-0"
+          className="w-full h-full object-cover opacity-30 scale-110 group-hover:scale-100 transition-all duration-[8s] ease-out filter blur-[3px] md:blur-sm"
           onError={(e) => { 
             e.target.onerror = null; 
             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1e1b4b&color=c7d2fe&size=512&font-size=0.33`; 
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#060608] via-[#060608]/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060608] via-[#060608]/80 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-[#060608] via-transparent to-transparent"></div>
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_-20%,#4f46e5,transparent)]"></div>
       </div>
 
       <div className="relative z-10 h-full flex flex-col justify-center px-6 md:px-16 max-w-4xl pt-12">

@@ -3,8 +3,8 @@ import { Search, Bell, PlayCircle } from 'lucide-react';
 
 export default function Header({ searchQuery, setSearchQuery }) {
   return (
-    <header className="sticky top-0 z-[60] glass-panel border-b border-white/5 px-6 py-4 flex items-center justify-between gap-8 bg-[#060608]/80 backdrop-blur-3xl">
-      {/* Brand Logo - Cuevana Style */}
+    <header className="sticky top-0 z-[60] bg-black/40 backdrop-blur-3xl border-b border-white/[0.05] px-6 py-4 flex items-center justify-between gap-8">
+      {/* Brand Logo */}
       <div 
         onClick={() => {
           setSearchQuery('');
@@ -12,23 +12,23 @@ export default function Header({ searchQuery, setSearchQuery }) {
         }}
         className="flex items-center gap-3 shrink-0 cursor-pointer group"
       >
-        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
-          <PlayCircle className="w-6 h-6 text-white fill-current" />
+        <div className="w-12 h-12 bg-gradient-to-tr from-indigo-700 to-indigo-500 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)] group-hover:rotate-12 transition-all duration-500">
+          <PlayCircle className="w-7 h-7 text-white fill-current" />
         </div>
         <span className="text-2xl font-black tracking-tighter text-white uppercase hidden md:block">
-          Animux<span className="text-indigo-500">Live</span>
+          Animux<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-600">Live</span>
         </span>
       </div>
 
       {/* Modern Search Bar */}
       <div className="flex-1 max-w-2xl relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-indigo-400 transition-colors" />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-indigo-400 group-focus-within:scale-110 transition-all" />
         <input 
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Busca tus series, películas o canales favoritos..."
-          className="w-full bg-white/[0.03] border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white/[0.08] transition-all placeholder:text-gray-500 shadow-inner"
+          className="w-full bg-white/[0.02] border border-white/[0.08] rounded-[1.25rem] py-4 pl-14 pr-6 text-sm font-semibold text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white/[0.05] focus:border-indigo-500/40 transition-all placeholder:text-gray-600 shadow-2xl"
         />
       </div>
 

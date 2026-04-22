@@ -7,7 +7,7 @@ export default function ChannelCard({ channel, isFavorite, toggleFavorite, onPla
   
   return (
     <div 
-      className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 hover:-translate-y-2 glass-card animate-fade-in ${channel.isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}
+      className={`group relative rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-700 hover:-translate-y-3 hover:shadow-[0_20px_50px_rgba(79,70,229,0.3)] glass-card animate-fade-in ${channel.isVOD ? 'aspect-[2/3]' : 'aspect-video'} border-white/5 hover:border-indigo-500/50`}
       onClick={() => onPlay(channel)}
     >
       
@@ -27,11 +27,19 @@ export default function ChannelCard({ channel, isFavorite, toggleFavorite, onPla
       </div>
 
       {/* Badges Overlay */}
-      <div className="absolute top-3 left-3 z-20 flex gap-2">
-           <span className="bg-indigo-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30">HD</span>
-           {channel.isVOD && (
-              <span className="bg-green-500/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-lg">Dual</span>
-           )}
+      <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <span className="bg-indigo-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30">HD</span>
+          {channel.isVOD && (
+             <span className="bg-green-500/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-lg">Dual</span>
+          )}
+        </div>
+        {!channel.isVOD && (
+          <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
+            <span className="text-[7px] font-black text-white uppercase tracking-widest">EN VIVO</span>
+          </div>
+        )}
       </div>
 
       <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">

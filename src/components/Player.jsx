@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { X, Maximize, AlertCircle, Loader2, MessageSquare, Settings, PictureInPicture, Play } from 'lucide-react';
 
-export default function Player({ channel, onClose, playlist = [], onPlayNext }) {
+export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
@@ -145,8 +145,19 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext }) 
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 p-6 text-center">
               <AlertCircle className="w-16 h-16 text-rose-500 mb-4 animate-bounce" />
               <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Error de Emisión</h3>
-              <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Este contenido está restringido o el enlace ha caducado. Intentando buscar espejos...</p>
-              <button onClick={onClose} className="mt-8 px-10 py-4 bg-indigo-600 text-white rounded-full font-black uppercase tracking-widest text-xs hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20">Cerrar Reproductor</button>
+               <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Este contenido está restringido o el enlace ha caducado. Intentando buscar espejos...</p>
+               <div className="flex flex-col sm:flex-row gap-3 mt-8">
+                 <button onClick={onClose} className="px-10 py-4 bg-white/10 text-white rounded-full font-black uppercase tracking-widest text-xs hover:bg-white/20 transition-all">Cerrar</button>
+                 <button 
+                   onClick={() => {
+                     onReportBroken(channel.id);
+                     onClose();
+                   }}
+                   className="px-10 py-4 bg-rose-600 text-white rounded-full font-black uppercase tracking-widest text-xs hover:bg-rose-500 transition-all shadow-xl shadow-rose-500/20"
+                 >
+                   Eliminar de la lista
+                 </button>
+               </div>
             </div>
           )}
         </div>

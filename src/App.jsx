@@ -10,6 +10,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
+  const [brokenChannels, setBrokenChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
@@ -31,6 +32,11 @@ function App() {
     if (savedFavorites) {
       try { setFavorites(JSON.parse(savedFavorites)); } catch(e) { setFavorites([]); }
     }
+    
+    const savedBroken = localStorage.getItem('viciontv_broken');
+    if (savedBroken) {
+      try { setBrokenChannels(JSON.parse(savedBroken)); } catch(e) { setBrokenChannels([]); }
+    }
   }, []);
 
   const toggleFavorite = (id) => {
@@ -42,10 +48,20 @@ function App() {
     });
   };
 
+  const toggleBroken = (id) => {
+    setBrokenChannels(prev => {
+      const idStr = String(id);
+      const newBroken = prev.includes(idStr) ? prev.filter(f => f !== idStr) : [...prev, idStr];
+      localStorage.setItem('viciontv_broken', JSON.stringify(newBroken));
+      return newBroken;
+    });
+  };
+
   const filteredChannels = useMemo(() => {
     if (!channelData?.channels) return [];
     const basicFiltered = channelData.channels.filter(channel => {
       if (!channel?.name) return false;
+      if (brokenChannels.includes(String(channel.id))) return false;
       const matchesSearch = (channel.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (channel.displayName || "").toLowerCase().includes(searchQuery.toLowerCase());
       if (activeCategory === 'Todos') return matchesSearch;
@@ -116,7 +132,7 @@ function App() {
                     <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
                        {groupedHome.map(channel => (
                          <div key={channel.id} className="w-[140px] md:w-[220px] shrink-0 snap-start transform transition-transform hover:scale-105">
-                           <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} />
+                           <ChannelCard channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
                          </div>
                        ))}
                     </div>
@@ -137,7 +153,7 @@ function App() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
                 {filteredChannels.slice(0, visibleCount || 500).map(channel => (
-                  <ChannelCard key={channel.id} channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} />
+                  <ChannelCard key={channel.id} channel={channel} isFavorite={favorites.includes(String(channel.id))} toggleFavorite={toggleFavorite} onPlay={setSelectedDetail} toggleBroken={toggleBroken} />
                 ))}
               </div>
             </div>
@@ -160,11 +176,11 @@ function App() {
       </nav>
 
       {activeChannel && (() => {
-        const playerPlaylist = activeChannel.groupId ? channelData.channels.filter(c => c.groupId === activeChannel.groupId) : filteredChannels;
-        return <Player channel={activeChannel} onClose={() => setActiveChannel(null)} playlist={playerPlaylist} onPlayNext={setActiveChannel} />;
+        const playerPlaylist = activeChannel.groupId ? channelData.channels.filter(c => c.groupId === activeChannel.groupId && !brokenChannels.includes(String(c.id))) : filteredChannels;
+        return <Player channel={activeChannel} onClose={() => setActiveChannel(null)} playlist={playerPlaylist} onPlayNext={setActiveChannel} onReportBroken={toggleBroken} />;
       })()}
 
-      {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} toggleFavorite={toggleFavorite} />}
+      {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} toggleFavorite={toggleFavorite} onReportBroken={toggleBroken} />}
     </div>
   );
 }
