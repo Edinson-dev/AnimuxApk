@@ -19,7 +19,7 @@
     height: 100%;
   }
 
-  h1, h2, h3, h4 {
+  h1, h2 {
     font-family: 'Bebas Neue', cursive;
     letter-spacing: 0.05em;
   }
@@ -39,19 +39,18 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 100px;
+    @apply bg-white/10 rounded-full hover:bg-white/30;
   }
 
   .nav-link {
-    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all cursor-pointer;
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-white transition-all cursor-pointer;
   }
 }
 
