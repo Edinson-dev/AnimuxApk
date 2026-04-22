@@ -18,16 +18,16 @@ export default function Header({ searchQuery, setSearchQuery }) {
       <div className="max-w-[1800px] mx-auto px-6 md:px-12 flex items-center justify-between gap-6">
         
         {/* Left Section: Logo & Desktop Nav */}
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-6">
           <div 
             onClick={() => window.onGoHome && window.onGoHome()}
-            className="flex items-center gap-2 cursor-pointer group shrink-0"
+            className="flex items-center gap-3 cursor-pointer group shrink-0"
           >
             <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg flex items-center justify-center shadow-2xl group-hover:bg-indigo-500 transition-all duration-500">
                <PlayCircle className="w-5 h-5 md:w-6 md:h-6 text-black fill-current" />
             </div>
             <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase italic hidden sm:block">
-              Animux<span className="text-white/50">Max</span>
+              Animux
             </h1>
           </div>
 

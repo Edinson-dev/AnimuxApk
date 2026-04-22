@@ -66,7 +66,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
             <div className="lg:col-span-2 space-y-8">
                <div className="space-y-4">
                   <div className="flex items-center gap-4 text-[10px] font-black tracking-[0.3em] text-white/40 uppercase">
-                    <span>{channel.category || 'Animux Max'}</span>
+                    <span>{channel.category || 'Animux'}</span>
                     <span className="w-1 h-1 bg-white/20 rounded-full" />
                     <span>2024</span>
                     <span className="w-1 h-1 bg-white/20 rounded-full" />
@@ -96,7 +96,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
                </div>
 
                <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-4xl font-medium">
-                  {channel.description || 'Una obra maestra del entretenimiento digital. Disfruta de esta selección curada exclusivamente para Animux Max, con una calidad de imagen sorprendente y una narrativa que te atrapará desde el primer segundo.'}
+                  {channel.description || 'Una obra maestra del entretenimiento digital. Disfruta de esta selección curada exclusivamente para Animux, con una calidad de imagen sorprendente y una narrativa que te atrapará desde el primer segundo.'}
                </p>
             </div>
 

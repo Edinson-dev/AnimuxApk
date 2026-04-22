@@ -34,7 +34,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
              {displayName}
            </h1>
            <p className="text-gray-300 text-sm md:text-xl font-medium leading-relaxed max-w-2xl line-clamp-3">
-             {featuredChannel.description || 'Una experiencia visual sin precedentes. Sumérgete en esta producción exclusiva de Animux Max con la más alta calidad de streaming disponible.'}
+             {featuredChannel.description || 'Una experiencia visual sin precedentes. Sumérgete en esta producción exclusiva de Animux con la más alta calidad de streaming disponible.'}
            </p>
         </div>
 

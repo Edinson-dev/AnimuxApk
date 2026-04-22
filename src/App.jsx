@@ -151,11 +151,15 @@ function App() {
     <div className="flex flex-col h-[100dvh] bg-[#060608] text-white overflow-hidden w-full relative selection:bg-indigo-500/30">
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative" id="scrollArea">
+      <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative pt-20" id="scrollArea">
         <div className="p-4 md:p-12 pt-8">
           {activeCategory === 'Todos' && !searchQuery ? (
-            <div className="space-y-12 md:space-y-16 animate-fade-in max-w-[1800px] mx-auto">
-              <Hero featuredChannel={channelData.channels.find(c => c.groupId === 'DBZ-Cloverway-Episodes' || c.groupId === 'los-simpsons-latino-temporadas-1-10')} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
+            <div className="space-y-12 md:space-y-20 animate-fade-in max-w-[1800px] mx-auto">
+              <Hero 
+                featuredChannel={channelData.channels.find(c => c.category?.includes('Cine') || c.category?.includes('Series'))} 
+                onPlay={setActiveChannel} 
+                onDetails={setSelectedDetail} 
+              />
               
               {['Series', 'Filmes', 'Infantil', 'Anime', 'Deportes', 'Documentales'].map((cat) => {
                 const items = channelData.channels
