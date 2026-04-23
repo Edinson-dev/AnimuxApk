@@ -1,0 +1,28 @@
+[
+  {
+    "id": "premium-101",
+    "title": "Deadpool & Wolverine",
+    "name": "Deadpool & Wolverine",
+    "logo": "https://image.tmdb.org/t/p/w500/8cdWjvZQUmOZaba7vUWeIvSjwDc.jpg",
+    "category": "Cine Premium",
+    "rating": 8.5,
+    "year": "2024",
+    "description": "Un apático Wade Wilson se afana en la vida civil. Sus días como el mercenario moralmente flexible, Deadpool, han quedado atrás. Cuando su mundo natal se enfrenta a una amenaza existencial, Wade debe volver a ponerse el traje a regañadientes con un aún más reacio... ¿reacio? ¿reacitante? Debe convencer a un Lobezno reacio a que le ayude a salvar su mundo.",
+    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    "isVOD": true,
+    "isPremium": true
+  },
+  {
+    "id": "premium-102",
+    "title": "Del Revés 2 (Inside Out 2)",
+    "name": "Del Revés 2 (Inside Out 2)",
+    "logo": "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZno4HwjH6Osu.jpg",
+    "category": "Cine Premium",
+    "rating": 8.2,
+    "year": "2024",
+    "description": "Riley, que acaba de cumplir 13 años, empieza la secundaria. Justo cuando se están realizando obras en la Central para dejar paso a algo totalmente inesperado: ¡nuevas emociones! Alegría, Tristeza, Ira, Miedo y Asco no saben muy bien cómo reaccionar cuando aparece Ansiedad. Y parece que no está sola.",
+    "url": "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
+    "isVOD": true,
+    "isPremium": true
+  }
+]
