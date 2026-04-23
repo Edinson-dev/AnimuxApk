@@ -163,11 +163,15 @@ export default function App() {
     })).filter(Boolean);
   }, [searchQuery, activeCategory, favorites, channelData, vodData, localMovies, externalMovies, brokenChannels]);
 
-  useEffect(() => {
-    setPage(1);
-    const area = document.getElementById('scrollArea');
-    if (area) area.scrollTo(0, 0);
-  }, [searchQuery, activeCategory]);
+  const allCategories = useMemo(() => {
+    const cats = new Set(['Todos', 'Series', 'Filmes', 'Infantil', 'Musica', 'Anime', 'Deportes', 'Documentales', 'Favoritos']);
+    const allItems = [...channelData.channels, ...localMovies, ...vodData, ...externalMovies];
+    allItems.forEach(item => {
+      if (item.category) cats.add(item.category.split(';')[0].trim());
+    });
+    // Remove empty strings or weird titles
+    return Array.from(cats).filter(c => c && c.length < 25);
+  }, [channelData, localMovies, vodData, externalMovies]);
 
   const displayedChannels = useMemo(() => {
     return filteredChannels.slice(0, page * channelsPerPage);
@@ -197,7 +201,12 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#000000] text-white overflow-hidden w-full relative">
-      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      <Header 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+        categories={allCategories} 
+        activeCategory={activeCategory} 
+      />
 
       <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative pt-20 px-4 md:px-8" id="scrollArea">
         <div className="max-w-[1920px] mx-auto py-6">
