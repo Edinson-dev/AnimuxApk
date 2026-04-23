@@ -1,27 +1,27 @@
 [
   {
     "id": "premium-101",
-    "title": "Deadpool & Wolverine",
-    "name": "Deadpool & Wolverine",
+    "title": "Deadpool & Wolverine (Test Full Movie)",
+    "name": "Deadpool & Wolverine (Test Full Movie)",
     "logo": "https://image.tmdb.org/t/p/w500/8cdWjvZQUmOZaba7vUWeIvSjwDc.jpg",
     "category": "Cine Premium",
     "rating": 8.5,
     "year": "2024",
-    "description": "Un apático Wade Wilson se afana en la vida civil. Sus días como el mercenario moralmente flexible, Deadpool, han quedado atrás. Cuando su mundo natal se enfrenta a una amenaza existencial, Wade debe volver a ponerse el traje a regañadientes con un aún más reacio... ¿reacio? ¿reacitante? Debe convencer a un Lobezno reacio a que le ayude a salvar su mundo.",
-    "url": "https://www.youtube.com/watch?v=73_1biulkYk",
+    "description": "[PRUEBA DE PELÍCULA COMPLETA] Estamos usando el film 'Tears of Steel' para validar la reproducción de larga duración en alta definición. Este video permite probar los controles de tiempo y el streaming fluido del motor Animux.",
+    "url": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
     "isVOD": true,
     "isPremium": true
   },
   {
     "id": "premium-102",
-    "title": "Del Revés 2 (Inside Out 2)",
-    "name": "Del Revés 2 (Inside Out 2)",
+    "title": "Del Revés 2 (Test Full Movie)",
+    "name": "Del Revés 2 (Test Full Movie)",
     "logo": "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZno4HwjH6Osu.jpg",
     "category": "Cine Premium",
     "rating": 8.2,
     "year": "2024",
-    "description": "Riley, que acaba de cumplir 13 años, empieza la secundaria. Justo cuando se están realizando obras en la Central para dejar paso a algo totalmente inesperado: ¡nuevas emociones! Alegría, Tristeza, Ira, Miedo y Asco no saben muy bien cómo reaccionar cuando aparece Ansiedad. Y parece que no está sola.",
-    "url": "https://www.youtube.com/watch?v=L4DrolmS2xs",
+    "description": "[PRUEBA DE PELÍCULA COMPLETA] Estamos usando el film 'Big Buck Bunny' para validar la reproducción de animación en alta calidad. Prueba a adelantar el video para ver la velocidad de respuesta del reproductor.",
+    "url": "http://sample.vodobox.net/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8",
     "isVOD": true,
     "isPremium": true
   }
