@@ -12,8 +12,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [serverIndex, setServerIndex] = useState(-1);
   const [currentUrl, setCurrentUrl] = useState('');
   const [epgData, setEpgData] = useState([]);
-  
+
   const isYouTube = channel?.url?.includes('youtube.com') || channel?.url?.includes('youtu.be');
+  const isDrive = channel?.url?.includes('drive.google.com');
 
   const getXtreamId = (targetChannel) => {
     let xtreamId = targetChannel.xtreamId;
@@ -93,13 +94,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const loadEPG = async () => {
       const xtreamId = getXtreamId(channel);
       const activeServer = serverIndex >= 0 ? XTREAM_SERVERS[serverIndex] : XTREAM_SERVERS[0];
-      
+
       if (xtreamId && activeServer) {
         const epg = await fetchShortEPG(activeServer, xtreamId);
         if (epg) setEpgData(epg);
       }
     };
-    
+
     setEpgData([]);
     loadEPG();
   }, [channel, serverIndex]);
@@ -120,7 +121,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
   useEffect(() => {
     if (!channel) return;
-    setUseEmbed(false);
+    setUseEmbed(isYouTube || isDrive);
     setError(false);
     setLoading(true);
     setServerIndex(-1);
@@ -145,13 +146,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
   useEffect(() => {
     if (!currentUrl || !videoRef.current || isYouTube) {
-       if (isYouTube) setLoading(false);
-       return;
+      if (isYouTube) setLoading(false);
+      return;
     }
-    
+
     const video = videoRef.current;
     let hls;
-    
+
     // Improved detection: Only direct if it's .mp4 or .mkv, use HLS for .m3u8 even in VOD
     const isM3U8 = currentUrl.toLowerCase().includes('.m3u8');
     const isDirectVideo = (currentUrl.toLowerCase().includes('.mp4') || currentUrl.toLowerCase().includes('.mkv')) && !isM3U8;
@@ -167,12 +168,12 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       video.oncanplay = () => {
         clearTimeout(timeoutId);
         setLoading(false);
-        video.play().catch(() => {});
+        video.play().catch(() => { });
       };
       video.onerror = () => {
         if (channel.embedUrl && !useEmbed) {
-           setUseEmbed(true);
-           setLoading(false);
+          setUseEmbed(true);
+          setLoading(false);
         } else tryNextServer();
       };
     } else if (Hls.isSupported() && isM3U8) {
@@ -180,11 +181,11 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       hlsRef.current = hls;
       hls.loadSource(currentUrl);
       hls.attachMedia(video);
-      
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         clearTimeout(timeoutId);
         setLoading(false);
-        video.play().catch(() => {});
+        video.play().catch(() => { });
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -197,7 +198,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       // Fallback for direct URLs
       video.src = currentUrl;
       video.load();
-      video.play().catch(() => {});
+      video.play().catch(() => { });
       setLoading(false);
       clearTimeout(timeoutId);
     }
@@ -240,23 +241,23 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           {/* Mini EPG Top Bar (Desktop) */}
           {nowPlaying && (
             <div className="hidden lg:flex items-center gap-6 px-6 py-2 bg-white/[0.03] rounded-full border border-white/[0.05] animate-fade-in">
-               <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-pulse" />
-                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">En Vivo:</p>
-                  <p className="text-[10px] font-bold text-white uppercase truncate max-w-[200px]">{nowPlaying.title}</p>
-               </div>
-               {nextUp && (
-                 <div className="flex items-center gap-2 border-l border-white/10 pl-6">
-                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Sigue:</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase truncate max-w-[150px]">{nextUp.title}</p>
-                 </div>
-               )}
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-pulse" />
+                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">En Vivo:</p>
+                <p className="text-[10px] font-bold text-white uppercase truncate max-w-[200px]">{nowPlaying.title}</p>
+              </div>
+              {nextUp && (
+                <div className="flex items-center gap-2 border-l border-white/10 pl-6">
+                  <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Sigue:</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase truncate max-w-[150px]">{nextUp.title}</p>
+                </div>
+              )}
             </div>
           )}
 
           <div className="flex items-center gap-2">
             <button onClick={togglePiP} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">
-               <PictureInPicture className="w-5 h-5 text-white" />
+              <PictureInPicture className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
@@ -266,17 +267,22 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         <div className="relative flex-1 bg-black flex items-center justify-center group overflow-hidden">
           {useEmbed || isYouTube ? (
             <iframe
-              src={isYouTube ? `https://www.youtube.com/embed/${channel.url.split('v=')[1] || channel.url.split('/').pop()}?autoplay=1` : channel.embedUrl}
+              src={
+                isYouTube 
+                  ? `https://www.youtube.com/embed/${channel.url.split('v=')[1] || channel.url.split('/').pop()}?autoplay=1` 
+                  : channel.url
+              }
               className="w-full h-full border-0"
+              allow="autoplay; encrypted-media; fullscreen"
               allowFullScreen
             ></iframe>
           ) : (
-            <video 
-              ref={videoRef} 
-              className="w-full h-full object-contain bg-black shadow-2xl" 
-              controls 
-              autoPlay 
-              playsInline 
+            <video
+              ref={videoRef}
+              className="w-full h-full object-contain bg-black shadow-2xl"
+              controls
+              autoPlay
+              playsInline
             />
           )}
 
@@ -293,85 +299,85 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 p-6 text-center">
               <AlertCircle className="w-12 h-12 text-rose-600 mb-4 animate-bounce" />
               <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Emisión Caída</h3>
-               <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Todos los servidores de respaldo han fallado.</p>
-               <div className="flex gap-3 mt-8">
-                 <button onClick={onClose} className="px-10 py-3 bg-white/5 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">Cerrar</button>
-                 <button onClick={() => { onReportBroken(channel.id); onClose(); }} className="px-10 py-3 bg-rose-600 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/30">Reportar</button>
-               </div>
+              <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Todos los servidores de respaldo han fallado.</p>
+              <div className="flex gap-3 mt-8">
+                <button onClick={onClose} className="px-10 py-3 bg-white/5 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">Cerrar</button>
+                <button onClick={() => { onReportBroken(channel.id); onClose(); }} className="px-10 py-3 bg-rose-600 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/30">Reportar</button>
+              </div>
             </div>
           )}
         </div>
 
         <div className="w-full lg:w-[400px] bg-[#050505] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-1/2 lg:h-full overflow-hidden">
-           {/* EPG or TMDB Metadata Sidebar Section */}
-           {(nowPlaying || channel.description || channel.rating) && (
-             <div className="p-6 bg-gradient-to-br from-rose-600/10 to-transparent border-b border-white/5 animate-fade-in">
-                <div className="flex items-center gap-2 mb-4">
-                   <Clock className="w-4 h-4 text-rose-600" />
-                   <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-                     {nowPlaying ? 'Guía de Programación' : 'Información del Film'}
-                   </h3>
-                </div>
-                
-                <div className="space-y-4">
-                   <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/5">
-                      {channel.rating && (
-                        <div className="flex items-center gap-1 mb-2">
-                           {[...Array(5)].map((_, i) => (
-                             <span key={i} className={`text-[10px] ${i < Math.round(channel.rating / 2) ? 'text-yellow-500' : 'text-white/10'}`}>★</span>
-                           ))}
-                           <span className="text-[9px] font-bold text-white/40 ml-2">{channel.year}</span>
-                        </div>
-                      )}
-                      
-                      <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">
-                        {nowPlaying ? 'Ahora en Vivo' : 'Sinopsis'}
-                      </p>
-                      
-                      <h4 className="text-sm font-black text-white uppercase italic leading-tight">
-                        {nowPlaying ? nowPlaying.title : (channel.displayName || channel.name)}
-                      </h4>
-                      
-                      <p className="text-[10px] text-gray-500 mt-2 line-clamp-6 leading-relaxed">
-                        {nowPlaying ? nowPlaying.description : (channel.description || 'Cargando detalles técnicos de la obra...')}
-                      </p>
-                   </div>
-                   
-                   {nowPlaying && nextUp && (
-                     <div className="px-4 py-2 border-l-2 border-gray-800">
-                        <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-0.5">A Continuación</p>
-                        <h5 className="text-[11px] font-bold text-gray-400 uppercase truncate">{nextUp.title}</h5>
-                     </div>
-                   )}
-                </div>
-             </div>
-           )}
+          {/* EPG or TMDB Metadata Sidebar Section */}
+          {(nowPlaying || channel.description || channel.rating) && (
+            <div className="p-6 bg-gradient-to-br from-rose-600/10 to-transparent border-b border-white/5 animate-fade-in">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-4 h-4 text-rose-600" />
+                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
+                  {nowPlaying ? 'Guía de Programación' : 'Información del Film'}
+                </h3>
+              </div>
 
-           <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-              <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Más Canales</h3>
-              <span className="text-[9px] bg-rose-600/10 border border-rose-600/20 px-3 py-1 rounded text-rose-500 font-black">{playlist.length} TOTAL</span>
-           </div>
-           
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-              {playlist.map((item) => {
-                 const isActive = String(item.id) === String(channel.id);
-                 const itemName = String(item.displayName || item.name || 'Sin Título').replace('undefined - ', '');
-                 return (
-                   <div key={item.id} onClick={() => !isActive && onPlayNext(item)}
-                     className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-rose-600/10 border-rose-600/30 scale-[1.02]' : 'hover:bg-white/[0.03] border-transparent'}`}
-                   >
-                     <div className={`rounded-lg overflow-hidden shrink-0 relative bg-black shadow-lg ${item.isVOD ? 'w-10 aspect-[2/3]' : 'w-20 aspect-video'}`}>
-                        <img src={item.logo} alt="" className={`w-full h-full transition-opacity ${item.isVOD ? 'object-cover' : 'object-contain p-2'} ${isActive ? 'opacity-20' : 'opacity-100'}`} />
-                        {isActive && <div className="absolute inset-0 flex items-center justify-center"><div className="w-2 h-2 bg-rose-600 rounded-full animate-ping" /></div>}
-                     </div>
-                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <h4 className={`text-[13px] font-black truncate tracking-tight uppercase ${isActive ? 'text-rose-500 italic' : 'text-white'}`}>{itemName}</h4>
-                        <p className="text-[9px] text-gray-600 uppercase font-black tracking-widest mt-1">{item.category}</p>
-                     </div>
-                   </div>
-                 );
-              })}
-           </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/5">
+                  {channel.rating && (
+                    <div className="flex items-center gap-1 mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className={`text-[10px] ${i < Math.round(channel.rating / 2) ? 'text-yellow-500' : 'text-white/10'}`}>★</span>
+                      ))}
+                      <span className="text-[9px] font-bold text-white/40 ml-2">{channel.year}</span>
+                    </div>
+                  )}
+
+                  <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">
+                    {nowPlaying ? 'Ahora en Vivo' : 'Sinopsis'}
+                  </p>
+
+                  <h4 className="text-sm font-black text-white uppercase italic leading-tight">
+                    {nowPlaying ? nowPlaying.title : (channel.displayName || channel.name)}
+                  </h4>
+
+                  <p className="text-[10px] text-gray-500 mt-2 line-clamp-6 leading-relaxed">
+                    {nowPlaying ? nowPlaying.description : (channel.description || 'Cargando detalles técnicos de la obra...')}
+                  </p>
+                </div>
+
+                {nowPlaying && nextUp && (
+                  <div className="px-4 py-2 border-l-2 border-gray-800">
+                    <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-0.5">A Continuación</p>
+                    <h5 className="text-[11px] font-bold text-gray-400 uppercase truncate">{nextUp.title}</h5>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Más Canales</h3>
+            <span className="text-[9px] bg-rose-600/10 border border-rose-600/20 px-3 py-1 rounded text-rose-500 font-black">{playlist.length} TOTAL</span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+            {playlist.map((item) => {
+              const isActive = String(item.id) === String(channel.id);
+              const itemName = String(item.displayName || item.name || 'Sin Título').replace('undefined - ', '');
+              return (
+                <div key={item.id} onClick={() => !isActive && onPlayNext(item)}
+                  className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-rose-600/10 border-rose-600/30 scale-[1.02]' : 'hover:bg-white/[0.03] border-transparent'}`}
+                >
+                  <div className={`rounded-lg overflow-hidden shrink-0 relative bg-black shadow-lg ${item.isVOD ? 'w-10 aspect-[2/3]' : 'w-20 aspect-video'}`}>
+                    <img src={item.logo} alt="" className={`w-full h-full transition-opacity ${item.isVOD ? 'object-cover' : 'object-contain p-2'} ${isActive ? 'opacity-20' : 'opacity-100'}`} />
+                    {isActive && <div className="absolute inset-0 flex items-center justify-center"><div className="w-2 h-2 bg-rose-600 rounded-full animate-ping" /></div>}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h4 className={`text-[13px] font-black truncate tracking-tight uppercase ${isActive ? 'text-rose-500 italic' : 'text-white'}`}>{itemName}</h4>
+                    <p className="text-[9px] text-gray-600 uppercase font-black tracking-widest mt-1">{item.category}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
