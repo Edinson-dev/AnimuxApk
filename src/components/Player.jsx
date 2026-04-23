@@ -273,7 +273,6 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               controls 
               autoPlay 
               playsInline 
-              crossOrigin="anonymous"
             />
           )}
 
