@@ -164,7 +164,11 @@ export default function App() {
         const chCat = (c.category || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         
         if (activeCategory === 'Filmes') {
-          return chCat.includes('cine') || chCat.includes('movie') || chCat.includes('film') || c.isVOD || c.isExternal;
+          return chCat.includes('cine') || chCat.includes('movie') || chCat.includes('film') || c?.isVOD || c?.isExternal;
+        }
+        if (activeCategory === 'General') {
+          const mainNames = ['series', 'cine', 'movie', 'film', 'infantil', 'kids', 'ninos', 'musica', 'deportes', 'sports', 'anime'];
+          return !mainNames.some(m => chCat.includes(m));
         }
         return chCat.includes(catNorm);
       });
@@ -185,30 +189,47 @@ export default function App() {
   }, [searchQuery, activeCategory, favorites, channelData, vodData, localMovies, externalMovies, brokenChannels]);
 
   const allCategories = useMemo(() => {
-    const cats = new Set(['Todos', 'Series', 'Filmes', 'Infantil', 'Música', 'Anime', 'Deportes', 'Documentales', 'Favoritos']);
-    const allItems = [...channelData.channels, ...localMovies, ...vodData, ...externalMovies];
-    
-    // Normalization Map
-    const normalizeName = (name) => {
-      const clean = name.trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
-        .toLowerCase();
+    try {
+      const mainCats = ['Todos', 'Series', 'Filmes', 'Infantil', 'Música', 'Anime', 'Deportes', 'General', 'Favoritos'];
+      const cats = new Set(mainCats);
+      const allItems = [
+        ...(Array.isArray(channelData?.channels) ? channelData.channels : []),
+        ...(Array.isArray(localMovies) ? localMovies : []),
+        ...(Array.isArray(vodData) ? vodData : []),
+        ...(Array.isArray(externalMovies) ? externalMovies : [])
+      ];
       
-      if (clean === 'musica') return 'Música';
-      if (clean === 'pelicula' || clean === 'peliculas' || clean === 'cine') return 'Filmes';
-      if (clean === 'religion') return 'Religión';
-      
-      return name.trim();
-    };
+      const normalizeName = (name) => {
+        if (!name || typeof name !== 'string') return "";
+        const clean = name.trim()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase();
+        
+        if (clean === 'musica') return 'Música';
+        if (clean === 'pelicula' || clean === 'peliculas' || clean === 'cine') return 'Filmes';
+        if (clean === 'infantil' || clean === 'kids' || clean === 'ninos') return 'Infantil';
+        if (clean === 'deportes' || clean === 'sports') return 'Deportes';
+        if (clean === 'anime') return 'Anime';
+        if (clean === 'series') return 'Series';
+        
+        // If it's not one of the main ones, we don't add it as a top level category
+        // but we'll use it to fill the "General" bucket later in filtering
+        return null;
+      };
 
-    allItems.forEach(item => {
-      if (item.category) {
-        const prettyName = normalizeName(item.category.split(';')[0].trim());
-        cats.add(prettyName);
-      }
-    });
+      allItems.forEach(item => {
+        if (item && typeof item.category === 'string') {
+          const catPart = item.category.split(';')[0];
+          const prettyName = normalizeName(catPart);
+          if (prettyName) cats.add(prettyName);
+        }
+      });
 
-    return Array.from(cats).filter(c => c && c.length < 25);
+      return Array.from(cats);
+    } catch (err) {
+      console.error("Categories error:", err);
+      return ['Todos', 'Filmes', 'Series', 'General', 'Favoritos'];
+    }
   }, [channelData, localMovies, vodData, externalMovies]);
 
   const displayedChannels = useMemo(() => {
