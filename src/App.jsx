@@ -102,9 +102,23 @@ export default function App() {
     localStorage.setItem('animux_broken', JSON.stringify(newBroken));
   };
 
-  const handleItemClick = (channel) => {
+  const handleItemClick = async (channel) => {
+    // Play immediately
     setActiveChannel(channel);
     addToRecent(channel);
+
+    // Enrich in background if it's a movie/film category
+    const isVOD = channel.isVOD || channel.category?.toLowerCase().includes('cine') || channel.category?.toLowerCase().includes('filmes');
+    if (isVOD) {
+      try {
+        const details = await getMovieDetails(channel.displayName || channel.name);
+        if (details) {
+          setActiveChannel(prev => (prev && String(prev.id) === String(channel.id) ? { ...prev, ...details } : prev));
+        }
+      } catch (err) {
+        console.error("Background enrichment failed:", err);
+      }
+    }
   };
 
   const filteredChannels = useMemo(() => {

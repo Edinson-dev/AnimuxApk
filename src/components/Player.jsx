@@ -274,20 +274,41 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         </div>
 
         <div className="w-full lg:w-[400px] bg-[#050505] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-1/2 lg:h-full overflow-hidden">
-           {/* EPG Sidebar Section */}
-           {nowPlaying && (
+           {/* EPG or TMDB Metadata Sidebar Section */}
+           {(nowPlaying || channel.description || channel.rating) && (
              <div className="p-6 bg-gradient-to-br from-rose-600/10 to-transparent border-b border-white/5 animate-fade-in">
                 <div className="flex items-center gap-2 mb-4">
                    <Clock className="w-4 h-4 text-rose-600" />
-                   <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Guía de Programación</h3>
+                   <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
+                     {nowPlaying ? 'Guía de Programación' : 'Información del Film'}
+                   </h3>
                 </div>
+                
                 <div className="space-y-4">
                    <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/5">
-                      <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">Ahora en Vivo</p>
-                      <h4 className="text-sm font-black text-white uppercase italic leading-tight">{nowPlaying.title}</h4>
-                      <p className="text-[10px] text-gray-500 mt-2 line-clamp-2 leading-relaxed">{nowPlaying.description}</p>
+                      {channel.rating && (
+                        <div className="flex items-center gap-1 mb-2">
+                           {[...Array(5)].map((_, i) => (
+                             <span key={i} className={`text-[10px] ${i < Math.round(channel.rating / 2) ? 'text-yellow-500' : 'text-white/10'}`}>★</span>
+                           ))}
+                           <span className="text-[9px] font-bold text-white/40 ml-2">{channel.year}</span>
+                        </div>
+                      )}
+                      
+                      <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">
+                        {nowPlaying ? 'Ahora en Vivo' : 'Sinopsis'}
+                      </p>
+                      
+                      <h4 className="text-sm font-black text-white uppercase italic leading-tight">
+                        {nowPlaying ? nowPlaying.title : (channel.displayName || channel.name)}
+                      </h4>
+                      
+                      <p className="text-[10px] text-gray-500 mt-2 line-clamp-6 leading-relaxed">
+                        {nowPlaying ? nowPlaying.description : (channel.description || 'Cargando detalles técnicos de la obra...')}
+                      </p>
                    </div>
-                   {nextUp && (
+                   
+                   {nowPlaying && nextUp && (
                      <div className="px-4 py-2 border-l-2 border-gray-800">
                         <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-0.5">A Continuación</p>
                         <h5 className="text-[11px] font-bold text-gray-400 uppercase truncate">{nextUp.title}</h5>

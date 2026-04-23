@@ -1,4 +1,4 @@
-const TMDB_API_KEY = ''; // USER can add their key here
+const TMDB_API_KEY = 'e547e17d4e91f3e62a571655cd1ccaff'; // USER can add their key here
 const BASE_URL = 'https://api.themoviedb.org/3';
 
 export const getMovieDetails = async (title) => {
