@@ -11,6 +11,7 @@ import { fetchAndFilterMovies } from './utils/m3uParser';
 
 export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
+  const [localMovies, setLocalMovies] = useState([]);
   const [vodData, setVodData] = useState([]);
   const [externalMovies, setExternalMovies] = useState([]);
   const [isVodLoading, setIsVodLoading] = useState(false);
@@ -30,10 +31,18 @@ export default function App() {
     try {
       setIsAppLoading(true);
       setError(null);
-      const response = await fetch('/channels.json');
-      if (!response.ok) throw new Error('Error de conexión');
-      const data = await response.json();
-      setChannelData(data);
+      // Load Live Channels
+      const chRes = await fetch('/channels.json');
+      if (chRes.ok) {
+        const data = await chRes.json();
+        setChannelData(data);
+      }
+      // Load Local Movies
+      const movRes = await fetch('/movies.json');
+      if (movRes.ok) {
+        const data = await movRes.json();
+        setLocalMovies(data.map(m => ({ ...m, isVOD: true, displayName: m.title })));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,18 +50,15 @@ export default function App() {
     }
   };
 
-  // VOD & External Movies Integration
   useEffect(() => {
     const loadContent = async () => {
       if (activeCategory === 'Filmes' && (vodData.length === 0 || externalMovies.length === 0)) {
         setIsVodLoading(true);
         try {
-          // 1. Fetch from IPTV-ORG (Selective Modern Movies)
           if (externalMovies.length === 0) {
             const ext = await fetchAndFilterMovies();
             setExternalMovies(ext);
           }
-          // 2. Try fetching from the first server available
           if (vodData.length === 0) {
             const movies = await fetchVODStreams(XTREAM_SERVERS[0]);
             if (movies && movies.length > 0) setVodData(movies);
@@ -95,23 +101,30 @@ export default function App() {
     localStorage.setItem('animux_broken', JSON.stringify(newBroken));
   };
 
+  const handleItemClick = (channel) => {
+    const isVOD = channel.isVOD || channel.category?.includes('Cine') || channel.category?.includes('Filmes');
+    if (isVOD) {
+      setSelectedDetail(channel);
+    } else {
+      setActiveChannel(channel);
+      addToRecent(channel);
+    }
+  };
+
   const filteredChannels = useMemo(() => {
-    let baseList = [...channelData.channels];
+    let baseList = [...channelData.channels, ...localMovies];
     
-    // Merge Extended Movie sources
     if (activeCategory === 'Filmes' || searchQuery) {
       baseList = [...baseList, ...vodData, ...externalMovies];
     }
 
     let result = baseList.filter(c => !brokenChannels.includes(String(c.id)));
     
-    // Global De-duplication by Name
+    // De-duplication
     const uniqueMap = new Map();
     result.forEach(c => {
       const cleanName = (c.displayName || c.name || "").toLowerCase().trim();
-      if (!uniqueMap.has(cleanName)) {
-        uniqueMap.set(cleanName, c);
-      }
+      if (!uniqueMap.has(cleanName)) uniqueMap.set(cleanName, c);
     });
     result = Array.from(uniqueMap.values());
 
@@ -136,9 +149,9 @@ export default function App() {
 
     return result.map(channel => ({
        ...channel,
-       displayName: (channel.name || "").split(' - ')[0].split(' Cap ')[0].split(' [')[0].split(' (')[0].trim()
+       displayName: (channel.displayName || channel.name || "").split(' [')[0].split(' (')[0].trim()
     })).filter(Boolean);
-  }, [searchQuery, activeCategory, favorites, channelData, vodData, externalMovies, brokenChannels]);
+  }, [searchQuery, activeCategory, favorites, channelData, vodData, localMovies, externalMovies, brokenChannels]);
 
   useEffect(() => {
     setPage(1);
@@ -157,11 +170,11 @@ export default function App() {
   };
 
   const recentChannels = useMemo(() => {
-    const allPossible = [...channelData.channels, ...vodData, ...externalMovies];
+    const allPossible = [...channelData.channels, ...vodData, ...localMovies, ...externalMovies];
     return recentlyWatched
       .map(id => allPossible.find(c => String(c.id) === String(id)))
       .filter(Boolean);
-  }, [recentlyWatched, channelData.channels, vodData, externalMovies]);
+  }, [recentlyWatched, channelData.channels, vodData, localMovies, externalMovies]);
 
   if (isAppLoading) {
     return (
@@ -181,8 +194,8 @@ export default function App() {
           {activeCategory === 'Todos' && !searchQuery ? (
             <div className="space-y-10 md:space-y-16 animate-fade-in">
               <Hero 
-                featuredChannel={channelData.channels.find(c => c.category?.includes('Cine') || c.category?.includes('Series'))} 
-                onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} 
+                featuredChannel={localMovies[0] || channelData.channels[0]} 
+                onPlay={handleItemClick} 
                 onDetails={setSelectedDetail} 
               />
 
@@ -195,7 +208,12 @@ export default function App() {
                   <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
                      {recentChannels.map(channel => (
                        <div key={`recent-${channel.id}`} className="w-[110px] md:w-[160px] shrink-0">
-                         <ChannelCard channel={channel} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
+                         <ChannelCard 
+                            channel={channel} 
+                            onPlay={handleItemClick} 
+                            isFavorite={favorites.includes(String(channel.id))}
+                            onToggleFavorite={toggleFavorite}
+                         />
                        </div>
                      ))}
                   </div>
@@ -203,7 +221,7 @@ export default function App() {
               )}
               
               {['Series', 'Filmes', 'Infantil', 'Anime', 'Deportes', 'Documentales'].map((cat) => {
-                const items = (cat === 'Filmes' ? [...channelData.channels, ...vodData, ...externalMovies] : channelData.channels)
+                const items = (cat === 'Filmes' ? [...channelData.channels, ...vodData, ...localMovies, ...externalMovies] : channelData.channels)
                   .filter(c => {
                     const chCat = (c.category || "").toLowerCase();
                     if (cat === 'Filmes') return chCat.includes('cine') || chCat.includes('movie') || c.isVOD || c.isExternal;
@@ -222,7 +240,12 @@ export default function App() {
                     <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
                        {items.map(channel => (
                          <div key={channel.id} className="w-[110px] md:w-[160px] shrink-0">
-                           <ChannelCard channel={channel} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
+                           <ChannelCard 
+                              channel={channel} 
+                              onPlay={handleItemClick} 
+                              isFavorite={favorites.includes(String(channel.id))}
+                              onToggleFavorite={toggleFavorite}
+                           />
                          </div>
                        ))}
                     </div>
@@ -239,7 +262,7 @@ export default function App() {
                  {isVodLoading ? (
                     <div className="flex items-center gap-2">
                        <Loader2 className="w-4 h-4 text-rose-500 animate-spin" />
-                       <span className="text-[9px] font-bold text-rose-500 tracking-widest uppercase">Cargando Estrenos...</span>
+                       <span className="text-[9px] font-bold text-rose-500 tracking-widest uppercase">Cargando Catálogo...</span>
                     </div>
                  ) : (
                     <span className="text-[9px] font-bold text-gray-600 tracking-widest uppercase">{filteredChannels.length} Títulos</span>
@@ -257,7 +280,9 @@ export default function App() {
                     <ChannelCard 
                       key={channel.id} 
                       channel={channel} 
-                      onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} 
+                      onPlay={handleItemClick}
+                      isFavorite={favorites.includes(String(channel.id))}
+                      onToggleFavorite={toggleFavorite}
                     />
                   ))}
                 </div>
@@ -297,7 +322,7 @@ export default function App() {
           onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); setSelectedDetail(null); }}
           isFavorite={favorites.includes(String(selectedDetail.id))}
           toggleFavorite={toggleFavorite}
-          allChannels={[...channelData.channels, ...vodData, ...externalMovies]}
+          allChannels={[...channelData.channels, ...vodData, ...localMovies, ...externalMovies]}
           onSelect={setSelectedDetail}
         />
       )}
