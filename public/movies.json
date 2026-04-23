@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "test-deadpool-yt",
+    "title": "Deadpool & Wolverine (YT Test)",
+    "name": "Deadpool & Wolverine (YT Test)",
+    "logo": "https://image.tmdb.org/t/p/w500/8cdWjvZQUmOZaba7vUWeIvSjwDc.jpg",
+    "category": "Cine Premium",
+    "rating": 8.9,
+    "year": "2024",
+    "description": "Prueba de reproducción directa desde YouTube para validar el motor de video de Animux.",
+    "url": "https://www.youtube.com/watch?v=EJah_2THDA8",
+    "isVOD": true
+  }
+]
