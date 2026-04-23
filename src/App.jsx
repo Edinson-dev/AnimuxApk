@@ -105,6 +105,16 @@ export default function App() {
 
     let result = baseList.filter(c => !brokenChannels.includes(String(c.id)));
     
+    // Global De-duplication by Name
+    const uniqueMap = new Map();
+    result.forEach(c => {
+      const cleanName = (c.displayName || c.name || "").toLowerCase().trim();
+      if (!uniqueMap.has(cleanName)) {
+        uniqueMap.set(cleanName, c);
+      }
+    });
+    result = Array.from(uniqueMap.values());
+
     if (activeCategory === 'Favoritos') {
       result = result.filter(c => favorites.includes(String(c.id)));
     } else if (activeCategory !== 'Todos') {

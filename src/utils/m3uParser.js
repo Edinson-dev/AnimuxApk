@@ -8,6 +8,7 @@ export const fetchAndFilterMovies = async () => {
     
     const lines = text.split('\n');
     const channels = [];
+    const seenNames = new Set();
     
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith('#EXTINF:')) {
@@ -15,36 +16,61 @@ export const fetchAndFilterMovies = async () => {
         const url = lines[i + 1]?.trim();
         
         if (url && url.startsWith('http')) {
-          // Extract attributes
           const nameMatch = info.match(/,(.*)$/);
           const logoMatch = info.match(/tvg-logo="(.*?)"/);
           const name = nameMatch ? nameMatch[1].trim() : 'Canal de Cine';
           const logo = logoMatch ? logoMatch[1] : '';
           
           const nameLower = name.toLowerCase();
-          
-          // FILTER: Skip old movies (70s, 80s, Classic, Noir, etc.)
+          const cleanName = name.split(' [')[0].split(' (')[0].trim();
+          const cleanNameLower = cleanName.toLowerCase();
+
+          // 1. DUPLICATE CHECK
+          if (seenNames.has(cleanNameLower)) continue;
+
+          // 2. LANGUAGE FILTER (LATIN / SPANISH ONLY)
+          // Keywords that indicate it's a Spanish/Latin channel
+          const isSpanish = nameLower.includes('latino') || 
+                            nameLower.includes('esp') || 
+                            nameLower.includes('mexico') || 
+                            nameLower.includes('argentina') || 
+                            nameLower.includes('colombia') ||
+                            nameLower.includes('chile') ||
+                            nameLower.includes('peru') ||
+                            nameLower.includes('cine.ar') ||
+                            nameLower.includes('atrescine') ||
+                            nameLower.includes('cinecanal') ||
+                            nameLower.includes('axn latin') ||
+                            nameLower.includes('amc latin') ||
+                            nameLower.includes('tnt') ||
+                            nameLower.includes('space') ||
+                            nameLower.includes('warner');
+
+          // Explicitly block other languages
+          const isBlocked = nameLower.includes('brazil') || 
+                            nameLower.includes('br@') ||
+                            nameLower.includes('portugal') ||
+                            nameLower.includes('russia') ||
+                            nameLower.includes('germany') ||
+                            nameLower.includes('italy') ||
+                            nameLower.includes('france') ||
+                            nameLower.includes('india') ||
+                            nameLower.includes('china') ||
+                            nameLower.includes('japan') ||
+                            nameLower.includes('turkey');
+
+          // 3. AGE FILTER (NO OLD CINEMA)
           const isOld = nameLower.includes('70s') || 
                         nameLower.includes('80s') || 
                         nameLower.includes('classic') || 
-                        nameLower.includes('noir') || 
-                        nameLower.includes('vintage') ||
                         nameLower.includes('retro');
-                        
-          // FILTER: Prioritize Spanish, Action, Modern, or major brands
-          const isRelevant = nameLower.includes('cine') || 
-                            nameLower.includes('movie') || 
-                            nameLower.includes('action') || 
-                            nameLower.includes('premium') || 
-                            nameLower.includes('canal') ||
-                            nameLower.includes('esp') ||
-                            nameLower.includes('latino');
 
-          if (!isOld && isRelevant) {
+          if (!isBlocked && isSpanish && !isOld) {
+            seenNames.add(cleanNameLower);
             channels.push({
-              id: `ext-${name.replace(/\s+/g, '-')}-${i}`,
-              name: name,
-              displayName: name.split(' [')[0].split(' (')[0],
+              id: `ext-${cleanName.replace(/\s+/g, '-')}`,
+              name: cleanName,
+              displayName: cleanName,
               logo: logo || 'https://i.imgur.com/Pvid2iH.png',
               category: 'Filmes',
               url: url,
@@ -55,8 +81,7 @@ export const fetchAndFilterMovies = async () => {
       }
     }
     
-    // Return only top 100 relevant results to keep it clean
-    return channels.slice(0, 100);
+    return channels;
   } catch (error) {
     console.error('Error parsing M3U:', error);
     return [];
