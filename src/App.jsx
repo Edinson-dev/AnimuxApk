@@ -102,18 +102,9 @@ export default function App() {
     localStorage.setItem('animux_broken', JSON.stringify(newBroken));
   };
 
-  const handleItemClick = async (channel) => {
-    const isVOD = channel.isVOD || channel.category?.includes('Cine') || channel.category?.includes('Filmes');
-    
-    if (isVOD) {
-      // Enrich with TMDB if possible
-      const details = await getMovieDetails(channel.displayName || channel.name);
-      const enrichedChannel = details ? { ...channel, ...details } : channel;
-      setSelectedDetail(enrichedChannel);
-    } else {
-      setActiveChannel(channel);
-      addToRecent(channel);
-    }
+  const handleItemClick = (channel) => {
+    setActiveChannel(channel);
+    addToRecent(channel);
   };
 
   const filteredChannels = useMemo(() => {
