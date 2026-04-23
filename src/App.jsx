@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Home, Tv, Film, Heart, AlertCircle, History } from 'lucide-react';
+import { Home, Tv, Film, Heart, AlertCircle, History, Search as SearchIcon, Loader2 } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChannelCard from './components/ChannelCard';
 import Player from './components/Player';
 import DetailsModal from './components/DetailsModal';
 import Skeleton from './components/Skeleton';
+import { XTREAM_SERVERS, fetchVODStreams } from './config/servers';
 
 export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
+  const [vodData, setVodData] = useState([]);
+  const [isVodLoading, setIsVodLoading] = useState(false);
   const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('animux_favs') || '[]'));
   const [recentlyWatched, setRecentlyWatched] = useState(() => JSON.parse(localStorage.getItem('animux_recent') || '[]'));
   const [activeCategory, setActiveCategory] = useState('Todos');
@@ -35,6 +38,27 @@ export default function App() {
       setTimeout(() => setIsAppLoading(false), 800);
     }
   };
+
+  // VOD Integration Logic
+  useEffect(() => {
+    const loadVOD = async () => {
+      if (activeCategory === 'Filmes' && vodData.length === 0) {
+        setIsVodLoading(true);
+        try {
+          // Try fetching from the first server available
+          const movies = await fetchVODStreams(XTREAM_SERVERS[0]);
+          if (movies && movies.length > 0) {
+            setVodData(movies);
+          }
+        } catch (err) {
+          console.error("VOD Fetch failed:", err);
+        } finally {
+          setIsVodLoading(false);
+        }
+      }
+    };
+    loadVOD();
+  }, [activeCategory]);
 
   useEffect(() => {
     loadData();
@@ -65,7 +89,14 @@ export default function App() {
   };
 
   const filteredChannels = useMemo(() => {
-    let result = channelData.channels.filter(c => !brokenChannels.includes(String(c.id)));
+    let baseList = [...channelData.channels];
+    
+    // If searching movies or in Filmes category, merge VOD data
+    if (activeCategory === 'Filmes' || (searchQuery && vodData.length > 0)) {
+      baseList = [...baseList, ...vodData];
+    }
+
+    let result = baseList.filter(c => !brokenChannels.includes(String(c.id)));
     
     if (activeCategory === 'Favoritos') {
       result = result.filter(c => favorites.includes(String(c.id)));
@@ -73,7 +104,7 @@ export default function App() {
       const catLower = activeCategory.toLowerCase();
       result = result.filter(c => {
         const chCat = (c.category || "").toLowerCase();
-        if (activeCategory === 'Filmes') return chCat.includes('cine') || chCat.includes('movie');
+        if (activeCategory === 'Filmes') return chCat.includes('cine') || chCat.includes('movie') || c.isVOD;
         return chCat.includes(catLower);
       });
     }
@@ -90,7 +121,7 @@ export default function App() {
        ...channel,
        displayName: (channel.name || "").split(' - ')[0].split(' Cap ')[0].trim()
     })).filter(Boolean);
-  }, [searchQuery, activeCategory, favorites, channelData, brokenChannels]);
+  }, [searchQuery, activeCategory, favorites, channelData, vodData, brokenChannels]);
 
   useEffect(() => {
     setPage(1);
@@ -109,10 +140,11 @@ export default function App() {
   };
 
   const recentChannels = useMemo(() => {
+    const allPossible = [...channelData.channels, ...vodData];
     return recentlyWatched
-      .map(id => channelData.channels.find(c => String(c.id) === String(id)))
+      .map(id => allPossible.find(c => String(c.id) === String(id)))
       .filter(Boolean);
-  }, [recentlyWatched, channelData.channels]);
+  }, [recentlyWatched, channelData.channels, vodData]);
 
   if (isAppLoading) {
     return (
@@ -137,7 +169,6 @@ export default function App() {
                 onDetails={setSelectedDetail} 
               />
 
-              {/* Vistos Recientemente - New Section */}
               {recentChannels.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
@@ -147,7 +178,7 @@ export default function App() {
                   <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
                      {recentChannels.map(channel => (
                        <div key={`recent-${channel.id}`} className="w-[110px] md:w-[160px] shrink-0">
-                         <ChannelCard channel={{...channel, displayName: channel.name.split(' - ')[0]}} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
+                         <ChannelCard channel={channel} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
                        </div>
                      ))}
                   </div>
@@ -155,10 +186,10 @@ export default function App() {
               )}
               
               {['Series', 'Filmes', 'Infantil', 'Anime', 'Deportes', 'Documentales'].map((cat) => {
-                const items = channelData.channels
+                const items = (cat === 'Filmes' ? [...channelData.channels, ...vodData.slice(0, 50)] : channelData.channels)
                   .filter(c => {
                     const chCat = (c.category || "").toLowerCase();
-                    if (cat === 'Filmes') return chCat.includes('cine') || chCat.includes('movie');
+                    if (cat === 'Filmes') return chCat.includes('cine') || chCat.includes('movie') || c.isVOD;
                     return chCat.includes(cat.toLowerCase());
                   })
                   .slice(0, 18);
@@ -174,7 +205,7 @@ export default function App() {
                     <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
                        {items.map(channel => (
                          <div key={channel.id} className="w-[110px] md:w-[160px] shrink-0">
-                           <ChannelCard channel={{...channel, displayName: channel.name.split(' - ')[0]}} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
+                           <ChannelCard channel={channel} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
                          </div>
                        ))}
                     </div>
@@ -188,17 +219,32 @@ export default function App() {
                  <h2 className="text-2xl md:text-4xl font-normal text-white uppercase tracking-widest">
                     {searchQuery ? `Resultados: ${searchQuery}` : activeCategory}
                  </h2>
-                 <span className="text-[9px] font-bold text-gray-600 tracking-widest uppercase">{filteredChannels.length} Canales</span>
+                 {isVodLoading ? (
+                    <div className="flex items-center gap-2">
+                       <Loader2 className="w-4 h-4 text-rose-500 animate-spin" />
+                       <span className="text-[9px] font-bold text-rose-500 tracking-widest uppercase">Escaneando Servidores...</span>
+                    </div>
+                 ) : (
+                    <span className="text-[9px] font-bold text-gray-600 tracking-widest uppercase">{filteredChannels.length} Títulos</span>
+                 )}
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4 md:gap-6">
-                {displayedChannels.map(channel => (
-                  <ChannelCard 
-                    key={channel.id} 
-                    channel={channel} 
-                    onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} 
-                  />
-                ))}
-              </div>
+
+              {displayedChannels.length === 0 && !isVodLoading ? (
+                 <div className="py-20 text-center">
+                    <SearchIcon className="w-12 h-12 text-gray-800 mx-auto mb-4" />
+                    <p className="text-gray-500 uppercase font-black text-xs tracking-widest">No se encontraron resultados</p>
+                 </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4 md:gap-6">
+                  {displayedChannels.map(channel => (
+                    <ChannelCard 
+                      key={channel.id} 
+                      channel={channel} 
+                      onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} 
+                    />
+                  ))}
+                </div>
+              )}
               
               {displayedChannels.length < filteredChannels.length && (
                 <div className="flex justify-center mt-12 mb-12">
@@ -234,7 +280,7 @@ export default function App() {
           onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); setSelectedDetail(null); }}
           isFavorite={favorites.includes(String(selectedDetail.id))}
           toggleFavorite={toggleFavorite}
-          allChannels={channelData.channels}
+          allChannels={[...channelData.channels, ...vodData]}
           onSelect={setSelectedDetail}
         />
       )}

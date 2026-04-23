@@ -11,17 +11,18 @@ export const buildStreamURL = (server, channelId) => {
   return `${server.host}/live/${server.user}/${server.pass}/${channelId}.m3u8`;
 };
 
+export const buildVODURL = (server, vodId, extension = 'mp4') => {
+  if (!server || !vodId) return null;
+  return `${server.host}/movie/${server.user}/${server.pass}/${vodId}.${extension}`;
+};
+
 export const fetchShortEPG = async (server, channelId) => {
   if (!server || !channelId) return null;
-  
   try {
     const url = `${server.host}/player_api.php?username=${server.user}&password=${server.pass}&action=get_short_epg&stream_id=${channelId}`;
-    
     const response = await fetch(url);
     if (!response.ok) return null;
-    
     const data = await response.json();
-    
     if (data && data.epg_listings && data.epg_listings.length > 0) {
       return data.epg_listings.map(item => ({
         title: atob(item.title),
@@ -32,8 +33,45 @@ export const fetchShortEPG = async (server, channelId) => {
         stop_timestamp: item.stop_timestamp
       }));
     }
-  } catch (error) {
-    console.error('EPG Fetch Error:', error);
-  }
+  } catch (error) { console.error('EPG Fetch Error:', error); }
   return null;
+};
+
+// VOD Engine
+export const fetchVODCategories = async (server) => {
+  try {
+    const url = `${server.host}/player_api.php?username=${server.user}&password=${server.pass}&action=get_vod_categories`;
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error('VOD Categories Error:', error);
+    return [];
+  }
+};
+
+export const fetchVODStreams = async (server, categoryId = '') => {
+  try {
+    const url = `${server.host}/player_api.php?username=${server.user}&password=${server.pass}&action=get_vod_streams${categoryId ? `&category_id=${categoryId}` : ''}`;
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    const data = await response.json();
+    // Normalize VOD data to match our app's channel structure
+    return data.map(item => ({
+      id: `vod-${item.stream_id}`,
+      vodId: item.stream_id,
+      name: item.name,
+      displayName: item.name,
+      logo: item.stream_icon,
+      category: 'Cine VOD',
+      rating: item.rating,
+      container: item.container_extension,
+      isVOD: true,
+      url: buildVODURL(server, item.stream_id, item.container_extension || 'mp4'),
+      serverInfo: server
+    }));
+  } catch (error) {
+    console.error('VOD Streams Error:', error);
+    return [];
+  }
 };
