@@ -7,26 +7,28 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icon-512.png'],
       manifest: {
-        name: 'Animux',
+        name: 'Animux Streaming',
         short_name: 'Animux',
-        description: 'Plataforma Premium de Televisión y Streaming',
-        theme_color: '#030305',
-        background_color: '#030305',
+        description: 'Tu plataforma de TV y Cine en alta definición',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
-            src: 'https://ui-avatars.com/api/?name=AX&background=020617&color=4f46e5&size=192&font-size=0.4',
-            sizes: '192x192',
+            src: 'icon-512.png',
+            sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'https://ui-avatars.com/api/?name=AX&background=020617&color=4f46e5&size=512&font-size=0.4',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
+            src: 'icon-512.png',
+            sizes: '192x192',
+            type: 'image/png'
           }
         ]
       },
