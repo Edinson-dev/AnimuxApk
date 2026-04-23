@@ -145,8 +145,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   }, [serverIndex]);
 
   useEffect(() => {
-    if (!currentUrl || !videoRef.current || isYouTube) {
-      if (isYouTube) setLoading(false);
+    if (!currentUrl || !videoRef.current || isYouTube || isDrive) {
+      if (isYouTube || isDrive) setLoading(false);
       return;
     }
 
