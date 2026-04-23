@@ -8,6 +8,7 @@ import DetailsModal from './components/DetailsModal';
 import Skeleton from './components/Skeleton';
 import { XTREAM_SERVERS, fetchVODStreams } from './config/servers';
 import { fetchAndFilterMovies } from './utils/m3uParser';
+import { getMovieDetails } from './utils/tmdb';
 
 export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
