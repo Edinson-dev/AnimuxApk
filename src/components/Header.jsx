@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, X, Tv, Menu, Download } from 'lucide-react';
 
 export default function Header({ searchQuery, setSearchQuery, categories = [], activeCategory, onInstall, showInstall }) {
