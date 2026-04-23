@@ -51,22 +51,21 @@ function parseM3U(content) {
       const groupMatch = line.match(/group-title="(.*?)"/);
       
       const rawName = nameMatch ? nameMatch[1] : 'Unknown';
-      const category = groupMatch ? groupMatch[1] : 'Cine';
+      const category = groupMatch ? groupMatch[1] : 'General';
       
-      // Filter: Must be movie category OR have movie indicators in name
-      const isMovie = /cine|pelicula|movie|vod|film|estreno|cinema/i.test(category) || 
-                      /hbo|amc|tnt|star|warner|golden|axn|space/i.test(rawName.toLowerCase());
+      // Broader Filter: Movies, Music, and more
+      const isRelevant = /cine|pelicula|movie|vod|film|estreno|cinema|musica|music|clip|pop|rock/i.test(category) || 
+                         /hbo|amc|tnt|star|warner|golden|axn|space|mtv|htv/i.test(rawName.toLowerCase());
       
-      // Avoid live TV channels mixed in VOD lists if they are too generic
-      const isLiveTV = /noticias|news|sports|deportes|kids|infantil/i.test(category);
+      const isLiveTVNews = /noticias|news/i.test(category);
 
-      if (isMovie && !isLiveTV) {
+      if (isRelevant && !isLiveTVNews) {
         currentItem = {
-          id: 'v-' + Math.random().toString(36).substr(2, 7),
+          id: 'ext-' + Math.random().toString(36).substr(2, 7),
           name: rawName,
           logo: logoMatch ? logoMatch[1] : null,
           category: category,
-          isVOD: true,
+          isVOD: /vod|pelicula|cine/i.test(category) || /hls|mp4/i.test(line),
           isExternal: true
         };
       } else {

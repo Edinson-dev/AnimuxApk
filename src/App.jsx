@@ -230,7 +230,7 @@ export default function App() {
                 </div>
               )}
               
-              {['Series', 'Filmes', 'Infantil', 'Anime', 'Deportes', 'Documentales'].map((cat) => {
+              {['Series', 'Filmes', 'Infantil', 'Musica', 'Anime', 'Deportes', 'Documentales', 'Religión'].map((cat) => {
                 const items = (cat === 'Filmes' ? [...channelData.channels, ...vodData, ...localMovies, ...externalMovies] : channelData.channels)
                   .filter(c => {
                     const chCat = (c.category || "").toLowerCase();
