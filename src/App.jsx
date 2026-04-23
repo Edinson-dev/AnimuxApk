@@ -141,11 +141,15 @@ export default function App() {
     if (activeCategory === 'Favoritos') {
       result = result.filter(c => favorites.includes(String(c.id)));
     } else if (activeCategory !== 'Todos') {
-      const catLower = activeCategory.toLowerCase();
+      const catNorm = activeCategory.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      
       result = result.filter(c => {
-        const chCat = (c.category || "").toLowerCase();
-        if (activeCategory === 'Filmes') return chCat.includes('cine') || chCat.includes('movie') || c.isVOD || c.isExternal;
-        return chCat.includes(catLower);
+        const chCat = (c.category || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        
+        if (activeCategory === 'Filmes') {
+          return chCat.includes('cine') || chCat.includes('movie') || chCat.includes('film') || c.isVOD || c.isExternal;
+        }
+        return chCat.includes(catNorm);
       });
     }
 
@@ -164,12 +168,29 @@ export default function App() {
   }, [searchQuery, activeCategory, favorites, channelData, vodData, localMovies, externalMovies, brokenChannels]);
 
   const allCategories = useMemo(() => {
-    const cats = new Set(['Todos', 'Series', 'Filmes', 'Infantil', 'Musica', 'Anime', 'Deportes', 'Documentales', 'Favoritos']);
+    const cats = new Set(['Todos', 'Series', 'Filmes', 'Infantil', 'Música', 'Anime', 'Deportes', 'Documentales', 'Favoritos']);
     const allItems = [...channelData.channels, ...localMovies, ...vodData, ...externalMovies];
+    
+    // Normalization Map
+    const normalizeName = (name) => {
+      const clean = name.trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .toLowerCase();
+      
+      if (clean === 'musica') return 'Música';
+      if (clean === 'pelicula' || clean === 'peliculas' || clean === 'cine') return 'Filmes';
+      if (clean === 'religion') return 'Religión';
+      
+      return name.trim();
+    };
+
     allItems.forEach(item => {
-      if (item.category) cats.add(item.category.split(';')[0].trim());
+      if (item.category) {
+        const prettyName = normalizeName(item.category.split(';')[0].trim());
+        cats.add(prettyName);
+      }
     });
-    // Remove empty strings or weird titles
+
     return Array.from(cats).filter(c => c && c.length < 25);
   }, [channelData, localMovies, vodData, externalMovies]);
 
