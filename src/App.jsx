@@ -271,11 +271,11 @@ export default function App() {
       {installPrompt && (
         <button 
           onClick={handleInstall}
-          className="fixed bottom-24 right-6 md:bottom-10 md:right-10 z-[90] flex items-center gap-3 bg-rose-600 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-rose-600/30 hover:bg-rose-700 transition-all animate-bounce-subtle group"
+          className="fixed bottom-28 right-6 md:bottom-10 md:right-10 z-[999] flex items-center justify-center gap-3 bg-rose-600 text-white p-4 md:px-8 md:py-4 rounded-full md:rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-[0_0_30px_rgba(225,29,72,0.4)] hover:bg-rose-700 transition-all animate-bounce-subtle group border border-white/10"
         >
-          <Tv className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="hidden sm:inline">Instalar Animux</span>
-          <span className="sm:hidden">Instalar</span>
+          <Tv className="w-6 h-6 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
+          <span className="hidden md:inline">Instalar Animux</span>
+          <span className="md:hidden sr-only">Instalar</span>
         </button>
       )}
 
