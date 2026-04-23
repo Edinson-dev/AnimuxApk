@@ -1,14 +1,14 @@
 [
   {
-    "id": "test-deadpool-yt",
-    "title": "Deadpool & Wolverine (YT Test)",
-    "name": "Deadpool & Wolverine (YT Test)",
+    "id": "drive-test-01",
+    "title": "Prueba Google Drive 🚀",
+    "name": "Prueba Google Drive 🚀",
     "logo": "https://image.tmdb.org/t/p/w500/8cdWjvZQUmOZaba7vUWeIvSjwDc.jpg",
-    "category": "Cine Premium",
-    "rating": 8.9,
+    "category": "Filmes",
+    "rating": 9.0,
     "year": "2024",
-    "description": "Prueba de reproducción directa desde YouTube para validar el motor de video de Animux.",
-    "url": "https://www.youtube.com/watch?v=EJah_2THDA8",
+    "description": "Prueba de streaming directo desde tu almacenamiento de 5TB en Google Drive.",
+    "url": "https://drive.google.com/uc?export=download&id=1W_Q-_cLPdtDCL0H3FJlc3OkU-JOtFCMn",
     "isVOD": true
   }
 ]
