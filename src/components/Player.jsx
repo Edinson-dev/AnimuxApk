@@ -58,17 +58,21 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   // Media Session API for background playback
   useEffect(() => {
     if ('mediaSession' in navigator && channel) {
-      navigator.mediaSession.metadata = new MediaSessionMetadata({
-        title: channel.displayName || channel.name,
-        artist: channel.category || 'Animux Streaming',
-        album: 'Animux',
-        artwork: [
-          { src: channel.logo || '/icon-512.png', sizes: '512x512', type: 'image/png' }
-        ]
-      });
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: String(channel.displayName || channel.name || 'Animux'),
+          artist: String(channel.category || 'Streaming'),
+          album: 'Animux',
+          artwork: [
+            { src: channel.logo || '/icon-512.png', sizes: '512x512', type: 'image/png' }
+          ]
+        });
 
-      navigator.mediaSession.setActionHandler('play', () => videoRef.current?.play());
-      navigator.mediaSession.setActionHandler('pause', () => videoRef.current?.pause());
+        navigator.mediaSession.setActionHandler('play', () => videoRef.current?.play());
+        navigator.mediaSession.setActionHandler('pause', () => videoRef.current?.pause());
+      } catch (e) {
+        console.error("MediaSession error:", e);
+      }
     }
   }, [channel]);
 
