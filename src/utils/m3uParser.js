@@ -53,19 +53,19 @@ function parseM3U(content) {
       const rawName = nameMatch ? nameMatch[1] : 'Unknown';
       const category = groupMatch ? groupMatch[1] : 'General';
       
-      // Broader Filter: Movies, Music, and more
-      const isRelevant = /cine|pelicula|movie|vod|film|estreno|cinema|musica|music|clip|pop|rock/i.test(category) || 
-                         /hbo|amc|tnt|star|warner|golden|axn|space|mtv|htv/i.test(rawName.toLowerCase());
-      
-      const isLiveTVNews = /noticias|news/i.test(category);
+      const rawNameLower = rawName.toLowerCase();
+      const catLower = category.toLowerCase();
 
-      if (isRelevant && !isLiveTVNews) {
+      // Inclusive Filter: Keep almost everything from premium servers but prioritize organization
+      const isTrash = /test|prueba|adulto|xxx|adults/i.test(catLower);
+
+      if (!isTrash) {
         currentItem = {
           id: 'ext-' + Math.random().toString(36).substr(2, 7),
           name: rawName,
           logo: logoMatch ? logoMatch[1] : null,
           category: category,
-          isVOD: /vod|pelicula|cine/i.test(category) || /hls|mp4/i.test(line),
+          isVOD: /vod|pelicula|cine|series|estreno/i.test(catLower) || /hls|mp4|mkv/i.test(line),
           isExternal: true
         };
       } else {
