@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { X, AlertCircle, Loader2, Play, PictureInPicture } from 'lucide-react';
+import { XTREAM_SERVERS, buildStreamURL } from '../config/servers';
 
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
@@ -8,8 +9,42 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [useEmbed, setUseEmbed] = useState(false);
+  const [serverIndex, setServerIndex] = useState(-1); // -1 means trying original URL first
+  const [currentUrl, setCurrentUrl] = useState('');
   
   const isYouTube = channel?.url?.includes('youtube.com') || channel?.url?.includes('youtu.be');
+
+  // Function to get the final URL (Original or Xtream Rotation)
+  const getStreamUrl = (targetChannel, sIdx) => {
+    if (sIdx === -1) return targetChannel.url;
+    
+    // Try to extract an Xtream ID from the original URL if not explicitly provided
+    let xtreamId = targetChannel.xtreamId;
+    if (!xtreamId && targetChannel.url.includes('/live/')) {
+      const parts = targetChannel.url.split('/');
+      const lastPart = parts[parts.length - 1]; // e.g. "7.m3u8"
+      xtreamId = lastPart.split('.')[0]; // e.g. "7"
+    }
+
+    if (xtreamId && XTREAM_SERVERS[sIdx]) {
+      return buildStreamURL(XTREAM_SERVERS[sIdx], xtreamId);
+    }
+    
+    return null;
+  };
+
+  const tryNextServer = () => {
+    const nextIndex = serverIndex + 1;
+    if (nextIndex < XTREAM_SERVERS.length) {
+      console.log(`Switching to Xtream Server ${nextIndex + 1}...`);
+      setServerIndex(nextIndex);
+      setLoading(true);
+      setError(false);
+    } else {
+      setError(true);
+      setLoading(false);
+    }
+  };
 
   const handleEnded = () => {
     if (onPlayNext && playlist.length > 0) {
@@ -32,18 +67,14 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     }
   };
 
-  // Media Session Setup for Mobile Lock Screen
   useEffect(() => {
     if ('mediaSession' in navigator && channel) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: channel.displayName || channel.name,
         artist: 'Animux Streaming',
         album: channel.category || 'Televisión en Vivo',
-        artwork: [
-          { src: channel.logo, sizes: '512x512', type: 'image/png' }
-        ]
+        artwork: [{ src: channel.logo, sizes: '512x512', type: 'image/png' }]
       });
-
       navigator.mediaSession.setActionHandler('play', () => videoRef.current?.play());
       navigator.mediaSession.setActionHandler('pause', () => videoRef.current?.pause());
       navigator.mediaSession.setActionHandler('nexttrack', handleEnded);
@@ -55,6 +86,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     setUseEmbed(false);
     setError(false);
     setLoading(true);
+    setServerIndex(-1); // Reset to original URL
+    setCurrentUrl(channel.url);
 
     if (videoRef.current) {
       videoRef.current.onended = handleEnded;
@@ -65,29 +98,37 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     }
   }, [channel]);
 
+  // Effect to update currentUrl when serverIndex changes
   useEffect(() => {
-    if (!channel || !videoRef.current || isYouTube) {
+    if (serverIndex >= 0) {
+      const newUrl = getStreamUrl(channel, serverIndex);
+      if (newUrl) {
+        setCurrentUrl(newUrl);
+      } else {
+        // If no Xtream ID can be found, skip to error
+        setError(true);
+        setLoading(false);
+      }
+    }
+  }, [serverIndex]);
+
+  useEffect(() => {
+    if (!currentUrl || !videoRef.current || isYouTube) {
        if (isYouTube) setLoading(false);
        return;
     }
     
     const video = videoRef.current;
     let hls;
-    const isDirectVideo = (channel?.url || "").toLowerCase().includes('.mp4') || channel.isVOD;
+    const isDirectVideo = currentUrl.toLowerCase().includes('.mp4') || channel.isVOD;
 
     const timeoutId = setTimeout(() => {
       if (!video.paused || video.currentTime > 0) return;
-      if (channel.isVOD && channel.embedUrl) {
-         setUseEmbed(true);
-         setLoading(false);
-      } else {
-         setError(true);
-         setLoading(false);
-      }
-    }, 20000);
+      tryNextServer(); // Try next server on timeout
+    }, 15000);
 
     if (isDirectVideo) {
-      video.src = channel.url;
+      video.src = currentUrl;
       video.oncanplay = () => {
         clearTimeout(timeoutId);
         setLoading(false);
@@ -98,14 +139,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
            setUseEmbed(true);
            setLoading(false);
         } else {
-           setError(true);
-           setLoading(false);
+           tryNextServer();
         }
       };
     } else if (Hls.isSupported()) {
       hls = new Hls({ maxBufferLength: 30, enableWorker: true });
       hlsRef.current = hls;
-      hls.loadSource(channel.url);
+      hls.loadSource(currentUrl);
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -117,11 +157,17 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
-            case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              // Try next server instead of just restarting
+              clearTimeout(timeoutId);
+              tryNextServer();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
             default:
-              setError(true);
-              setLoading(false);
+              clearTimeout(timeoutId);
+              tryNextServer();
               hls.destroy();
               break;
           }
@@ -133,7 +179,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       clearTimeout(timeoutId);
       if (hls) hls.destroy();
     };
-  }, [channel]);
+  }, [currentUrl]);
 
   if (!channel) return null;
 
@@ -151,7 +197,14 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               <h2 className="text-white font-black text-xl md:text-2xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase italic">
                 {currentName}
               </h2>
-              <span className="text-rose-600 text-[10px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-rose-600 text-[10px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
+                {serverIndex >= 0 && (
+                  <span className="text-[8px] bg-rose-600/20 text-rose-500 px-2 py-0.5 rounded font-black uppercase tracking-widest">
+                    Servidor {serverIndex + 1}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button onClick={togglePiP} className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">
@@ -182,22 +235,24 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           {loading && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20">
               <Loader2 className="w-10 h-10 text-rose-600 animate-spin mb-3" />
-              <p className="text-white font-black text-xs tracking-[0.3em] uppercase">Sintonizando...</p>
+              <p className="text-white font-black text-xs tracking-[0.3em] uppercase">
+                {serverIndex >= 0 ? `Rotando Servidor ${serverIndex + 1}...` : 'Sintonizando...'}
+              </p>
             </div>
           )}
 
           {error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 p-6 text-center">
               <AlertCircle className="w-12 h-12 text-rose-600 mb-4" />
-              <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Error de Conexión</h3>
-               <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Este enlace no está disponible actualmente.</p>
+              <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Emisión Caída</h3>
+               <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Hemos probado {XTREAM_SERVERS.length + 1} servidores y ninguno responde actualmente.</p>
                <div className="flex gap-3 mt-8">
                  <button onClick={onClose} className="px-10 py-3 bg-white/10 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">Cerrar</button>
                  <button 
                    onClick={() => { onReportBroken(channel.id); onClose(); }}
                    className="px-10 py-3 bg-rose-600 text-white rounded-full font-black text-[10px] uppercase tracking-widest"
                  >
-                   Eliminar
+                   Reportar
                  </button>
                </div>
             </div>
