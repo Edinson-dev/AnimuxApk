@@ -155,10 +155,11 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const timeoutId = setTimeout(() => {
       if (!video.paused || video.currentTime > 0) return;
       tryNextServer();
-    }, 15000);
+    }, 8000); // Faster rotation (8s)
 
     if (isDirectVideo) {
       video.src = currentUrl;
+      video.load();
       video.oncanplay = () => {
         clearTimeout(timeoutId);
         setLoading(false);
@@ -189,8 +190,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         }
       });
     } else {
-      // Fallback for direct URLs that don't have extension but are likely video streams
+      // Fallback for direct URLs
       video.src = currentUrl;
+      video.load();
       video.play().catch(() => {});
       setLoading(false);
       clearTimeout(timeoutId);
@@ -265,7 +267,14 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               allowFullScreen
             ></iframe>
           ) : (
-            <video ref={videoRef} className="w-full h-full object-contain bg-black shadow-2xl" controls autoPlay playsInline />
+            <video 
+              ref={videoRef} 
+              className="w-full h-full object-contain bg-black shadow-2xl" 
+              controls 
+              autoPlay 
+              playsInline 
+              crossOrigin="anonymous"
+            />
           )}
 
           {loading && !error && (
