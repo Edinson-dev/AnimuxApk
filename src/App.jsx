@@ -459,6 +459,13 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Developer Signature */}
+        <footer className="mt-20 mb-10 pb-10 border-t border-white/5 pt-10 text-center animate-fade-in">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">
+            Created with <span className="text-rose-600 animate-pulse">❤️</span> by <span className="text-white hover:text-rose-500 transition-colors cursor-default">Edinson</span>
+          </p>
+        </footer>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-[70] bg-black/80 backdrop-blur-3xl border-t border-white/[0.03] py-4 flex justify-around items-center md:hidden">
