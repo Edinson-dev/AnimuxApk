@@ -1,14 +1,14 @@
 [
   {
-    "id": "direct-test-01",
-    "title": "El pasado nunca se olvida (Premium Player)",
+    "id": "drive-test-01",
+    "title": "El pasado nunca se olvida",
     "name": "El pasado nunca se olvida",
     "logo": "https://www.solonovelanegra.es/wp-content/uploads/2023/07/el-pasado-nunca-nos-olvida-e1690091188692.jpg",
     "category": "Filmes",
     "rating": 9.0,
     "year": "2024",
-    "description": "Prueba de reproducción con el motor nativo de Animux usando un enlace directo .mp4.",
-    "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "description": "Prueba de reproducción en modo compatible desde tu almacenamiento de Google Drive.",
+    "url": "https://drive.google.com/file/d/1W_Q-_cLPdtDCL0H3FJlc3OkU-JOtFCMn/preview",
     "isVOD": true
   }
 ]
