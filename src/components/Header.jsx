@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, X, PlayCircle, Menu } from 'lucide-react';
 
-export default function Header({ searchQuery, setSearchQuery, categories = [], activeCategory }) {
+export default function Header({ searchQuery, setSearchQuery, categories = [], activeCategory, onInstall, showInstall }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
@@ -66,6 +66,14 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
            </button>
 
            <div className="hidden sm:flex items-center gap-4">
+              {showInstall && (
+                <button 
+                  onClick={onInstall}
+                  className="px-5 py-2 bg-rose-600 text-white rounded-full text-[9px] font-black tracking-widest uppercase hover:bg-rose-700 transition-all shadow-lg animate-bounce-subtle"
+                >
+                  Instalar App
+                </button>
+              )}
               <button className="px-5 py-2 bg-white text-black rounded-full text-[9px] font-black tracking-widest uppercase hover:bg-rose-600 hover:text-white transition-all">Suscripción</button>
            </div>
         </div>

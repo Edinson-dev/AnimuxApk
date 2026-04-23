@@ -26,7 +26,24 @@ export default function App() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
+  const [installPrompt, setInstallPrompt] = useState(null);
   const channelsPerPage = 48;
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstallPrompt(null);
+  };
 
   const loadData = async () => {
     try {
@@ -227,6 +244,8 @@ export default function App() {
         setSearchQuery={setSearchQuery} 
         categories={allCategories} 
         activeCategory={activeCategory} 
+        onInstall={handleInstall}
+        showInstall={!!installPrompt}
       />
 
       <main className="flex-1 overflow-y-auto pb-32 md:pb-12 custom-scrollbar relative pt-20 px-4 md:px-8" id="scrollArea">
