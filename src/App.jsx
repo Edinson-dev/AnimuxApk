@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Home, Tv, Film, Heart, AlertCircle } from 'lucide-react';
+import { Home, Tv, Film, Heart, AlertCircle, History } from 'lucide-react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChannelCard from './components/ChannelCard';
@@ -10,6 +10,7 @@ import Skeleton from './components/Skeleton';
 export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
   const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('animux_favs') || '[]'));
+  const [recentlyWatched, setRecentlyWatched] = useState(() => JSON.parse(localStorage.getItem('animux_recent') || '[]'));
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChannel, setActiveChannel] = useState(null);
@@ -40,6 +41,14 @@ export default function App() {
     window.onGoHome = () => { setActiveCategory('Todos'); setSearchQuery(''); };
     window.setActiveCategory = (cat) => setActiveCategory(cat);
   }, []);
+
+  const addToRecent = (channel) => {
+    if (!channel) return;
+    const filtered = recentlyWatched.filter(id => String(id) !== String(channel.id));
+    const newRecent = [String(channel.id), ...filtered].slice(0, 15);
+    setRecentlyWatched(newRecent);
+    localStorage.setItem('animux_recent', JSON.stringify(newRecent));
+  };
 
   const toggleFavorite = (id) => {
     const newFavs = favorites.includes(String(id))
@@ -99,6 +108,12 @@ export default function App() {
     }
   };
 
+  const recentChannels = useMemo(() => {
+    return recentlyWatched
+      .map(id => channelData.channels.find(c => String(c.id) === String(id)))
+      .filter(Boolean);
+  }, [recentlyWatched, channelData.channels]);
+
   if (isAppLoading) {
     return (
       <div className="flex flex-col h-screen bg-[#000000]">
@@ -118,9 +133,26 @@ export default function App() {
             <div className="space-y-10 md:space-y-16 animate-fade-in">
               <Hero 
                 featuredChannel={channelData.channels.find(c => c.category?.includes('Cine') || c.category?.includes('Series'))} 
-                onPlay={setActiveChannel} 
+                onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} 
                 onDetails={setSelectedDetail} 
               />
+
+              {/* Vistos Recientemente - New Section */}
+              {recentChannels.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                     <History className="w-5 h-5 text-rose-500" />
+                     <h3 className="text-xl md:text-2xl font-normal text-white uppercase tracking-widest">Continuar Viendo</h3>
+                  </div>
+                  <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
+                     {recentChannels.map(channel => (
+                       <div key={`recent-${channel.id}`} className="w-[110px] md:w-[160px] shrink-0">
+                         <ChannelCard channel={{...channel, displayName: channel.name.split(' - ')[0]}} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
+                       </div>
+                     ))}
+                  </div>
+                </div>
+              )}
               
               {['Series', 'Filmes', 'Infantil', 'Anime', 'Deportes', 'Documentales'].map((cat) => {
                 const items = channelData.channels
@@ -142,7 +174,7 @@ export default function App() {
                     <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6">
                        {items.map(channel => (
                          <div key={channel.id} className="w-[110px] md:w-[160px] shrink-0">
-                           <ChannelCard channel={{...channel, displayName: channel.name.split(' - ')[0]}} onPlay={setActiveChannel} />
+                           <ChannelCard channel={{...channel, displayName: channel.name.split(' - ')[0]}} onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} />
                          </div>
                        ))}
                     </div>
@@ -163,7 +195,7 @@ export default function App() {
                   <ChannelCard 
                     key={channel.id} 
                     channel={channel} 
-                    onPlay={setActiveChannel} 
+                    onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); }} 
                   />
                 ))}
               </div>
@@ -190,7 +222,7 @@ export default function App() {
           channel={activeChannel} 
           onClose={() => setActiveChannel(null)} 
           playlist={filteredChannels}
-          onPlayNext={setActiveChannel}
+          onPlayNext={(ch) => { setActiveChannel(ch); addToRecent(ch); }}
           onReportBroken={handleReportBroken}
         />
       )}
@@ -199,7 +231,7 @@ export default function App() {
         <DetailsModal 
           channel={selectedDetail} 
           onClose={() => setSelectedDetail(null)} 
-          onPlay={(ch) => { setActiveChannel(ch); setSelectedDetail(null); }}
+          onPlay={(ch) => { setActiveChannel(ch); addToRecent(ch); setSelectedDetail(null); }}
           isFavorite={favorites.includes(String(selectedDetail.id))}
           toggleFavorite={toggleFavorite}
           allChannels={channelData.channels}
