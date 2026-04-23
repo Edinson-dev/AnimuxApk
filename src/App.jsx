@@ -28,6 +28,7 @@ export default function App() {
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
   const channelsPerPage = 48;
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -46,7 +47,10 @@ export default function App() {
       setShowIOSInstructions(true);
       return;
     }
-    if (!installPrompt) return;
+    if (!installPrompt) {
+      setShowInstallInstructions(true);
+      return;
+    }
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') setInstallPrompt(null);
@@ -272,18 +276,49 @@ export default function App() {
         setSearchQuery={setSearchQuery} 
         categories={allCategories || []} 
         activeCategory={activeCategory} 
+        onInstall={handleInstall}
+        showInstall={true}
       />
 
       {/* Floating Install Button */}
-      {(installPrompt || isIOS) && (
-        <button 
-          onClick={handleInstall}
-          className="fixed bottom-28 right-6 md:bottom-10 md:right-10 z-[999] flex items-center justify-center gap-3 bg-rose-600 text-white p-4 md:px-8 md:py-4 rounded-full md:rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-[0_0_30px_rgba(225,29,72,0.4)] hover:bg-rose-700 transition-all animate-bounce-subtle group border border-white/10"
-        >
-          <Tv className="w-6 h-6 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
-          <span className="hidden md:inline">Instalar Animux</span>
-          <span className="md:hidden sr-only">Instalar</span>
-        </button>
+      <button 
+        onClick={handleInstall}
+        className="fixed bottom-28 right-6 md:bottom-10 md:right-10 z-[999] flex items-center justify-center gap-3 bg-rose-600 text-white p-4 md:px-8 md:py-4 rounded-full md:rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-[0_0_30px_rgba(225,29,72,0.4)] hover:bg-rose-700 transition-all animate-bounce-subtle group border border-white/10"
+      >
+        <Tv className="w-6 h-6 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
+        <span className="hidden md:inline">Instalar Animux</span>
+        <span className="md:hidden sr-only">Instalar</span>
+      </button>
+
+      {/* Android/Universal Install Instructions Modal */}
+      {showInstallInstructions && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#0d0d0f] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-rose-600/20">
+              <SearchIcon className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-black text-white uppercase italic mb-4 tracking-tighter">Instalar App</h3>
+            <p className="text-gray-400 text-sm leading-relaxed mb-8">
+              Si no ves el aviso automático, puedes instalar Animux manualmente:
+            </p>
+            <div className="space-y-4 text-left mb-8">
+              <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 font-black text-rose-500 text-xs">1</div>
+                <p className="text-[11px] text-white font-bold uppercase tracking-wide">Pulsa los '3 puntos' (Menú) de Chrome</p>
+              </div>
+              <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 font-black text-rose-500 text-xs">2</div>
+                <p className="text-[11px] text-white font-bold uppercase tracking-wide">Selecciona 'Instalar aplicación'</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowInstallInstructions(false)}
+              className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-rose-600/20"
+            >
+              ¡Entendido!
+            </button>
+          </div>
+        </div>
       )}
 
       {/* iOS Install Instructions Modal */}
