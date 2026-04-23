@@ -130,7 +130,10 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     
     const video = videoRef.current;
     let hls;
-    const isDirectVideo = currentUrl.toLowerCase().includes('.mp4') || channel.isVOD;
+    
+    // Improved detection: Only direct if it's .mp4 or .mkv, use HLS for .m3u8 even in VOD
+    const isM3U8 = currentUrl.toLowerCase().includes('.m3u8');
+    const isDirectVideo = (currentUrl.toLowerCase().includes('.mp4') || currentUrl.toLowerCase().includes('.mkv')) && !isM3U8;
 
     const timeoutId = setTimeout(() => {
       if (!video.paused || video.currentTime > 0) return;
@@ -150,7 +153,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
            setLoading(false);
         } else tryNextServer();
       };
-    } else if (Hls.isSupported()) {
+    } else if (Hls.isSupported() && isM3U8) {
       hls = new Hls({ maxBufferLength: 30, enableWorker: true });
       hlsRef.current = hls;
       hls.loadSource(currentUrl);
@@ -168,6 +171,12 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           tryNextServer();
         }
       });
+    } else {
+      // Fallback for direct URLs that don't have extension but are likely video streams
+      video.src = currentUrl;
+      video.play().catch(() => {});
+      setLoading(false);
+      clearTimeout(timeoutId);
     }
 
     return () => {
