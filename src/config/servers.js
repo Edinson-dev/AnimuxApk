@@ -6,6 +6,12 @@ export const XTREAM_SERVERS = [
   { host: 'http://ott.blue-iptv.xyz:25461', user: 'blue_demo', pass: 'blue_demo_26' }
 ];
 
+export const PREMIUM_M3U_SOURCES = [
+  'http://ultra-premium-pro.xyz:8080/get.php?username=96485194&password=yedcu83e9&type=m3u_plus',
+  'http://redworld.pro:8880/get.php?username=red39&password=T9R7LvmqAbf9&type=m3u_plus',
+  'http://planettvweb.com:8091/get.php?username=victor&password=Forap280&type=m3u_plus'
+];
+
 export const buildStreamURL = (server, channelId) => {
   if (!server || !channelId) return null;
   return `${server.host}/live/${server.user}/${server.pass}/${channelId}.m3u8`;

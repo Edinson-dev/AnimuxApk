@@ -1,74 +1,82 @@
+import { PREMIUM_M3U_SOURCES } from '../config/servers';
+
+const MOVIE_PLAYLISTS = [
+  'https://iptv-org.github.io/iptv/categories/movies.m3u',
+  ...PREMIUM_M3U_SOURCES
+];
+
 export const fetchAndFilterMovies = async () => {
-  const SOURCES = [
-    'https://iptv-org.github.io/iptv/categories/movies.m3u',
-    'https://iptv-org.github.io/iptv/countries/mx.m3u', // México
-    'https://iptv-org.github.io/iptv/countries/ar.m3u', // Argentina
-    'https://iptv-org.github.io/iptv/countries/co.m3u', // Colombia
-    'https://iptv-org.github.io/iptv/countries/es.m3u'  // España
-  ];
-  
-  const channels = [];
-  const seenNames = new Set();
-
-  for (const source of SOURCES) {
+  const fetchPromises = MOVIE_PLAYLISTS.map(async (url) => {
     try {
-      const response = await fetch(source);
-      if (!response.ok) continue;
+      const response = await fetch(url);
+      if (!response.ok) return [];
       const text = await response.text();
-      const lines = text.split('\n');
-      
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].startsWith('#EXTINF:')) {
-          const info = lines[i];
-          const url = lines[i + 1]?.trim();
-          
-          if (url && url.startsWith('http')) {
-            const nameMatch = info.match(/,(.*)$/);
-            const logoMatch = info.match(/tvg-logo="(.*?)"/);
-            const name = nameMatch ? nameMatch[1].trim() : 'Canal de Cine';
-            const logo = logoMatch ? logoMatch[1] : '';
-            
-            const nameLower = name.toLowerCase();
-            const cleanName = name.split(' [')[0].split(' (')[0].trim();
-            const cleanNameLower = cleanName.toLowerCase();
-
-            if (seenNames.has(cleanNameLower)) continue;
-
-            // Strict Filter for "Movies" in country lists
-            const isMovieCategory = nameLower.includes('cine') || 
-                                    nameLower.includes('movie') || 
-                                    nameLower.includes('film') ||
-                                    nameLower.includes('action') ||
-                                    nameLower.includes('tnt') ||
-                                    nameLower.includes('space') ||
-                                    nameLower.includes('warner') ||
-                                    nameLower.includes('axn') ||
-                                    nameLower.includes('amc') ||
-                                    nameLower.includes('golden') ||
-                                    nameLower.includes('star');
-
-            const isOld = nameLower.includes('70s') || nameLower.includes('80s') || nameLower.includes('classic') || nameLower.includes('retro');
-            const isBlocked = nameLower.includes('brazil') || nameLower.includes('russia') || nameLower.includes('india');
-
-            if (isMovieCategory && !isOld && !isBlocked) {
-              seenNames.add(cleanNameLower);
-              channels.push({
-                id: `ext-${cleanName.replace(/\s+/g, '-')}`,
-                name: cleanName,
-                displayName: cleanName,
-                logo: logo || 'https://i.imgur.com/Pvid2iH.png',
-                category: 'Filmes',
-                url: url,
-                isExternal: true
-              });
-            }
-          }
-        }
-      }
+      return parseM3U(text);
     } catch (error) {
-      console.error(`Error with ${source}:`, error);
+      console.error(`Error fetching M3U from ${url}:`, error);
+      return [];
+    }
+  });
+
+  const allResults = await Promise.all(fetchPromises);
+  const flattened = allResults.flat();
+
+  // Deduplicate by clean name
+  const uniqueMovies = new Map();
+  flattened.forEach(movie => {
+    const cleanName = movie.name.toLowerCase()
+      .replace(/\[.*?\]/g, '')
+      .replace(/\(.*?\)/g, '')
+      .replace(/hd|4k|fhd|sd|latino|esp/g, '')
+      .trim();
+    
+    if (!uniqueMovies.has(cleanName)) {
+      uniqueMovies.set(cleanName, movie);
+    }
+  });
+
+  return Array.from(uniqueMovies.values()).slice(0, 1000); // Limit for performance
+};
+
+function parseM3U(content) {
+  const lines = content.split('\n');
+  const items = [];
+  let currentItem = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('#EXTINF:')) {
+      const nameMatch = line.match(/,(.*)$/);
+      const logoMatch = line.match(/tvg-logo="(.*?)"/);
+      const groupMatch = line.match(/group-title="(.*?)"/);
+      
+      const rawName = nameMatch ? nameMatch[1] : 'Unknown';
+      const category = groupMatch ? groupMatch[1] : 'Cine';
+      
+      // Filter: Must be movie category OR have movie indicators in name
+      const isMovie = /cine|pelicula|movie|vod|film|estreno|cinema/i.test(category) || 
+                      /hbo|amc|tnt|star|warner|golden|axn|space/i.test(rawName.toLowerCase());
+      
+      // Avoid live TV channels mixed in VOD lists if they are too generic
+      const isLiveTV = /noticias|news|sports|deportes|kids|infantil/i.test(category);
+
+      if (isMovie && !isLiveTV) {
+        currentItem = {
+          id: 'v-' + Math.random().toString(36).substr(2, 7),
+          name: rawName,
+          logo: logoMatch ? logoMatch[1] : null,
+          category: category,
+          isVOD: true,
+          isExternal: true
+        };
+      } else {
+        currentItem = null;
+      }
+    } else if (line.startsWith('http') && currentItem) {
+      currentItem.url = line;
+      items.push(currentItem);
+      currentItem = null;
     }
   }
-  
-  return channels;
-};
+  return items;
+}
