@@ -20,8 +20,8 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
           onClick={() => window.onGoHome && window.onGoHome()}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          <div className="w-8 h-8 md:w-9 md:h-9 bg-white rounded-lg flex items-center justify-center shadow-2xl group-hover:bg-rose-500 transition-all duration-500">
-             <Tv className="w-5 h-5 text-black fill-current" />
+          <div className="w-8 h-8 md:w-9 md:h-9 bg-black rounded-lg flex items-center justify-center shadow-2xl border border-white/10 group-hover:border-rose-500 transition-all duration-500 overflow-hidden">
+             <img src="/icon-512.png" alt="Animux" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase italic hidden sm:block">
             Animux
