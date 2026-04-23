@@ -8,6 +8,32 @@ export const XTREAM_SERVERS = [
 
 export const buildStreamURL = (server, channelId) => {
   if (!server || !channelId) return null;
-  // Dynamic URL construction for Xtream Codes
   return `${server.host}/live/${server.user}/${server.pass}/${channelId}.m3u8`;
+};
+
+export const fetchShortEPG = async (server, channelId) => {
+  if (!server || !channelId) return null;
+  
+  try {
+    const url = `${server.host}/player_api.php?username=${server.user}&password=${server.pass}&action=get_short_epg&stream_id=${channelId}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    
+    if (data && data.epg_listings && data.epg_listings.length > 0) {
+      return data.epg_listings.map(item => ({
+        title: atob(item.title),
+        start: item.start,
+        end: item.end,
+        description: atob(item.description || ''),
+        start_timestamp: item.start_timestamp,
+        stop_timestamp: item.stop_timestamp
+      }));
+    }
+  } catch (error) {
+    console.error('EPG Fetch Error:', error);
+  }
+  return null;
 };
