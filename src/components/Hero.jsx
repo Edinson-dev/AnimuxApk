@@ -36,7 +36,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
         <div className="flex gap-3 pt-2">
           <button 
             onClick={() => onPlay(featuredChannel)}
-            className="flex items-center gap-2 px-8 py-3 bg-white text-black rounded-full font-bold text-[10px] md:text-xs hover:bg-gray-200 transition-all uppercase tracking-widest"
+            className="flex items-center gap-2 px-8 py-3 bg-rose-600 text-white rounded-full font-black text-[10px] md:text-xs hover:bg-rose-700 transition-all uppercase tracking-widest shadow-xl shadow-rose-600/20"
           >
             <Play className="w-4 h-4 fill-current" />
             REPRODUCIR

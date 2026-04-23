@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { X, AlertCircle, Loader2, Play } from 'lucide-react';
+import { X, AlertCircle, Loader2, Play, PictureInPicture } from 'lucide-react';
 
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
@@ -20,6 +20,36 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     }
   };
 
+  const togglePiP = async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (videoRef.current) {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.error('PiP Error:', err);
+    }
+  };
+
+  // Media Session Setup for Mobile Lock Screen
+  useEffect(() => {
+    if ('mediaSession' in navigator && channel) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: channel.displayName || channel.name,
+        artist: 'Animux Streaming',
+        album: channel.category || 'Televisión en Vivo',
+        artwork: [
+          { src: channel.logo, sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => videoRef.current?.play());
+      navigator.mediaSession.setActionHandler('pause', () => videoRef.current?.pause());
+      navigator.mediaSession.setActionHandler('nexttrack', handleEnded);
+    }
+  }, [channel]);
+
   useEffect(() => {
     if (!channel) return;
     setUseEmbed(false);
@@ -28,7 +58,6 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
     if (videoRef.current) {
       videoRef.current.onended = handleEnded;
-      // Clear error if video actually starts playing
       videoRef.current.onplaying = () => {
         setError(false);
         setLoading(false);
@@ -46,10 +75,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     let hls;
     const isDirectVideo = (channel?.url || "").toLowerCase().includes('.mp4') || channel.isVOD;
 
-    // Increased timeout to 20s to be safer
     const timeoutId = setTimeout(() => {
-      if (!video.paused || video.currentTime > 0) return; // Already playing
-      
+      if (!video.paused || video.currentTime > 0) return;
       if (channel.isVOD && channel.embedUrl) {
          setUseEmbed(true);
          setLoading(false);
@@ -76,11 +103,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         }
       };
     } else if (Hls.isSupported()) {
-      hls = new Hls({
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        enableWorker: true
-      });
+      hls = new Hls({ maxBufferLength: 30, enableWorker: true });
       hlsRef.current = hls;
       hls.loadSource(channel.url);
       hls.attachMedia(video);
@@ -94,12 +117,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
+            case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
+            case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
             default:
               setError(true);
               setLoading(false);
@@ -129,12 +148,15 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               <X className="w-6 h-6 text-white" />
             </button>
             <div className="flex flex-col">
-              <h2 className="text-white font-black text-xl md:text-2xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase">
+              <h2 className="text-white font-black text-xl md:text-2xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase italic">
                 {currentName}
               </h2>
-              <span className="text-rose-500 text-[10px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
+              <span className="text-rose-600 text-[10px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
             </div>
           </div>
+          <button onClick={togglePiP} className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">
+             <PictureInPicture className="w-5 h-5 text-white" />
+          </button>
         </div>
       )}
 
@@ -166,7 +188,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
           {error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 p-6 text-center">
-              <AlertCircle className="w-12 h-12 text-rose-500 mb-4" />
+              <AlertCircle className="w-12 h-12 text-rose-600 mb-4" />
               <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Error de Conexión</h3>
                <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Este enlace no está disponible actualmente.</p>
                <div className="flex gap-3 mt-8">
@@ -183,9 +205,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         </div>
 
         <div className="w-full lg:w-[400px] bg-[#050505] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-1/3 lg:h-full overflow-hidden">
-           <div className="p-6 border-b border-white/5 flex justify-between items-center">
+           <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
               <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Próximos Canales</h3>
-              <span className="text-[10px] bg-white/5 px-3 py-1 rounded text-gray-500 font-black">{playlist.length} CANALES</span>
+              <span className="text-[10px] bg-rose-600/10 border border-rose-600/20 px-3 py-1 rounded text-rose-500 font-black">{playlist.length} CANALES</span>
            </div>
            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
               {playlist.map((item, idx) => {
@@ -195,7 +217,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                    <div 
                      key={item.id}
                      onClick={() => !isActive && onPlayNext(item)}
-                     className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-rose-600/10 border-rose-600/40' : 'hover:bg-white/[0.03] border-transparent'}`}
+                     className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-rose-600/10 border-rose-600/30' : 'hover:bg-white/[0.03] border-transparent'}`}
                    >
                      <div className={`rounded-lg overflow-hidden shrink-0 relative bg-black shadow-lg ${item.isVOD ? 'w-12 aspect-[2/3]' : 'w-24 aspect-video'}`}>
                         <img src={item.logo} alt="" className={`w-full h-full transition-opacity ${item.isVOD ? 'object-cover' : 'object-contain p-2'} ${isActive ? 'opacity-30' : 'opacity-100'}`} />
