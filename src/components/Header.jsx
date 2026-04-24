@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, X, Tv, Menu, Download } from 'lucide-react';
+import { Search, Bell, X, Tv, Menu, Download, ChevronDown, LayoutGrid } from 'lucide-react';
 
 export default function Header({ searchQuery, setSearchQuery, categories = [], activeCategory, onInstall, showInstall }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -28,8 +29,40 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
           </h1>
         </div>
 
-        {/* Dynamic Horizontal Scrolling Nav */}
-        <nav className="flex-1 overflow-x-auto no-scrollbar flex items-center gap-6 md:gap-10 px-4">
+        {/* Desktop Browse Menu */}
+        <div className="hidden lg:flex items-center gap-2 relative ml-4">
+          <button 
+            onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:text-rose-500 transition-all py-2"
+          >
+            Explorar
+            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isCategoryMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-[-1]" onClick={() => setIsCategoryMenuOpen(false)} />
+              <div className="absolute top-full left-0 mt-4 w-64 bg-black/95 backdrop-blur-3xl border border-white/10 rounded-2xl p-4 grid grid-cols-1 gap-1 shadow-2xl animate-fade-in">
+                {categories.map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => {
+                      window.setActiveCategory && window.setActiveCategory(cat);
+                      setIsCategoryMenuOpen(false);
+                    }}
+                    className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeCategory === cat ? 'bg-rose-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Dynamic Horizontal Scrolling Nav (Mobile & fallback) */}
+        <div className="flex-1 relative group overflow-hidden">
+          <nav id="category-nav" className="flex items-center gap-6 md:gap-10 px-4 overflow-x-auto no-scrollbar scroll-smooth">
           {categories.map(cat => (
             <button 
               key={cat}
@@ -42,6 +75,12 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
               )}
             </button>
           ))}
+          <button 
+            onClick={() => setIsCategoryMenuOpen(true)}
+            className="p-3 text-gray-500 hover:text-white transition-all md:hidden"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
           {showInstall && (
             <button 
               onClick={onInstall}
@@ -51,7 +90,22 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
               Instalar App
             </button>
           )}
-        </nav>
+          </nav>
+          
+          {/* Scroll Arrows for PC */}
+          <button 
+            onClick={() => document.getElementById('category-nav').scrollBy({ left: -200, behavior: 'smooth' })}
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-full px-2 bg-gradient-to-r from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block"
+          >
+            <ChevronDown className="w-4 h-4 rotate-90 text-white" />
+          </button>
+          <button 
+            onClick={() => document.getElementById('category-nav').scrollBy({ left: 200, behavior: 'smooth' })}
+            className="absolute right-0 top-1/2 -translate-y-1/2 h-full px-2 bg-gradient-to-l from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block"
+          >
+            <ChevronDown className="w-4 h-4 -rotate-90 text-white" />
+          </button>
+        </div>
 
         {/* Right Section: Search & Actions */}
         <div className="flex items-center gap-4 shrink-0">
