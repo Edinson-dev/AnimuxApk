@@ -4,7 +4,12 @@ import { Play, Heart, Film, Tv } from 'lucide-react';
 export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavorite }) {
   if (!channel) return null;
 
-  const isVOD = channel.isVOD || channel.category?.includes('Cine') || channel.category?.includes('Filmes');
+  const isVOD = channel.isVOD || channel.category?.toLowerCase().includes('cine') || channel.category?.toLowerCase().includes('pelicula') || channel.category?.toLowerCase().includes('movie');
+
+  // Obtenemos un nombre corto para la etiqueta (badge)
+  const badgeText = isVOD 
+    ? (channel.category || 'FILM').toUpperCase() 
+    : 'LIVE';
 
   return (
     <div 
@@ -14,7 +19,7 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
       <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 group-hover:border-rose-600/50 group-hover:shadow-[0_0_30px_rgba(225,29,72,0.2)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
         <img 
           src={channel.logo || channel.poster} 
-          alt={channel.name} 
+          alt={channel.name || channel.title} 
           className={`w-full h-full transition-transform duration-700 group-hover:scale-110 object-contain p-3`}
           loading="lazy"
         />
@@ -26,13 +31,11 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
           </div>
         </div>
 
-        {/* Quality/Type Badge */}
+        {/* Quality/Type Badge (DINÁMICO) */}
         <div className="absolute top-3 left-3 flex gap-2">
-          {isVOD ? (
-            <span className="px-2 py-0.5 bg-black/60 backdrop-blur-md border border-white/10 rounded text-[8px] font-black text-white uppercase tracking-widest">FILM</span>
-          ) : (
-            <span className="px-2 py-0.5 bg-rose-600/80 backdrop-blur-md rounded text-[8px] font-black text-white uppercase tracking-widest animate-pulse">LIVE</span>
-          )}
+          <span className={`px-2 py-0.5 backdrop-blur-md border border-white/10 rounded text-[8px] font-black text-white uppercase tracking-widest ${isVOD ? 'bg-black/60' : 'bg-rose-600/80 animate-pulse'}`}>
+            {badgeText}
+          </span>
         </div>
 
         {/* Favorite Button */}
@@ -48,7 +51,7 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
 
       <div className="px-1 py-1">
         <h4 className="text-[11px] md:text-sm font-black text-white/90 truncate uppercase tracking-tight group-hover:text-rose-500 transition-colors">
-          {channel.displayName || channel.name}
+          {channel.displayName || channel.title || channel.name}
         </h4>
         <div className="flex items-center gap-2 mt-0.5 opacity-40">
            {isVOD ? <Film className="w-3 h-3 text-gray-400" /> : <Tv className="w-3 h-3 text-gray-400" />}
