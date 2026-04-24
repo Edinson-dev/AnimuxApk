@@ -67,7 +67,7 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
             <button 
               key={cat}
               onClick={() => window.setActiveCategory && window.setActiveCategory(cat)}
-              className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all relative py-3 ${activeCategory === cat ? 'text-white' : 'text-gray-500 hover:text-white'}`}
+              className={`text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all relative py-3 ${activeCategory === cat ? 'text-white' : 'text-gray-500 hover:text-white'}`}
             >
               {cat}
               {activeCategory === cat && (
@@ -132,10 +132,6 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
            <button className="hidden md:flex p-2 text-white hover:bg-white/10 rounded-full transition-all relative">
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-rose-600 rounded-full" />
-           </button>
-
-           <button className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20">
-              Suscripción
            </button>
         </div>
 
