@@ -29,7 +29,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       const finalCats = Array.from(new Set([...baseCats, ...manualCats]));
       setCategories(finalCats.sort());
       if (!formData.category && finalCats.length > 0) setFormData(prev => ({ ...prev, category: finalCats[0] }));
-    } catch (err) { 
+    } catch (err) {
       const cached = localStorage.getItem('animux_cache_cats');
       if (cached) setCategories(JSON.parse(cached));
     }
@@ -42,7 +42,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setItems(data);
-    } catch (err) { 
+    } catch (err) {
       const cached = activeTab === 'channels' ? localStorage.getItem('animux_cache_chans') : localStorage.getItem('animux_cache_movs');
       if (cached) setItems(JSON.parse(cached).filter(i => i.fromCloud));
     } finally { setLoading(false); }
@@ -70,7 +70,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       const cleanId = docId.replace(/[^a-zA-Z0-9 ]/g, "").trim();
       if (!cleanId) return alert("ID inválido");
 
-      const dataToSave = activeTab === 'categories' 
+      const dataToSave = activeTab === 'categories'
         ? { name: formData.name.trim() }
         : { ...formData, isVOD: activeTab === 'movies', updatedAt: Date.now() };
 
@@ -80,15 +80,15 @@ export default function AdminPanel({ onClose, onUpdate }) {
       setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true });
       fetchItems();
       fetchCategories();
-      if (onUpdate) onUpdate(); 
+      if (onUpdate) onUpdate();
     } catch (err) { alert("Error: " + err.message); }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("¿Estás seguro de eliminar este elemento?")) {
-      try { 
-        await deleteDoc(doc(db, activeTab, id)); 
-        fetchItems(); 
+      try {
+        await deleteDoc(doc(db, activeTab, id));
+        fetchItems();
         fetchCategories();
         if (onUpdate) onUpdate();
       } catch (e) { alert("Error al eliminar"); }
@@ -99,7 +99,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-full max-w-5xl h-[85vh] bg-[#121212] border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-scale-up">
-        
+
         {/* Header */}
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
           <div className="flex items-center gap-4">
@@ -171,25 +171,25 @@ export default function AdminPanel({ onClose, onUpdate }) {
                 {activeTab === 'categories' ? (
                   <div className="space-y-2 col-span-full">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nombre de la Categoría</label>
-                    <input required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Ej: Terror, Acción..." className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                    <input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ej: Terror, Acción..." className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2 col-span-full">
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nombre / Título</label>
-                      <input required value={activeTab === 'channels' ? formData.name : formData.title} onChange={(e) => setFormData({...formData, [activeTab === 'channels' ? 'name' : 'title']: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                      <input required value={activeTab === 'channels' ? formData.name : formData.title} onChange={(e) => setFormData({ ...formData, [activeTab === 'channels' ? 'name' : 'title']: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
                     </div>
-                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Stream</label><input required value={formData.url} onChange={(e) => setFormData({...formData, url: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
-                    <div className="space-y-2 relative"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Categoría</label><div className="relative"><select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold appearance-none outline-none cursor-pointer focus:border-rose-600">{categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat}</option>)}</select><ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" /></div></div>
-                    <div className="space-y-2 col-span-full"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Logo</label><input required value={formData.logo} onChange={(e) => setFormData({...formData, logo: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
-                    
+                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Stream</label><input required value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
+                    <div className="space-y-2 relative"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Categoría</label><div className="relative"><select required value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold appearance-none outline-none cursor-pointer focus:border-rose-600">{categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat}</option>)}</select><ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" /></div></div>
+                    <div className="space-y-2 col-span-full"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Logo</label><input required value={formData.logo} onChange={(e) => setFormData({ ...formData, logo: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
+
                     <div className="flex flex-col gap-4 col-span-full bg-white/5 p-6 rounded-3xl border border-white/10">
                       <div className="flex items-center gap-3">
-                        <input type="checkbox" id="isNew" checked={formData.isNew} onChange={(e) => setFormData({...formData, isNew: e.target.checked})} className="w-5 h-5 accent-green-500" />
+                        <input type="checkbox" id="isNew" checked={formData.isNew} onChange={(e) => setFormData({ ...formData, isNew: e.target.checked })} className="w-5 h-5 accent-green-500" />
                         <label htmlFor="isNew" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer">Marcar como NUEVO (Solo aparecerá en pestaña NUEVOS)</label>
                       </div>
                       <div className="flex items-center gap-3">
-                        <input type="checkbox" id="featured" checked={formData.featured} onChange={(e) => setFormData({...formData, featured: e.target.checked})} className="w-5 h-5 accent-rose-600" />
+                        <input type="checkbox" id="featured" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="w-5 h-5 accent-rose-600" />
                         <label htmlFor="featured" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer">Marcar como DESTACADO</label>
                       </div>
                     </div>
