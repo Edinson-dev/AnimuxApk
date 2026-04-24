@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, X, Tv, Menu, Download, ChevronDown, LayoutGrid } from 'lucide-react';
 
-export default function Header({ searchQuery, setSearchQuery, categories = [], activeCategory, onInstall, showInstall }) {
+export default function Header({ searchQuery, setSearchQuery, categories = [], activeCategory, onInstall, showInstall, onGoHome }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
@@ -18,7 +18,7 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
         
         {/* Left Section: Logo */}
         <div 
-          onClick={() => window.onGoHome && window.onGoHome()}
+          onClick={onGoHome}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
           <div className="w-8 h-8 md:w-9 md:h-9 bg-black rounded-lg flex items-center justify-center shadow-2xl border border-white/10 group-hover:border-rose-500 transition-all duration-500 overflow-hidden">
@@ -62,12 +62,12 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
 
         {/* Dynamic Horizontal Scrolling Nav (Mobile & fallback) */}
         <div className="flex-1 relative group overflow-hidden">
-          <nav id="category-nav" className="flex items-center gap-6 md:gap-10 px-4 overflow-x-auto no-scrollbar scroll-smooth">
+          <nav id="category-nav" className="flex items-center gap-4 md:gap-10 overflow-x-auto no-scrollbar scroll-smooth">
           {categories.map(cat => (
             <button 
               key={cat}
               onClick={() => window.setActiveCategory && window.setActiveCategory(cat)}
-              className={`text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all relative py-3 ${activeCategory === cat ? 'text-white' : 'text-gray-500 hover:text-white'}`}
+              className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all relative py-3 ${activeCategory === cat ? 'text-white' : 'text-gray-500 hover:text-white'}`}
             >
               {cat}
               {activeCategory === cat && (
@@ -77,14 +77,14 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
           ))}
           <button 
             onClick={() => setIsCategoryMenuOpen(true)}
-            className="p-3 text-gray-500 hover:text-white transition-all md:hidden"
+            className="p-2 text-gray-500 hover:text-white transition-all md:hidden shrink-0"
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
           {showInstall && (
             <button 
               onClick={onInstall}
-              className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap text-rose-500 hover:text-rose-400 transition-all py-3 flex items-center gap-2 animate-pulse"
+              className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap text-rose-500 hover:text-rose-400 transition-all py-3 flex items-center gap-2 animate-pulse shrink-0"
             >
               <Download className="w-3 h-3" />
               Instalar App
@@ -113,54 +113,69 @@ export default function Header({ searchQuery, setSearchQuery, categories = [], a
            <div className="hidden md:flex items-center bg-white/5 border border-white/5 focus-within:border-white/20 rounded-full py-1.5 px-4 transition-all w-32 lg:w-48">
               <Search className="w-3.5 h-3.5 text-gray-400" />
               <input 
-                type="text"
-                placeholder="BUSCAR"
+                type="text" 
+                placeholder="BUSCAR..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none outline-none text-[10px] font-black tracking-widest text-white placeholder-gray-600 ml-2 w-full uppercase"
+                className="bg-transparent border-none outline-none text-[10px] font-bold text-white px-2 w-full uppercase tracking-widest"
               />
            </div>
 
+           {/* Mobile Search Trigger */}
            <button 
-             onClick={() => setIsMobileSearchOpen(true)}
-             className="md:hidden p-2 text-gray-400 hover:text-white"
+            onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+            className="md:hidden p-2 text-white hover:bg-white/10 rounded-full transition-all"
            >
-             <Search className="w-5 h-5" />
+              <Search className="w-5 h-5" />
            </button>
 
-           <div className="hidden sm:flex items-center gap-4">
-              {showInstall && (
-                <button 
-                  onClick={onInstall}
-                  className="px-5 py-2 bg-rose-600 text-white rounded-full text-[9px] font-black tracking-widest uppercase hover:bg-rose-700 transition-all shadow-lg animate-bounce-subtle"
-                >
-                  Instalar App
-                </button>
-              )}
-              <button className="px-5 py-2 bg-white text-black rounded-full text-[9px] font-black tracking-widest uppercase hover:bg-rose-600 hover:text-white transition-all">Suscripción</button>
-           </div>
-        </div>
-      </div>
+           <button className="hidden md:flex p-2 text-white hover:bg-white/10 rounded-full transition-all relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-600 rounded-full" />
+           </button>
 
-      {/* Mobile Search Overlay */}
-      {isMobileSearchOpen && (
-        <div className="absolute top-0 left-0 right-0 h-20 bg-black flex items-center px-6 animate-fade-in md:hidden">
-           <div className="flex-1 relative flex items-center gap-4">
-              <Search className="w-5 h-5 text-rose-500" />
+           <button className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20">
+              Suscripción
+           </button>
+        </div>
+
+        {/* Full Screen Mobile Search Overlay */}
+        {isMobileSearchOpen && (
+          <div className="fixed inset-0 bg-black z-[100] p-6 animate-fade-in flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+               <h2 className="text-xl font-black text-white uppercase tracking-tighter">Buscar</h2>
+               <button onClick={() => setIsMobileSearchOpen(false)} className="p-2 bg-white/5 rounded-full">
+                 <X className="w-6 h-6 text-white" />
+               </button>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input 
                 autoFocus
-                type="text"
-                placeholder="¿QUÉ QUIERES VER?"
+                type="text" 
+                placeholder="¿QUÉ QUIERES VER?" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-xs font-bold tracking-widest text-white placeholder-gray-700 uppercase"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none focus:border-rose-600 transition-all uppercase tracking-widest text-xs"
               />
-              <button onClick={() => setIsMobileSearchOpen(false)} className="p-2 text-gray-500">
-                <X className="w-6 h-6" />
-              </button>
-           </div>
-        </div>
-      )}
+            </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Sugerencias</p>
+              <div className="flex flex-wrap gap-2">
+                 {['Películas', 'Series', 'Deportes', 'Infantil'].map(tag => (
+                   <button 
+                    key={tag} 
+                    onClick={() => { setSearchQuery(tag); setIsMobileSearchOpen(false); }}
+                    className="px-4 py-2 bg-white/5 rounded-lg text-[10px] font-bold text-white uppercase"
+                   >
+                     {tag}
+                   </button>
+                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

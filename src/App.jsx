@@ -9,6 +9,9 @@ import Skeleton from './components/Skeleton';
 import { XTREAM_SERVERS, fetchVODStreams } from './config/servers';
 import { fetchAndFilterMovies } from './utils/m3uParser';
 import { getMovieDetails } from './utils/tmdb';
+import { db } from './config/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import AdminPanel from './components/AdminPanel';
 
 export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
@@ -29,6 +32,9 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
   const channelsPerPage = 48;
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -60,17 +66,41 @@ export default function App() {
     try {
       setIsAppLoading(true);
       setError(null);
-      // Load Live Channels
-      const chRes = await fetch('/channels.json');
-      if (chRes.ok) {
-        const data = await chRes.json();
-        setChannelData(data);
+
+      // 1. Try Loading Channels from Firebase
+      try {
+        const querySnapshot = await getDocs(collection(db, "channels"));
+        if (!querySnapshot.empty) {
+          const fbChannels = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+          setChannelData({ channels: fbChannels });
+        } else {
+          const chRes = await fetch('/channels.json');
+          if (chRes.ok) setChannelData(await chRes.json());
+        }
+      } catch (fbErr) {
+        const chRes = await fetch('/channels.json');
+        if (chRes.ok) setChannelData(await chRes.json());
       }
-      // Load Local Movies
-      const movRes = await fetch('/movies.json');
-      if (movRes.ok) {
-        const data = await movRes.json();
-        setLocalMovies(data.map(m => ({ ...m, isVOD: true, displayName: m.title })));
+
+      // 2. Try Loading Movies from Firebase
+      try {
+        const querySnapshot = await getDocs(collection(db, "movies"));
+        if (!querySnapshot.empty) {
+          const fbMovies = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, displayName: doc.data().title }));
+          setLocalMovies(fbMovies);
+        } else {
+          const movRes = await fetch('/movies.json');
+          if (movRes.ok) {
+            const data = await movRes.json();
+            setLocalMovies(data.map(m => ({ ...m, isVOD: true, displayName: m.title })));
+          }
+        }
+      } catch (fbErr) {
+        const movRes = await fetch('/movies.json');
+        if (movRes.ok) {
+          const data = await movRes.json();
+          setLocalMovies(data.map(m => ({ ...m, isVOD: true, displayName: m.title })));
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -276,6 +306,18 @@ export default function App() {
         setSearchQuery={setSearchQuery} 
         categories={allCategories || []} 
         activeCategory={activeCategory} 
+        onGoHome={() => {
+          setLogoClicks(prev => {
+            const next = prev + 1;
+            if (next === 5) {
+              setShowAdmin(true);
+              return 0;
+            }
+            return next;
+          });
+          setActiveCategory('Todos');
+          setSearchQuery('');
+        }}
         onInstall={handleInstall}
         showInstall={true}
       />
@@ -495,6 +537,9 @@ export default function App() {
           allChannels={[...channelData.channels, ...vodData, ...localMovies, ...externalMovies]}
           onSelect={setSelectedDetail}
         />
+      )}
+      {showAdmin && (
+        <AdminPanel onClose={() => setShowAdmin(false)} />
       )}
     </div>
   );
