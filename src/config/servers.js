@@ -81,3 +81,24 @@ export const fetchVODStreams = async (server, categoryId = '') => {
     return [];
   }
 };
+
+// --- Camuflaje de Enlaces (Frontend Only) ---
+// Oculta el texto del link para que no sea legible a simple vista
+export const camouflageURL = (url) => {
+  if (!url) return '';
+  if (url.startsWith('enc:')) return url; // Ya está camuflado
+  try {
+    return 'enc:' + btoa(url);
+  } catch (e) {
+    return url;
+  }
+};
+
+export const decodeCamouflage = (url) => {
+  if (!url || !url.startsWith('enc:')) return url;
+  try {
+    return atob(url.replace('enc:', ''));
+  } catch (e) {
+    return url;
+  }
+};

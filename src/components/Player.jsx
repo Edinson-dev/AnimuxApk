@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
 import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock } from 'lucide-react';
-import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG } from '../config/servers';
+import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../config/servers';
 
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
@@ -23,12 +23,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     return match ? match[1] : null;
   };
 
-  const isYouTube = !!getYouTubeId(channel?.url);
-  const isDrive = !!getDriveId(channel?.url);
+  const decodedChannelUrl = useMemo(() => decodeCamouflage(channel?.url), [channel?.url]);
+  const isYouTube = !!getYouTubeId(decodedChannelUrl);
+  const isDrive = !!getDriveId(decodedChannelUrl);
   
   // DETECTOR MEJORADO: Ahora detecta Cuevana y otros servidores automáticamente
   const isEmbed = useMemo(() => {
-    const url = String(channel?.url || '').toLowerCase();
+    const url = String(decodedChannelUrl || '').toLowerCase();
     if (isYouTube || isDrive) return true;
     
     // Si contiene estas palabras clave, es un EMBED/IFRAME
@@ -39,14 +40,14 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const isDirectFile = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.mkv') || url.includes('.ts') || url.includes('.mp3');
     
     return hasKeyword && !isDirectFile;
-  }, [channel?.url, isYouTube, isDrive]);
+  }, [decodedChannelUrl, isYouTube, isDrive]);
 
   useEffect(() => {
     if (!channel) return;
     setError(false);
     setLoading(true);
     setServerIndex(-1);
-    setCurrentUrl(channel.url);
+    setCurrentUrl(decodeCamouflage(channel.url));
   }, [channel]);
 
   useEffect(() => {
@@ -124,17 +125,17 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
   const renderPlayer = () => {
     if (isYouTube) {
-      const ytId = getYouTubeId(channel.url);
+      const ytId = getYouTubeId(decodedChannelUrl);
       return <iframe src={`https://www.youtube.com/embed/${ytId}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen></iframe>;
     }
     if (isDrive) {
-      const driveId = getDriveId(channel.url);
+      const driveId = getDriveId(decodedChannelUrl);
       return <iframe src={`https://drive.google.com/file/d/${driveId}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen></iframe>;
     }
     if (isEmbed) {
       return (
         <iframe 
-          src={channel.url} 
+          src={decodedChannelUrl} 
           className="w-full h-full border-0 bg-black" 
           allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" 
           allowFullScreen
