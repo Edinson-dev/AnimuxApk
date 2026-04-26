@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Search, Film, Tv, Save, LayoutGrid, ChevronDown, Edit3 } from 'lucide-react';
 import { db } from '../config/firebase';
 import { collection, addDoc, setDoc, doc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { camouflageURL } from '../config/servers';
 
 export default function AdminPanel({ onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('channels');
@@ -11,6 +12,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [shouldCamouflage, setShouldCamouflage] = useState(false);
   const [formData, setFormData] = useState({
     name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true
   });
@@ -72,11 +74,17 @@ export default function AdminPanel({ onClose, onUpdate }) {
 
       const dataToSave = activeTab === 'categories'
         ? { name: formData.name.trim() }
-        : { ...formData, isVOD: activeTab === 'movies', updatedAt: Date.now() };
+        : { 
+            ...formData, 
+            url: shouldCamouflage ? camouflageURL(formData.url) : formData.url,
+            isVOD: activeTab === 'movies', 
+            updatedAt: Date.now() 
+          };
 
       await setDoc(doc(db, collectionName, cleanId), dataToSave);
       setShowAddForm(false);
       setEditingId(null);
+      setShouldCamouflage(false);
       setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true });
       fetchItems();
       fetchCategories();
@@ -125,7 +133,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold text-white uppercase tracking-widest outline-none" />
           </div>
-          <button onClick={() => { setEditingId(null); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
+          <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
             <Plus className="w-4 h-4" /> Añadir
           </button>
         </div>
@@ -191,6 +199,10 @@ export default function AdminPanel({ onClose, onUpdate }) {
                       <div className="flex items-center gap-3">
                         <input type="checkbox" id="featured" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="w-5 h-5 accent-rose-600" />
                         <label htmlFor="featured" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer">Marcar como DESTACADO</label>
+                      </div>
+                      <div className="flex items-center gap-3 pt-4 border-t border-white/5 mt-2">
+                        <input type="checkbox" id="camouflage" checked={shouldCamouflage} onChange={(e) => setShouldCamouflage(e.target.checked)} className="w-5 h-5 accent-blue-500" />
+                        <label htmlFor="camouflage" className="text-[10px] font-black text-blue-400 uppercase tracking-widest cursor-pointer">Proteger Enlace (Camuflaje de seguridad)</label>
                       </div>
                     </div>
                   </>
