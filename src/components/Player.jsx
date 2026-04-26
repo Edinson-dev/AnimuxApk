@@ -73,18 +73,35 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
     if (isDirectVideo) {
       video.src = currentUrl;
+      video.crossOrigin = "anonymous";
       video.load();
       video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
       video.onerror = () => tryNextServer();
     } else if (Hls.isSupported() && isM3U8) {
-      hls = new Hls({ maxBufferLength: 30, enableWorker: true });
+      // Configuración optimizada para mayor compatibilidad
+      hls = new Hls({ 
+        maxBufferLength: 30, 
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90
+      });
       hlsRef.current = hls;
       hls.loadSource(currentUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); });
-      hls.on(Hls.Events.ERROR, (event, data) => { if (data.fatal) { clearTimeout(timeoutId); tryNextServer(); } });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+        clearTimeout(timeoutId); 
+        setLoading(false); 
+        video.play().catch(() => {}); 
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => { 
+        if (data.fatal) { 
+          clearTimeout(timeoutId); 
+          tryNextServer(); 
+        } 
+      });
     } else {
       video.src = currentUrl;
+      video.crossOrigin = "anonymous";
       video.load();
       video.play().catch(() => {});
       setLoading(false);
@@ -125,7 +142,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         ></iframe>
       );
     }
-    return <video ref={videoRef} className="w-full h-full object-contain bg-black" controls autoPlay playsInline />;
+    return <video ref={videoRef} className="w-full h-full object-contain bg-black" controls autoPlay playsInline crossOrigin="anonymous" referrerPolicy="no-referrer" />;
   };
 
   if (!channel) return null;
