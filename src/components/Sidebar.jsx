@@ -1,5 +1,5 @@
-import React from 'react';
-import { Film, Heart, List, PlaySquare, Swords, Tv } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Film, Heart, List, PlaySquare, Swords, Tv, Download } from 'lucide-react';
 
 // Una función de ayuda para asignar un ícono dependiendo del nombre de la categoría
 const getCategoryIcon = (categoryName) => {
@@ -13,7 +13,36 @@ const getCategoryIcon = (categoryName) => {
 };
 
 export default function Sidebar({ categories, activeCategory, setActiveCategory }) {
-  // categories es ahora un arreglo de strings y generamos los items dinámicamente.
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // Detectar si ya está instalada (Standalone mode)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallBtn(false);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   return (
     <aside className="w-20 lg:w-64 bg-background/50 backdrop-blur-2xl border-r border-white/5 h-full flex flex-col py-6 transition-all duration-300 z-30">
       <nav className="flex-1 flex flex-col gap-3 px-4 overflow-y-auto custom-scrollbar">
@@ -50,6 +79,19 @@ export default function Sidebar({ categories, activeCategory, setActiveCategory 
           );
         })}
       </nav>
+
+      {/* Botón de Instalación PWA */}
+      {showInstallBtn && (
+        <div className="px-4 mt-6">
+          <button 
+            onClick={handleInstallClick}
+            className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-primary hover:bg-primary/80 text-white rounded-2xl transition-all duration-300 shadow-lg shadow-primary/20 group"
+          >
+            <Download className="w-5 h-5 animate-bounce group-hover:animate-none" />
+            <span className="hidden lg:block font-black text-[10px] uppercase tracking-widest">Instalar App</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
