@@ -125,6 +125,19 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     // Usar la URL original (decodificada) sin forzar HTTPS para evitar errores de conexión
     const finalUrl = decodeCamouflage(currentUrl);
 
+    // Detección inmediata de Bloqueo de Mezcla de Contenido (HTTP en HTTPS)
+    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
+       console.warn('Mixed Content detected. Chrome will likely block this.');
+       // No bloqueamos de inmediato para dar una oportunidad al navegador/extensiones,
+       // pero reducimos el timeout de error a 3 segundos para que el botón aparezca rápido.
+       setTimeout(() => {
+         if (loading && !error) {
+           setError(true);
+           setLoading(false);
+         }
+       }, 3000);
+    }
+
     if (isDirectVideo) {
       video.src = finalUrl;
       video.crossOrigin = "anonymous";
