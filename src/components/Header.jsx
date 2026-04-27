@@ -11,9 +11,19 @@ export default function Header({
   needRefresh, 
   updateServiceWorker 
 }) {
-  const handleUpdateClick = () => {
-    if (window.confirm('🚀 Nueva versión de Animux disponible. ¿Quieres actualizar ahora?')) {
-      updateServiceWorker(true);
+  const handleUpdateClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const msg = '🚀 Nueva versión de Animux disponible. ¿Quieres actualizar ahora?';
+    if (window.confirm(msg)) {
+      if (updateServiceWorker) {
+        updateServiceWorker(true);
+      } else {
+        // Fallback si el SW no responde
+        localStorage.removeItem('animux_last_fetch');
+        window.location.reload();
+      }
     }
   };
 
