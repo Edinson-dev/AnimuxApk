@@ -80,7 +80,7 @@ export default function App() {
     try {
       const now = Date.now();
       const lastFetch = localStorage.getItem('animux_last_fetch') || 0;
-      const CACHE_TIME = 10 * 60 * 1000;
+      const CACHE_TIME = 4 * 60 * 60 * 1000; // Increased to 4 hours to save Firebase quota
 
       if (!force && (now - lastFetch < CACHE_TIME)) {
         const cachedCats = localStorage.getItem('animux_cache_cats');
@@ -97,61 +97,63 @@ export default function App() {
 
       setIsAppLoading(true);
 
-      // Fetch all sources in parallel for maximum speed
+      // Helper to prevent Firebase from blocking the app if quota is exceeded
+      const withTimeout = (promise, ms = 3000) => Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+      ]);
+
+      // Fetch all sources - Firebase with timeout, JSONs normally
       const [catSnapshot, chanSnapshot, movSnapshot, rChan, rM3U, rMov] = await Promise.all([
-        getDocs(collection(db, 'categories')),
-        getDocs(collection(db, 'channels')),
-        getDocs(collection(db, 'movies')),
+        withTimeout(getDocs(collection(db, 'categories'))).catch(err => { console.warn("Firebase Cats Timeout/Error"); return { docs: [] }; }),
+        withTimeout(getDocs(collection(db, 'channels'))).catch(err => { console.warn("Firebase Chans Timeout/Error"); return { docs: [] }; }),
+        withTimeout(getDocs(collection(db, 'movies'))).catch(err => { console.warn("Firebase Movies Timeout/Error"); return { docs: [] }; }),
         fetch('/channels.json').catch(() => ({ ok: false })),
         fetch('/m3u_channels.json').catch(() => ({ ok: false })),
         fetch('/movies.json').catch(() => ({ ok: false }))
       ]);
 
       // Process Categories
-      const cats = catSnapshot.docs.map(doc => doc.data().name).filter(n => n !== 'Regional');
+      const cats = (catSnapshot?.docs || []).map(doc => doc.data().name).filter(n => n !== 'Regional');
       setCloudCategories(cats);
 
       // Process Movies (VOD)
-      const cloudMovs = movSnapshot.docs.map(doc => ({ 
+      const cloudMovs = (movSnapshot?.docs || []).map(doc => ({ 
         ...doc.data(), 
         id: doc.id, 
         isVOD: true, 
         displayName: doc.data().title, 
         fromCloud: true 
       }));
-      const jsonMovs = rMov.ok ? (await rMov.json()).map(m => ({ ...m, isVOD: true, displayName: m.title })) : [];
+      const jsonMovs = rMov.ok ? (await rMov.json().catch(() => [])) : [];
       const finalMovies = [...cloudMovs, ...jsonMovs];
 
       // Process Channels
-      const cloudChans = chanSnapshot.docs.map(doc => ({ 
+      const cloudChans = (chanSnapshot?.docs || []).map(doc => ({ 
         ...doc.data(), 
         id: doc.id, 
         fromCloud: true 
       }));
-      const jsonChans = rChan.ok ? (await rChan.json()).channels : [];
-      const m3uChans = rM3U.ok ? (await rM3U.json()).channels.map(c => ({ 
+      const jsonChans = rChan.ok ? (await rChan.json().catch(() => ({ channels: [] }))).channels : [];
+      const m3uChans = rM3U.ok ? (await rM3U.json().catch(() => ({ channels: [] }))).channels.map(c => ({ 
         ...c, 
         fromM3U: true, 
-        isNew: true // Mark all M3U channels as NEW for better visibility
+        isNew: true 
       })) : [];
 
-      // Merge and deduplicate by name
-      // Priority: M3U > Cloud > Static JSON
+      // Merge and deduplicate
       const allChannelsMap = new Map();
       
-      // 1. Static JSON (Base)
       jsonChans.forEach(ch => {
         const key = (ch.name || ch.displayName || '').toLowerCase().trim();
         if (key) allChannelsMap.set(key, ch);
       });
 
-      // 2. Cloud Channels (Override)
       cloudChans.forEach(ch => {
         const key = (ch.name || ch.displayName || '').toLowerCase().trim();
         if (key) allChannelsMap.set(key, ch);
       });
 
-      // 3. M3U Channels (Top Priority)
       m3uChans.forEach(ch => {
         const key = (ch.name || ch.displayName || '').toLowerCase().trim();
         if (key) allChannelsMap.set(key, ch);
@@ -162,17 +164,25 @@ export default function App() {
       setChannelData({ channels: finalChannels });
       setLocalMovies(finalMovies);
 
+      // Update Cache
       localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
       localStorage.setItem('animux_cache_chans', JSON.stringify(finalChannels));
       localStorage.setItem('animux_cache_movs', JSON.stringify(finalMovies));
       localStorage.setItem('animux_last_fetch', now.toString());
 
     } catch (err) {
-      console.error("Error loading data:", err);
+      console.error("Critical error loading data:", err);
+      // Restore ALL from cache on critical failure
       const cachedCats = localStorage.getItem('animux_cache_cats');
+      const cachedChans = localStorage.getItem('animux_cache_chans');
+      const cachedMovs = localStorage.getItem('animux_cache_movs');
+      
       if (cachedCats) setCloudCategories(JSON.parse(cachedCats));
+      if (cachedChans) setChannelData({ channels: JSON.parse(cachedChans) });
+      if (cachedMovs) setLocalMovies(JSON.parse(cachedMovs));
+      
     } finally {
-      setTimeout(() => setIsAppLoading(false), 500);
+      setTimeout(() => setIsAppLoading(false), 600);
     }
   };
 
