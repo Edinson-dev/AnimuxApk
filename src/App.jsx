@@ -58,6 +58,16 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // ── Auto-Update Logic ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Al detectar un cambio en el SW (nueva versión), recargamos la app
+        window.location.reload();
+      });
+    }
+  }, []);
+
   const handleInstall = async () => {
     if (!deferredPrompt) {
       toast.info('Usa el menú de tu navegador y selecciona "Instalar aplicación"');

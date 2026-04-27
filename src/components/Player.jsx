@@ -122,9 +122,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       tryNextServer();
     }, 7000); // Volvemos a los 7 segundos originales
 
-    // Usar la URL original (decodificada)
-    const finalUrl = decodeCamouflage(currentUrl);
-
+    // 🚀 TÚNEL DE DATOS: Si estamos en HTTPS y el stream es HTTP, usamos un proxy transparente
+    // Esto arregla la pantalla negra en Chrome y la App sin anuncios ni carteles.
+    let finalUrl = decodeCamouflage(currentUrl);
+    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
+      finalUrl = `https://corsproxy.io/?${encodeURIComponent(finalUrl)}`;
+    }
+    
     if (isDirectVideo) {
       video.src = finalUrl;
       video.crossOrigin = "anonymous";
@@ -137,7 +141,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
-        xhrSetup: (xhr) => { xhr.withCredentials = false; }
+        xhrSetup: (xhr) => { 
+          xhr.withCredentials = false;
+        }
       });
       hlsRef.current = hls;
       hls.loadSource(finalUrl);
