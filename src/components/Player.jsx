@@ -120,24 +120,30 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const timeoutId = setTimeout(() => {
       if (!video.paused || video.currentTime > 0) return;
       tryNextServer();
-    }, 12000);
+    }, 7000); // Reducido a 7 segundos para una respuesta más ágil
+
+    // Auto-upgrade protocol if we are on HTTPS
+    let finalUrl = currentUrl;
+    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
+      finalUrl = finalUrl.replace('http://', 'https://');
+    }
 
     if (isDirectVideo) {
-      video.src = currentUrl;
+      video.src = finalUrl;
       video.crossOrigin = "anonymous";
       video.load();
       video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
       video.onerror = () => tryNextServer();
     } else if (Hls.isSupported() && isM3U8) {
-      // Configuración optimizada para mayor compatibilidad
       hls = new Hls({ 
         maxBufferLength: 30, 
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90
+        backBufferLength: 90,
+        xhrSetup: (xhr) => { xhr.withCredentials = false; }
       });
       hlsRef.current = hls;
-      hls.loadSource(currentUrl);
+      hls.loadSource(finalUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => { 
         clearTimeout(timeoutId); 
@@ -151,7 +157,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         } 
       });
     } else {
-      video.src = currentUrl;
+      video.src = finalUrl;
       video.crossOrigin = "anonymous";
       video.load();
       video.play().catch(() => {});
