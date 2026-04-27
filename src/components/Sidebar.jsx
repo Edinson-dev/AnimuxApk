@@ -1,11 +1,10 @@
 import React from 'react';
-import { Home, Star, Tv, Film, Activity, Smile, Music, Zap, Heart, History, Layers, Monitor } from 'lucide-react';
+import { Home, Star, Tv, Film, Activity, Smile, Music, Zap, Heart, History, Layers, Monitor, RefreshCw, Flag, MapPin } from 'lucide-react';
 
 const ICON_MAP = {
   'inicio': Home,
   'nuevos': Star,
   'series': Monitor,
-  'peliculas': Film,
   'peliculas': Film,
   'deportes': Activity,
   'infantil': Smile,
@@ -13,6 +12,8 @@ const ICON_MAP = {
   'anime': Zap,
   'favoritos': Heart,
   'recientes': History,
+  'nacionales': Flag,
+  'regional': MapPin,
 };
 
 const getCatIcon = (cat) => {
@@ -20,7 +21,7 @@ const getCatIcon = (cat) => {
   return ICON_MAP[key] || Layers;
 };
 
-export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {} }) {
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh }) {
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
@@ -81,8 +82,15 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
       </nav>
 
       {/* Footer */}
-      <div className="hidden md:block px-5 py-3 border-t border-white/[0.03]">
-        <p className="text-[8px] text-gray-700 font-bold uppercase tracking-widest">Animux © 2025</p>
+      <div className="hidden md:block px-4 py-6 border-t border-white/[0.03] space-y-4">
+        <button 
+          onClick={onRefresh}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-white/[0.03] hover:bg-rose-600/10 text-gray-400 hover:text-rose-500 rounded-xl transition-all border border-white/[0.03] hover:border-rose-600/30 group"
+        >
+          <RefreshCw className="w-4 h-4 group-active:animate-spin" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Refrescar</span>
+        </button>
+        <p className="text-[8px] text-gray-800 font-bold uppercase tracking-widest px-2">Animux © 2025</p>
       </div>
     </aside>
   );

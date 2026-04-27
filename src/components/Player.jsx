@@ -115,7 +115,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     let hls;
     const url = currentUrl.toLowerCase();
     const isM3U8 = url.includes('.m3u8');
-    const isDirectVideo = (url.includes('.mp4') || url.includes('.mkv')) && !isM3U8;
+    const isDirectVideo = (url.includes('.mp4') || url.includes('.mkv') || url.includes('.ts')) && !isM3U8;
 
     const timeoutId = setTimeout(() => {
       if (!video.paused || video.currentTime > 0) return;
@@ -209,28 +209,41 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               <span className="text-rose-600 text-[9px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
             </div>
           </div>
-          <button
-            onClick={async () => {
-              try {
-                if (document.pictureInPictureElement) {
-                  await document.exitPictureInPicture();
-                } else if (videoRef.current && document.pictureInPictureEnabled) {
-                  await videoRef.current.requestPictureInPicture();
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (window.confirm('¿Reportar este canal como caído?')) {
+                  onReportBroken?.(channel);
+                  onClose();
                 }
-              } catch(e) {}
-            }}
-            title={isPiP ? 'Salir de PiP' : 'Pantalla en pantalla'}
-            className={`p-2.5 rounded-full border transition-all ${
-              isPiP
-                ? 'bg-rose-600/20 border-rose-600/50 text-rose-400'
-                : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
-            }`}
-          >
-            <PictureInPicture className="w-5 h-5" />
-          </button>
+              }}
+              className="px-3 py-2 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl border border-rose-600/20 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span className="hidden md:inline">Reportar Error</span>
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                  } else if (videoRef.current && document.pictureInPictureEnabled) {
+                    await videoRef.current.requestPictureInPicture();
+                  }
+                } catch(e) {}
+              }}
+              title={isPiP ? 'Salir de PiP' : 'Pantalla en pantalla'}
+              className={`p-2.5 rounded-full border transition-all ${
+                isPiP
+                  ? 'bg-rose-600/20 border-rose-600/50 text-rose-400'
+                  : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
+              }`}
+            >
+              <PictureInPicture className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       )}
-
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         <div className="relative flex-1 bg-black flex items-center justify-center group overflow-hidden">
           {renderPlayer()}

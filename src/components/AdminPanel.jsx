@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Search, Film, Tv, Save, LayoutGrid, ChevronDown, Edit3 } from 'lucide-react';
+import { X, Plus, Trash2, Search, Film, Tv, Save, LayoutGrid, ChevronDown, Edit3, AlertCircle } from 'lucide-react';
 import { db } from '../config/firebase';
 import { collection, addDoc, setDoc, doc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import { camouflageURL } from '../config/servers';
@@ -152,7 +152,21 @@ export default function AdminPanel({ onClose, onUpdate }) {
               <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Gestiona tu contenido en tiempo real</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-all"><X className="w-6 h-6 text-gray-400" /></button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                if (window.confirm('¿Deseas restaurar todos los canales reportados como caídos?')) {
+                  localStorage.removeItem('animux_broken');
+                  window.location.reload();
+                }
+              }}
+              title="Restaurar canales caídos"
+              className="p-2 hover:bg-rose-600/20 text-gray-500 hover:text-rose-500 rounded-full transition-all flex items-center gap-2 text-[8px] font-black uppercase tracking-tighter"
+            >
+              <AlertCircle className="w-4 h-4" /> Reset Broken
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-all"><X className="w-6 h-6 text-gray-400" /></button>
+          </div>
         </div>
 
         {/* Tabs & Search */}

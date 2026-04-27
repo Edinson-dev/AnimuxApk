@@ -97,23 +97,42 @@ export default function App() {
 
       setIsAppLoading(true);
       const catSnapshot = await getDocs(collection(db, 'categories'));
-      const cats = catSnapshot.docs.map(doc => doc.data().name);
+      const cats = catSnapshot.docs.map(doc => doc.data().name).filter(n => n !== 'Regional');
       setCloudCategories(cats);
 
       const chanSnapshot = await getDocs(collection(db, 'channels'));
       const cloudChans = chanSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
-      const rChan = await fetch('/channels.json');
+      const [rChan, rM3U] = await Promise.all([
+        fetch('/channels.json'),
+        fetch('/m3u_channels.json')
+      ]);
       const jsonChans = rChan.ok ? (await rChan.json()).channels : [];
-      setChannelData({ channels: [...cloudChans, ...jsonChans] });
+      const m3uChans = rM3U.ok ? (await rM3U.json()).channels.map(c => ({ ...c, fromM3U: true })) : [];
 
+      // Merge and deduplicate by name - PRIORITIZE M3U CHANNELS
+      const allChannelsMap = new Map();
+      
+      // We process M3U channels FIRST so they take precedence in the Map
+      [...m3uChans, ...cloudChans, ...jsonChans].forEach(ch => {
+        const key = (ch.name || ch.displayName || '').toLowerCase().trim();
+        if (!allChannelsMap.has(key)) {
+          allChannelsMap.set(key, ch);
+        }
+      });
+
+      // Final filtering: exclude 'Regional' category
+      const finalChannels = Array.from(allChannelsMap.values()).filter(c => c.category !== 'Regional');
+      
       const movSnapshot = await getDocs(collection(db, 'movies'));
       const cloudMovs = movSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, displayName: doc.data().title, fromCloud: true }));
       const rMov = await fetch('/movies.json');
       const jsonMovs = rMov.ok ? (await rMov.json()).map(m => ({ ...m, isVOD: true, displayName: m.title })) : [];
+      
+      setChannelData({ channels: finalChannels });
       setLocalMovies([...cloudMovs, ...jsonMovs]);
 
       localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
-      localStorage.setItem('animux_cache_chans', JSON.stringify([...cloudChans, ...jsonChans]));
+      localStorage.setItem('animux_cache_chans', JSON.stringify(finalChannels));
       localStorage.setItem('animux_cache_movs', JSON.stringify([...cloudMovs, ...jsonMovs]));
       localStorage.setItem('animux_last_fetch', now.toString());
 
@@ -129,7 +148,7 @@ export default function App() {
 
   // ── Memos ────────────────────────────────────────────────────────────────────
   const allCategories = useMemo(() => {
-    const baseCats = ['Nuevos', 'Series', 'Películas', 'Deportes', 'Infantil', 'Música', 'Anime'];
+    const baseCats = ['Nuevos', 'Series', 'Películas', 'Deportes', 'Nacionales', 'Infantil', 'Música', 'Anime'];
     return Array.from(new Set([...baseCats, ...cloudCategories, 'Favoritos']));
   }, [cloudCategories]);
 
@@ -225,8 +244,18 @@ export default function App() {
     localStorage.setItem('animux_recent', JSON.stringify(newRecent));
   };
 
-  const handleReportBroken = (id) => {
-    const n = [...new Set([...brokenChannels, String(id)])];
+  const handleRefresh = () => {
+    localStorage.removeItem('animux_cache_cats');
+    localStorage.removeItem('animux_cache_chans');
+    localStorage.removeItem('animux_cache_movs');
+    localStorage.removeItem('animux_last_fetch');
+    toast.success('Actualizando lista de canales...');
+    loadData();
+  };
+
+  const handleReportBroken = (ch) => {
+    const id = typeof ch === 'object' ? String(ch.id) : String(ch);
+    const n = [...new Set([...brokenChannels, id])];
     setBrokenChannels(n);
     localStorage.setItem('animux_broken', JSON.stringify(n));
     toast.error('Canal reportado como no disponible');
@@ -293,6 +322,7 @@ export default function App() {
         setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
         onInstall={handleInstall}
         showInstall={showInstall}
+        onRefresh={handleRefresh}
       />
 
       {/* ── BODY: SIDEBAR + MAIN ─────────────────────────────────────────── */}
@@ -303,6 +333,7 @@ export default function App() {
           activeCategory={activeCategory}
           setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
           counts={categoryCounts}
+          onRefresh={handleRefresh}
         />
 
         <main className="flex-1 overflow-y-auto custom-scrollbar pb-20 md:pb-6">

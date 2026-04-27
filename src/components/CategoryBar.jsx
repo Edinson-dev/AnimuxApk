@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
 
-export default function CategoryBar({ categories = [], activeCategory, setActiveCategory, onInstall, showInstall }) {
+export default function CategoryBar({ categories = [], activeCategory, setActiveCategory, onInstall, showInstall, onRefresh }) {
   const scrollRef = useRef(null);
 
   // Auto-scroll active chip into view
@@ -16,6 +17,14 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
         ref={scrollRef}
         className="flex gap-2 overflow-x-auto no-scrollbar px-4 py-2.5"
       >
+        <button
+          onClick={onRefresh}
+          className="flex-shrink-0 p-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-gray-400 active:text-rose-500"
+          title="Refrescar canales"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+
         {/* Install Button — Mobile optimized (Permanent if not installed) */}
         {!window.matchMedia('(display-mode: standalone)').matches && (
           <button

@@ -1,0 +1,92 @@
+{
+  "channels": [
+    {
+      "id": "m3u-caracol",
+      "name": "Caracol HD",
+      "displayName": "Caracol HD",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/9/91/Caracol_2019.png/revision/latest?cb=20200209131121&path-prefix=es",
+      "category": "Nacionales",
+      "url": "http://181.78.8.199:8000/play/a0b0/index.m3u8"
+    },
+    {
+      "id": "m3u-rcn",
+      "name": "RCN HD",
+      "displayName": "RCN HD",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/4/43/Canal_RCN_2023-present.svg/revision/latest/scale-to-width-down/67?cb=20230702001117",
+      "category": "Nacionales",
+      "url": "http://181.78.8.199:8000/play/a09l/index.m3u8"
+    },
+    {
+      "id": "m3u-win-hd",
+      "name": "Win Sports HD",
+      "displayName": "Win Sports HD",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/0/0f/WinSports2024.svg/revision/latest/scale-to-width-down/1000?cb=20240729163241",
+      "category": "Deportes",
+      "url": "http://181.78.8.199:8000/play/a06v/index.m3u8"
+    },
+    {
+      "id": "m3u-win-plus",
+      "name": "Win Sports + HD",
+      "displayName": "Win Sports + HD",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/0/0f/WinSports2024.svg/revision/latest/scale-to-width-down/1000?cb=20240729163241",
+      "category": "Deportes",
+      "url": "http://181.78.79.131:8000/play/a0n1"
+    },
+    {
+      "id": "m3u-dsports-1",
+      "name": "Directv Sports",
+      "displayName": "Directv Sports",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/5/5a/DSports.png/revision/latest?cb=20221114123400",
+      "category": "Deportes",
+      "url": "http://smarterstv99.dyndns.tv:25461/live/Juan823/XrrdxQgVwb2E/125646.ts"
+    },
+    {
+      "id": "m3u-dsports-2",
+      "name": "Directv Sports 2",
+      "displayName": "Directv Sports 2",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/8/83/DSports2.png/revision/latest/scale-to-width-down/1000?cb=20221114123734",
+      "category": "Deportes",
+      "url": "http://smarterstv99.dyndns.tv:25461/live/Juan823/XrrdxQgVwb2E/125648.ts"
+    },
+    {
+      "id": "m3u-espn-1",
+      "name": "Espn 1 (Col)",
+      "displayName": "Espn 1 (Col)",
+      "logo": "https://r2.thesportsdb.com/images/media/channel/logo/id9erx1610288475.png",
+      "category": "Deportes",
+      "url": "http://181.78.8.199:8000/play/a0b1/index.m3u8"
+    },
+    {
+      "id": "m3u-espn-2",
+      "name": "ESPN 2 (Col)",
+      "displayName": "ESPN 2 (Col)",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/2/22/ESPN2_2006.svg/revision/latest/scale-to-width-down/1000?cb=20200105155601&path-prefix=es",
+      "category": "Deportes",
+      "url": "http://181.78.14.26:4000/play/a02p/index.m3u8"
+    },
+    {
+      "id": "m3u-espn-3",
+      "name": "ESPN 3 (Col)",
+      "displayName": "ESPN 3 (Col)",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/6/6c/Espn3.png/revision/latest?cb=20151012185318&path-prefix=es",
+      "category": "Deportes",
+      "url": "http://190.60.49.242:4000/play/a070/index.m3u8"
+    },
+    {
+      "id": "m3u-tyc",
+      "name": "TyC Sports AR",
+      "displayName": "TyC Sports AR",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/5/5d/TyC_Sports.svg/revision/latest/scale-to-width-down/250?cb=20100625094432",
+      "category": "Deportes",
+      "url": "http://live.btv.mx:2424/stream/285432/smAVz_uhytj5REM-4pYNZbkrcB2"
+    },
+    {
+      "id": "m3u-tnt",
+      "name": "TNT Sports ARG",
+      "displayName": "TNT Sports ARG",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/8/83/TNT_Sports_%282023%29.svg/revision/latest/scale-to-width-down/78?cb=20230407001905",
+      "category": "Deportes",
+      "url": "https://la14hd.com/vivo/canales.php?stream=eventos13"
+    }
+  ]
+}
