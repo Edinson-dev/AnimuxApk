@@ -54,6 +54,22 @@ export default defineConfig({
             purpose: 'any',
           },
         ],
+        screenshots: [
+          {
+            src: 'https://images.unsplash.com/photo-1593784991095-a205039475fe?auto=format&fit=crop&q=80&w=1000',
+            sizes: '1000x600',
+            type: 'image/jpeg',
+            form_factor: 'wide',
+            label: 'Animux en PC'
+          },
+          {
+            src: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?auto=format&fit=crop&q=80&w=600&h=1000',
+            sizes: '600x1000',
+            type: 'image/jpeg',
+            form_factor: 'narrow',
+            label: 'Animux en Móvil'
+          }
+        ],
         shortcuts: [
           {
             name: 'Películas',

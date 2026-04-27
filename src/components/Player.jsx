@@ -122,11 +122,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       tryNextServer();
     }, 7000); // Reducido a 7 segundos para una respuesta más ágil
 
-    // Intentar auto-upgrade si estamos en HTTPS (algunos servidores lo soportan)
-    let finalUrl = decodeCamouflage(currentUrl);
-    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
-      finalUrl = finalUrl.replace('http://', 'https://');
-    }
+    // Usar la URL original (decodificada) sin forzar HTTPS para evitar errores de conexión
+    const finalUrl = decodeCamouflage(currentUrl);
 
     if (isDirectVideo) {
       video.src = finalUrl;
