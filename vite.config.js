@@ -27,7 +27,7 @@ export default defineConfig({
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',
-        display_override: ['standalone', 'minimal-ui', 'browser'],
+        display_override: ['window-controls-overlay', 'standalone', 'minimal-ui', 'browser'],
         orientation: 'portrait',
         scope: '/',
         start_url: '/?source=pwa',

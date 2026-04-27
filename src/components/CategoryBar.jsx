@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-export default function CategoryBar({ categories = [], activeCategory, setActiveCategory }) {
+export default function CategoryBar({ categories = [], activeCategory, setActiveCategory, onInstall, showInstall }) {
   const scrollRef = useRef(null);
 
   // Auto-scroll active chip into view
@@ -16,6 +16,16 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
         ref={scrollRef}
         className="flex gap-2 overflow-x-auto no-scrollbar px-4 py-2.5"
       >
+        {/* Install Button — Mobile optimized (Permanent if not installed) */}
+        {!window.matchMedia('(display-mode: standalone)').matches && (
+          <button
+            onClick={onInstall}
+            className="flex-shrink-0 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-200 border whitespace-nowrap bg-rose-600/20 border-rose-600/40 text-rose-500 animate-pulse"
+          >
+            🚀 Instalar App
+          </button>
+        )}
+
         {['Inicio', ...categories].map(cat => {
           const isActive = activeCategory === cat;
           return (

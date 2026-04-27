@@ -59,10 +59,16 @@ export default function App() {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      toast.info('Usa el menú de Chrome (3 puntos) y selecciona "Instalar aplicación"');
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') { setShowInstall(false); toast.success('¡App instalada! 🎉'); }
+    if (outcome === 'accepted') { 
+      setShowInstall(false); 
+      toast.success('¡App instalada! 🎉'); 
+    }
     setDeferredPrompt(null);
   };
 
@@ -285,6 +291,8 @@ export default function App() {
         categories={allCategories}
         activeCategory={activeCategory}
         setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
+        onInstall={handleInstall}
+        showInstall={showInstall}
       />
 
       {/* ── BODY: SIDEBAR + MAIN ─────────────────────────────────────────── */}
@@ -298,11 +306,11 @@ export default function App() {
         />
 
         <main className="flex-1 overflow-y-auto custom-scrollbar pb-20 md:pb-6">
-          <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 space-y-10">
+          <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-4 md:py-6 space-y-6 md:space-y-10">
 
             {/* ── HOME ───────────────────────────────────────────────────── */}
             {activeCategory === 'Inicio' && !searchQuery ? (
-              <div className="space-y-10 animate-fade-in">
+              <div className="space-y-6 md:space-y-10 animate-fade-in">
 
                 <Hero
                   featuredChannel={localMovies.find(m => m.featured) || localMovies[0] || channelData.channels[0]}

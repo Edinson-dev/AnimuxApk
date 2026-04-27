@@ -37,7 +37,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
   const displayName = featuredChannel.displayName || featuredChannel.name;
 
   return (
-    <div className="relative w-full h-[42vh] md:h-[52vh] overflow-hidden group mb-8 md:mb-10 animate-fade-in bg-black rounded-2xl border border-white/[0.05]">
+    <div className="relative w-full h-[35vh] md:h-[52vh] overflow-hidden group mb-6 md:mb-10 animate-fade-in bg-black rounded-2xl border border-white/[0.05]">
 
       {/* Adaptive color glow */}
       <div
