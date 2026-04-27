@@ -2,7 +2,20 @@ import React from 'react';
 import { Search, Bell, X, RefreshCw } from 'lucide-react';
 import InstallPWA from './InstallPWA';
 
-export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstall, showInstall }) {
+export default function Header({ 
+  searchQuery, 
+  setSearchQuery, 
+  onGoHome, 
+  onInstall, 
+  showInstall, 
+  needRefresh, 
+  updateServiceWorker 
+}) {
+  const handleUpdateClick = () => {
+    if (window.confirm('🚀 Nueva versión de Animux disponible. ¿Quieres actualizar ahora?')) {
+      updateServiceWorker(true);
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[80] bg-black/95 backdrop-blur-3xl border-b border-white/[0.05] py-3">
@@ -51,9 +64,16 @@ export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstal
           >
             <RefreshCw className="w-5 h-5 group-hover:animate-spin" />
           </button>
-          <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-600 rounded-full animate-pulse" />
+          <button 
+            onClick={handleUpdateClick}
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative group"
+          >
+            <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+            {needRefresh && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-rose-600 rounded-full text-[8px] font-black text-white flex items-center justify-center animate-bounce">
+                1
+              </span>
+            )}
           </button>
 
           {/* Install button — visible on all screen sizes */}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Sidebar from './components/Sidebar';
@@ -15,7 +16,18 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/AdminPanel';
 
+const APP_VERSION = '2.2';
+
 export default function App() {
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      r && setInterval(() => { r.update(); }, 60 * 60 * 1000);
+    },
+  });
+
   const [channelData, setChannelData] = useState({ channels: [] });
   const [localMovies, setLocalMovies] = useState([]);
   const [cloudCategories, setCloudCategories] = useState([]);
@@ -77,31 +89,39 @@ export default function App() {
   // Reset pagination on category/search change
   useEffect(() => { setVisibleCount(48); }, [activeCategory, searchQuery]);
 
+  const APP_VERSION = '2.1';
+
   // ── Data loading ─────────────────────────────────────────────────────────────
   const loadData = async (force = false) => {
     try {
       const now = Date.now();
       const lastFetch = localStorage.getItem('animux_last_fetch') || 0;
-      const CACHE_TIME = 15 * 60 * 1000; // 15 minutos para equilibrio perfecto
+      const CACHE_TIME = 15 * 60 * 1000;
+      
+      // Control de Versión Definitiva
+      const currentStoredVersion = localStorage.getItem('animux_version');
+      const isNewVersion = currentStoredVersion !== APP_VERSION;
 
       const cachedCats = localStorage.getItem('animux_cache_cats');
       const cachedChans = localStorage.getItem('animux_cache_chans');
       const cachedMovs = localStorage.getItem('animux_cache_movs');
 
-      // Si tenemos caché, la usamos de inmediato para que no haya pantalla de carga
-      if (cachedCats && cachedChans && cachedMovs) {
+      // Si es una versión nueva, forzamos la limpieza total una sola vez
+      if (isNewVersion) {
+        localStorage.removeItem('animux_last_fetch');
+        localStorage.setItem('animux_version', APP_VERSION);
+        // Seguimos con la carga normal pero ignorando la caché esta vez
+      } else if (cachedCats && cachedChans && cachedMovs) {
+        // Lógica de caché normal...
         setCloudCategories(JSON.parse(cachedCats));
         setChannelData({ channels: JSON.parse(cachedChans) });
         setLocalMovies(JSON.parse(cachedMovs));
         
-        // Si la caché aún es válida, no hacemos nada más
         if (!force && (now - lastFetch < CACHE_TIME)) {
           setIsAppLoading(false);
           return;
         }
-        // Si expiró, seguimos adelante pero SIN activar el spinner de carga (Silent Update)
       } else {
-        // Solo si NO hay nada en caché mostramos el spinner
         setIsAppLoading(true);
       }
 
@@ -337,8 +357,18 @@ export default function App() {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <Skeleton />
+          <div className="flex-1 flex flex-col overflow-hidden relative">
+            <div className="flex-1 overflow-y-auto">
+              <Skeleton />
+            </div>
+            {/* Version indicator in splash */}
+            <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 animate-fade-in">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Animux Definitive</span>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 bg-rose-600 rounded-full animate-pulse" />
+                <span className="text-[9px] font-bold text-rose-500/60 uppercase tracking-[0.2em]">Versión {APP_VERSION}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -370,6 +400,8 @@ export default function App() {
         }}
         onInstall={handleInstall}
         showInstall={showInstall}
+        needRefresh={needRefresh}
+        updateServiceWorker={updateServiceWorker}
       />
 
       {/* ── CATEGORY CHIPS — Mobile only ─────────────────────────────────── */}
@@ -391,6 +423,7 @@ export default function App() {
           setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
           counts={categoryCounts}
           onRefresh={handleRefresh}
+          version={APP_VERSION}
         />
 
         <main className="flex-1 overflow-y-auto custom-scrollbar pb-20 md:pb-6">
@@ -593,6 +626,8 @@ export default function App() {
         onInstall={handleInstall}
         showInstall={showInstall}
         variant="banner"
+        needRefresh={needRefresh}
+        updateServiceWorker={updateServiceWorker}
       />
 
       {/* Toast Notifications */}

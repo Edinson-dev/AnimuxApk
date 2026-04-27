@@ -21,7 +21,7 @@ const getCatIcon = (cat) => {
   return ICON_MAP[key] || Layers;
 };
 
-export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh }) {
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version }) {
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
@@ -95,7 +95,10 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
           <RefreshCw className="w-4 h-4 group-hover:animate-spin" />
           <span className="text-[10px] font-black uppercase tracking-widest">Actualizar Datos</span>
         </button>
-        <p className="text-[8px] text-gray-800 font-bold uppercase tracking-widest px-2 text-center">v2.1 • Sincronización Lista</p>
+        <div className="flex flex-col items-center gap-1 px-2">
+          <p className="text-[8px] text-rose-600/50 font-black uppercase tracking-widest">Animux v{version}</p>
+          <p className="text-[7px] text-gray-800 font-bold uppercase tracking-[0.2em]">Sincronización Lista</p>
+        </div>
       </div>
     </aside>
   );

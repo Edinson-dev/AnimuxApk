@@ -8,7 +8,7 @@ import { Download, X, Smartphone, Share } from 'lucide-react';
  * - Desktop Chrome/Edge: uses beforeinstallprompt event
  * - Firefox / others: not supported (component hides)
  */
-export default function InstallPWA({ onInstall, showInstall, variant = 'banner' }) {
+export default function InstallPWA({ onInstall, showInstall, variant = 'banner', needRefresh, updateServiceWorker }) {
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [showPCGuide, setShowPCGuide] = useState(false);
@@ -47,20 +47,22 @@ export default function InstallPWA({ onInstall, showInstall, variant = 'banner' 
     localStorage.setItem('animux_pwa_dismissed', Date.now().toString());
   };
 
-  // Don't show if: already standalone or (banner is dismissed)
-  if (isStandalone) return null;
+  // Don't show if: (banner is dismissed)
   if (dismissed && variant === 'banner') return null;
 
   // ── iOS Banner ───────────────────────────────────────────────────────────
   if (isIOS) {
     if (variant === 'header') {
+      // Si está instalada y no hay actualización, no mostramos nada en el header
+      if (isStandalone && !needRefresh) return null;
+
       return (
         <button
-          onClick={() => setShowIOSGuide(true)}
+          onClick={() => needRefresh ? updateServiceWorker(true) : setShowIOSGuide(true)}
           className="flex items-center gap-2 px-4 py-2 bg-rose-600/10 border border-rose-600/30 text-rose-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-rose-600/20 transition-all"
         >
           <Download className="w-3.5 h-3.5" />
-          Instalar
+          {needRefresh ? 'Actualizar App' : 'Instalar'}
         </button>
       );
     }
@@ -129,15 +131,28 @@ export default function InstallPWA({ onInstall, showInstall, variant = 'banner' 
 
   // ── Android / Chrome / Desktop header button (PERSISTENT) ───────────────
   if (variant === 'header') {
+    if (isStandalone && !needRefresh) return null;
+
+    const handleAction = () => {
+      if (needRefresh) {
+        updateServiceWorker(true);
+      } else if (showInstall) {
+        onInstall();
+      } else {
+        setShowPCGuide(true);
+      }
+    };
+
     return (
       <>
         <button
-          onClick={showInstall ? onInstall : () => setShowPCGuide(true)}
+          onClick={handleAction}
           className="flex items-center gap-2 px-4 py-2 bg-rose-600/10 border border-rose-600/30 text-rose-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-rose-600/20 transition-all"
         >
           <Download className="w-3.5 h-3.5" />
-          Instalar
+          {needRefresh ? 'Actualizar App' : 'Instalar'}
         </button>
+        {/* ... PCGuide Modal stays the same ... */}
 
         {/* PC Step-by-step guide modal */}
         {showPCGuide && (
