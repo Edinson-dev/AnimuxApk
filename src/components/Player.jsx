@@ -122,8 +122,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       tryNextServer();
     }, 7000); // Volvemos a los 7 segundos originales
 
-    // Usar la URL original (decodificada) al natural, sin proxies ni seguridades.
-    const finalUrl = decodeCamouflage(currentUrl);
+    // 🛡️ SEGURIDAD TOTAL: Túnel de Datos Inteligente (M3U8 + Segmentos)
+    let finalUrl = decodeCamouflage(currentUrl);
+    const isHTTPS = window.location.protocol === 'https:';
+    
+    if (isHTTPS && finalUrl.startsWith('http://')) {
+      finalUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(finalUrl)}`;
+    }
     
     if (isDirectVideo) {
       video.src = finalUrl;
@@ -132,14 +137,27 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
       video.onerror = () => tryNextServer();
     } else if (Hls.isSupported() && isM3U8) {
+      // 🛡️ SISTEMA DE CARGA BLINDADA: Interceptamos cada fragmento antes de que el navegador lo vea
+      class SecureLoader extends Hls.DefaultConfig.loader {
+        constructor(config) {
+          super(config);
+          const originalLoad = this.load.bind(this);
+          this.load = (context, config, callbacks) => {
+            if (isHTTPS && context.url.startsWith('http://')) {
+              context.url = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(context.url)}`;
+            }
+            originalLoad(context, config, callbacks);
+          };
+        }
+      }
+
       hls = new Hls({ 
         maxBufferLength: 30, 
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
-        xhrSetup: (xhr) => { 
-          xhr.withCredentials = false;
-        }
+        fLoader: SecureLoader,
+        pLoader: SecureLoader
       });
       hlsRef.current = hls;
       hls.loadSource(finalUrl);
