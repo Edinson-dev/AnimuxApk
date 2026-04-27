@@ -42,56 +42,34 @@ export default function App() {
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true ||
       document.referrer.includes('android-app://');
-    
-    if (isStandalone) {
-      setShowInstall(false);
-      return;
-    }
+    if (isStandalone) return;
 
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstall(true);
-      console.log('✅ PWA Install prompt ready');
     };
-
     window.addEventListener('beforeinstallprompt', handler);
-    
-    // Fallback for PC: if after 5 seconds no prompt, still show button if not installed
-    const timer = setTimeout(() => {
-      if (!isStandalone) setShowInstall(true);
-    }, 5000);
-
     window.addEventListener('appinstalled', () => {
       setShowInstall(false);
       setDeferredPrompt(null);
       toast.success('¡Animux instalada correctamente! 🎉');
     });
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      clearTimeout(timer);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') { 
-        setShowInstall(false); 
-        toast.success('¡App instalada! 🎉'); 
-      }
-      setDeferredPrompt(null);
-    } else {
-      // Fallback instructions for PC/iOS
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIOS) {
-        toast.info('En iOS: Pulsa "Compartir" y luego "Añadir a pantalla de inicio"');
-      } else {
-        toast.info('En PC: Haz clic en el icono de (⊕) en la barra de direcciones o usa el menú del navegador.');
-      }
+    if (!deferredPrompt) {
+      toast.info('Usa el menú de tu navegador y selecciona "Instalar aplicación"');
+      return;
     }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') { 
+      setShowInstall(false); 
+      toast.success('¡App instalada! 🎉'); 
+    }
+    setDeferredPrompt(null);
   };
 
   // Reset pagination on category/search change
