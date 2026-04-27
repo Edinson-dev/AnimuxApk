@@ -50,7 +50,34 @@ app.post('/api/refresh', async (req, res) => {
     }
 });
 
-// 3. EPG (Futuro)
+// 3. Proxy para saltar bloqueos de Mixed Content (HTTP en HTTPS)
+app.get('/api/proxy', async (req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl) return res.status(400).send('URL requerida');
+
+    try {
+        const response = await axios({
+            method: 'get',
+            url: targetUrl,
+            responseType: 'stream',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': new URL(targetUrl).origin
+            }
+        });
+
+        // Pasar los headers de contenido originales
+        res.set('Content-Type', response.headers['content-type']);
+        if (response.headers['content-length']) res.set('Content-Length', response.headers['content-length']);
+        
+        response.data.pipe(res);
+    } catch (err) {
+        console.error('[Proxy Error]:', err.message);
+        res.status(500).send('Error al conectar con el stream');
+    }
+});
+
+// 4. EPG (Futuro)
 app.get('/api/epg/:id', (req, res) => {
     res.status(501).json({ message: 'El sistema de Guía EPG está en desarrollo y vendrá en futuras actualizaciones.', epg: null });
 });

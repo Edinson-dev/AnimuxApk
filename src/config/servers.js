@@ -94,6 +94,21 @@ export const camouflageURL = (url) => {
   }
 };
 
+// --- Configuración Global de API ---
+export const API_URL = import.meta.env.PROD ? '' : 'http://localhost:5000'; 
+
+export const getSecureURL = (url) => {
+  if (!url) return url;
+  const decoded = decodeCamouflage(url);
+  
+  // Si estamos en HTTPS y el link es HTTP, usamos nuestro proxy del backend
+  if (window.location.protocol === 'https:' && decoded.startsWith('http://')) {
+    return `${API_URL}/api/proxy?url=${encodeURIComponent(decoded)}`;
+  }
+  
+  return decoded;
+};
+
 export const decodeCamouflage = (url) => {
   if (!url || !url.startsWith('enc:')) return url;
   try {

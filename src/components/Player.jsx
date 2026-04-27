@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
 import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock } from 'lucide-react';
-import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../config/servers';
+import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage, getSecureURL } from '../config/servers';
 
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
@@ -122,11 +122,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       tryNextServer();
     }, 7000); // Reducido a 7 segundos para una respuesta más ágil
 
-    // Auto-upgrade protocol if we are on HTTPS
-    let finalUrl = currentUrl;
-    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
-      finalUrl = finalUrl.replace('http://', 'https://');
-    }
+    // Use the secure proxy logic from servers.js
+    const finalUrl = getSecureURL(currentUrl);
 
     if (isDirectVideo) {
       video.src = finalUrl;
