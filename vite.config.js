@@ -14,6 +14,7 @@ export default defineConfig({
         'favicon.svg',
         'icon-192.png',
         'icon-512.png',
+        'icon-maskable.png',
         'apple-touch-icon.png',
         'channels.json',
         'movies.json',
@@ -27,23 +28,15 @@ export default defineConfig({
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',
-        display_override: ['window-controls-overlay', 'standalone', 'minimal-ui', 'browser'],
+        display_override: ['standalone', 'minimal-ui', 'browser'],
         orientation: 'portrait',
         scope: '/',
         start_url: '/?source=pwa',
         lang: 'es',
         dir: 'ltr',
         categories: ['entertainment', 'video'],
-        screenshots: [
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            form_factor: 'narrow',
-            label: 'Animux en móvil',
-          }
-        ],
         icons: [
+          // Iconos estándar (any)
           {
             src: 'icon-192.png',
             sizes: '192x192',
@@ -51,23 +44,19 @@ export default defineConfig({
             purpose: 'any',
           },
           {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-          {
             src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
+          // Icono maskable — archivo dedicado con safe zone correcta
           {
-            src: 'icon-512.png',
+            src: 'icon-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
           },
+          // Apple
           {
             src: 'apple-touch-icon.png',
             sizes: '180x180',
