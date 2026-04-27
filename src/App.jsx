@@ -82,22 +82,28 @@ export default function App() {
     try {
       const now = Date.now();
       const lastFetch = localStorage.getItem('animux_last_fetch') || 0;
-      const CACHE_TIME = 5 * 60 * 1000; // Reducido a 5 minutos para que los cambios sean automáticos y frescos
+      const CACHE_TIME = 15 * 60 * 1000; // 15 minutos para equilibrio perfecto
 
-      if (!force && (now - lastFetch < CACHE_TIME)) {
-        const cachedCats = localStorage.getItem('animux_cache_cats');
-        const cachedChans = localStorage.getItem('animux_cache_chans');
-        const cachedMovs = localStorage.getItem('animux_cache_movs');
-        if (cachedCats && cachedChans && cachedMovs) {
-          setCloudCategories(JSON.parse(cachedCats));
-          setChannelData({ channels: JSON.parse(cachedChans) });
-          setLocalMovies(JSON.parse(cachedMovs));
+      const cachedCats = localStorage.getItem('animux_cache_cats');
+      const cachedChans = localStorage.getItem('animux_cache_chans');
+      const cachedMovs = localStorage.getItem('animux_cache_movs');
+
+      // Si tenemos caché, la usamos de inmediato para que no haya pantalla de carga
+      if (cachedCats && cachedChans && cachedMovs) {
+        setCloudCategories(JSON.parse(cachedCats));
+        setChannelData({ channels: JSON.parse(cachedChans) });
+        setLocalMovies(JSON.parse(cachedMovs));
+        
+        // Si la caché aún es válida, no hacemos nada más
+        if (!force && (now - lastFetch < CACHE_TIME)) {
           setIsAppLoading(false);
           return;
         }
+        // Si expiró, seguimos adelante pero SIN activar el spinner de carga (Silent Update)
+      } else {
+        // Solo si NO hay nada en caché mostramos el spinner
+        setIsAppLoading(true);
       }
-
-      setIsAppLoading(true);
 
       // Helper to prevent Firebase from blocking the app if quota is exceeded
       const withTimeout = (promise, ms = 3000) => Promise.race([
