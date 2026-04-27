@@ -11,6 +11,56 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [serverIndex, setServerIndex] = useState(-1);
   const [currentUrl, setCurrentUrl] = useState('');
   const [epgData, setEpgData] = useState([]);
+  const [isPiP, setIsPiP] = useState(false);
+
+  // ── PiP events ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const onEnter = () => setIsPiP(true);
+    const onLeave = () => setIsPiP(false);
+    document.addEventListener('enterpictureinpicture', onEnter);
+    document.addEventListener('leavepictureinpicture', onLeave);
+    return () => {
+      document.removeEventListener('enterpictureinpicture', onEnter);
+      document.removeEventListener('leavepictureinpicture', onLeave);
+    };
+  }, []);
+
+  // ── MediaSession API — background playback + lock screen controls ────────
+  useEffect(() => {
+    if (!channel || !('mediaSession' in navigator)) return;
+    const title = channel.displayName || channel.name || 'Animux';
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist: channel.category || 'Animux Streaming',
+        album: 'Animux',
+        artwork: [
+          { src: channel.logo || '/icon-512.png', sizes: '256x256', type: 'image/jpeg' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      });
+      const vid = videoRef.current;
+      navigator.mediaSession.setActionHandler('play',  () => { vid?.play();  navigator.mediaSession.playbackState = 'playing'; });
+      navigator.mediaSession.setActionHandler('pause', () => { vid?.pause(); navigator.mediaSession.playbackState = 'paused'; });
+      navigator.mediaSession.setActionHandler('stop',  () => onClose());
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        const idx = playlist.findIndex(p => String(p.id) === String(channel.id));
+        if (idx >= 0 && idx < playlist.length - 1) onPlayNext(playlist[idx + 1]);
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        const idx = playlist.findIndex(p => String(p.id) === String(channel.id));
+        if (idx > 0) onPlayNext(playlist[idx - 1]);
+      });
+    } catch(e) {}
+    return () => {
+      try {
+        navigator.mediaSession.metadata = null;
+        ['play','pause','stop','nexttrack','previoustrack'].forEach(a => {
+          try { navigator.mediaSession.setActionHandler(a, null); } catch(_) {}
+        });
+      } catch(_) {}
+    };
+  }, [channel, playlist]);
 
   const getYouTubeId = (url = '') => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -159,13 +209,24 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               <span className="text-rose-600 text-[9px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
             </div>
           </div>
-          <button onClick={() => {
-             try {
-               if (document.pictureInPictureElement) document.exitPictureInPicture();
-               else if (videoRef.current) videoRef.current.requestPictureInPicture();
-             } catch(e){}
-          }} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 transition-all">
-            <PictureInPicture className="w-5 h-5 text-white" />
+          <button
+            onClick={async () => {
+              try {
+                if (document.pictureInPictureElement) {
+                  await document.exitPictureInPicture();
+                } else if (videoRef.current && document.pictureInPictureEnabled) {
+                  await videoRef.current.requestPictureInPicture();
+                }
+              } catch(e) {}
+            }}
+            title={isPiP ? 'Salir de PiP' : 'Pantalla en pantalla'}
+            className={`p-2.5 rounded-full border transition-all ${
+              isPiP
+                ? 'bg-rose-600/20 border-rose-600/50 text-rose-400'
+                : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
+            }`}
+          >
+            <PictureInPicture className="w-5 h-5" />
           </button>
         </div>
       )}

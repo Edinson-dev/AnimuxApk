@@ -1,97 +1,89 @@
-import React, { useState, useEffect } from 'react';
-import { Film, Heart, List, PlaySquare, Swords, Tv, Download } from 'lucide-react';
+import React from 'react';
+import { Home, Star, Tv, Film, Activity, Smile, Music, Zap, Heart, History, Layers, Monitor } from 'lucide-react';
 
-// Una función de ayuda para asignar un ícono dependiendo del nombre de la categoría
-const getCategoryIcon = (categoryName) => {
-  const nameL = categoryName.toLowerCase();
-  if (nameL === 'todos') return List;
-  if (nameL === 'favoritos') return Heart;
-  if (nameL.includes('shonen') || nameL.includes('acción') || nameL.includes('pelea')) return Swords;
-  if (nameL.includes('cine')) return Film;
-  if (nameL.includes('isekai') || nameL.includes('aventura')) return PlaySquare;
-  return Tv; // Ícono por defecto
+const ICON_MAP = {
+  'inicio': Home,
+  'nuevos': Star,
+  'series': Monitor,
+  'peliculas': Film,
+  'peliculas': Film,
+  'deportes': Activity,
+  'infantil': Smile,
+  'musica': Music,
+  'anime': Zap,
+  'favoritos': Heart,
+  'recientes': History,
 };
 
-export default function Sidebar({ categories, activeCategory, setActiveCategory }) {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
+const getCatIcon = (cat) => {
+  const key = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  return ICON_MAP[key] || Layers;
+};
 
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallBtn(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // Detectar si ya está instalada (Standalone mode)
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setShowInstallBtn(false);
-    }
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShowInstallBtn(false);
-    }
-    setDeferredPrompt(null);
-  };
-
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {} }) {
   return (
-    <aside className="w-20 lg:w-64 bg-background/50 backdrop-blur-2xl border-r border-white/5 h-full flex flex-col py-6 transition-all duration-300 z-30">
-      <nav className="flex-1 flex flex-col gap-3 px-4 overflow-y-auto custom-scrollbar">
-        {categories.map((cat) => {
-          const catName = typeof cat === 'string' ? cat : cat.name;
-          const catCount = cat.count;
-          const Icon = catName === 'Todos' ? List : catName === 'Favoritos' ? Heart : getCategoryIcon(catName);
-          const isActive = activeCategory === catName;
-          
+    <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
+
+      {/* Section label - desktop only */}
+      <div className="hidden md:flex items-center px-5 py-4 border-b border-white/[0.03]">
+        <span className="text-[9px] font-black text-gray-700 uppercase tracking-[0.3em]">Navegar</span>
+      </div>
+
+      {/* Category list */}
+      <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2">
+        {categories.map(cat => {
+          const Icon = getCatIcon(cat);
+          const isActive = activeCategory === cat;
+          const count = counts[cat];
+
           return (
             <button
-              key={catName}
-              onClick={() => setActiveCategory(catName)}
-              className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group relative overflow-hidden
-                ${isActive 
-                  ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-white shadow-[inset_0_0_0_1px_rgba(99,102,241,0.3)]' 
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                }`}
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              title={cat}
+              className={`
+                group relative flex items-center gap-3 px-3 py-3 rounded-xl
+                transition-all duration-200 w-full text-left
+                ${isActive
+                  ? 'bg-rose-600/15 text-white'
+                  : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200'
+                }
+              `}
             >
+              {/* Active bar indicator */}
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-primary rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.8)]"></div>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-rose-600 rounded-r-full" />
               )}
-              <Icon className={`w-6 h-6 shrink-0 transition-all duration-300 ${isActive ? 'text-primary scale-110 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'group-hover:scale-110 group-hover:text-gray-200'}`} 
-                    fill={catName === 'Favoritos' && isActive ? "currentColor" : "none"} />
-              <div className="hidden lg:flex flex-1 items-center justify-between text-left truncate">
-                <span className={`font-medium truncate tracking-wide ${isActive ? 'font-bold' : ''}`}>{catName}</span>
-                {catCount !== undefined && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ml-2 ${isActive ? 'bg-primary/30 text-primary' : 'bg-white/10 text-gray-400'}`}>
-                    {catCount}
-                  </span>
-                )}
-              </div>
+
+              <Icon
+                className={`w-5 h-5 shrink-0 transition-colors duration-200 ${
+                  isActive ? 'text-rose-500' : 'group-hover:text-gray-300'
+                }`}
+                fill={cat === 'Favoritos' && isActive ? 'currentColor' : 'none'}
+              />
+
+              {/* Label - desktop only */}
+              <span className={`hidden md:block flex-1 text-[11px] font-bold uppercase tracking-[0.15em] truncate ${isActive ? 'text-white' : ''}`}>
+                {cat}
+              </span>
+
+              {/* Count badge - desktop only */}
+              {count !== undefined && count > 0 && (
+                <span className={`hidden md:block text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[22px] text-center ${
+                  isActive ? 'bg-rose-600/30 text-rose-400' : 'bg-white/[0.06] text-gray-600'
+                }`}>
+                  {count > 999 ? '999+' : count}
+                </span>
+              )}
             </button>
           );
         })}
       </nav>
 
-      {/* Botón de Instalación PWA */}
-      {showInstallBtn && (
-        <div className="px-4 mt-6">
-          <button 
-            onClick={handleInstallClick}
-            className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-primary hover:bg-primary/80 text-white rounded-2xl transition-all duration-300 shadow-lg shadow-primary/20 group"
-          >
-            <Download className="w-5 h-5 animate-bounce group-hover:animate-none" />
-            <span className="hidden lg:block font-black text-[10px] uppercase tracking-widest">Instalar App</span>
-          </button>
-        </div>
-      )}
+      {/* Footer */}
+      <div className="hidden md:block px-5 py-3 border-t border-white/[0.03]">
+        <p className="text-[8px] text-gray-700 font-bold uppercase tracking-widest">Animux © 2025</p>
+      </div>
     </aside>
   );
 }
