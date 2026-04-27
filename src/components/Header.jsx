@@ -12,7 +12,7 @@ export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstal
           <div className="w-8 h-8 md:w-9 md:h-9 bg-black rounded-xl flex items-center justify-center shadow-xl border border-white/10 group-hover:border-rose-500 transition-all duration-300 overflow-hidden">
             <img src="/icon-512.png" alt="Animux" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase italic hidden sm:block">
+          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase hidden sm:block">
             Animux
           </h1>
         </div>

@@ -205,7 +205,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           <div className="flex items-center gap-4">
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all"><X className="w-6 h-6 text-white" /></button>
             <div className="flex flex-col min-w-0">
-              <h2 className="text-white font-black text-lg md:text-xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase italic leading-tight">{channel.displayName || channel.name}</h2>
+              <h2 className="text-white font-black text-lg md:text-xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase leading-tight">{channel.displayName || channel.name}</h2>
               <span className="text-rose-600 text-[9px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
             </div>
           </div>

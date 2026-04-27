@@ -82,6 +82,21 @@ export default function AdminPanel({ onClose, onUpdate }) {
           };
 
       await setDoc(doc(db, collectionName, cleanId), dataToSave);
+
+      // If item is re-added, remove from blocklist
+      const reName = (formData.name || formData.title || '').toLowerCase().trim();
+      if (reName) {
+        const bl = JSON.parse(localStorage.getItem('animux_deleted') || '[]');
+        const updated = bl.filter(n => n !== reName);
+        localStorage.setItem('animux_deleted', JSON.stringify(updated));
+      }
+
+      // Clear caches
+      localStorage.removeItem('animux_cache_chans');
+      localStorage.removeItem('animux_cache_movs');
+      localStorage.removeItem('animux_cache_cats');
+      localStorage.removeItem('animux_last_fetch');
+
       setShowAddForm(false);
       setEditingId(null);
       setShouldCamouflage(false);
@@ -93,13 +108,33 @@ export default function AdminPanel({ onClose, onUpdate }) {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este elemento?")) {
+    if (window.confirm('¿Estás seguro de eliminar este elemento?')) {
       try {
+        // Get item before deleting to store name in blocklist
+        const item = items.find(i => i.id === id);
         await deleteDoc(doc(db, activeTab, id));
+
+        // Add to local blocklist so channels.json duplicates are also hidden
+        if (item) {
+          const deletedName = (item.name || item.title || '').toLowerCase().trim();
+          if (deletedName) {
+            const bl = JSON.parse(localStorage.getItem('animux_deleted') || '[]');
+            if (!bl.includes(deletedName)) {
+              localStorage.setItem('animux_deleted', JSON.stringify([...bl, deletedName]));
+            }
+          }
+        }
+
+        // Clear ALL caches so next load fetches fresh data from Firebase
+        localStorage.removeItem('animux_cache_chans');
+        localStorage.removeItem('animux_cache_movs');
+        localStorage.removeItem('animux_cache_cats');
+        localStorage.removeItem('animux_last_fetch');
+
         fetchItems();
         fetchCategories();
         if (onUpdate) onUpdate();
-      } catch (e) { alert("Error al eliminar"); }
+      } catch (e) { alert('Error al eliminar: ' + e.message); }
     }
   };
 
@@ -171,7 +206,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
           <div className="absolute inset-0 bg-black/95 z-[110] p-8 overflow-y-auto no-scrollbar animate-fade-in">
             <div className="max-w-2xl mx-auto space-y-8">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">{editingId ? 'Editar' : 'Añadir'}</h3>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">{editingId ? 'Editar' : 'Añadir'}</h3>
                 <button onClick={() => setShowAddForm(false)} className="p-2 bg-white/5 rounded-full"><X className="w-6 h-6 text-white" /></button>
               </div>
 

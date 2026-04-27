@@ -71,7 +71,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
               <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">{featuredChannel.category}</span>
             )}
           </div>
-          <h1 className="text-3xl md:text-5xl font-normal leading-none tracking-tight text-white uppercase italic drop-shadow-2xl">
+          <h1 className="text-3xl md:text-5xl font-bold leading-none tracking-tight text-white uppercase drop-shadow-2xl">
             {displayName}
           </h1>
           <p className="text-gray-400 text-[11px] md:text-xs leading-relaxed max-w-xl line-clamp-2 font-medium">

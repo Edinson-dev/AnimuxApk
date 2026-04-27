@@ -95,7 +95,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
                   <span className="w-1 h-1 bg-white/20 rounded-full" />
                   <span>4K UHD</span>
                 </div>
-                <h1 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">
+                <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter leading-tight">
                   {displayName}
                 </h1>
               </div>
@@ -142,7 +142,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
           {/* Related */}
           {recommended.length > 0 && (
             <div className="space-y-6 pt-10 border-t border-white/5">
-              <h3 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter italic">Más como esto</h3>
+              <h3 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Más como esto</h3>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
                 {recommended.map(item => (
                   <ChannelCard

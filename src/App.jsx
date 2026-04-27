@@ -119,6 +119,16 @@ export default function App() {
       const n = (c.displayName || c.title || c.name || '').toLowerCase().trim();
       if (n && (!unique.has(n) || c.fromCloud)) unique.set(n, c);
     });
+
+    // Filter out channels explicitly deleted via AdminPanel (blocklist)
+    const deleted = JSON.parse(localStorage.getItem('animux_deleted') || '[]');
+    if (deleted.length > 0) {
+      return Array.from(unique.values()).filter(c => {
+        const n = (c.displayName || c.title || c.name || '').toLowerCase().trim();
+        return !deleted.includes(n);
+      });
+    }
+
     return Array.from(unique.values());
   }, [localMovies, channelData, brokenChannels]);
 
@@ -289,7 +299,7 @@ export default function App() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="w-1 h-5 bg-rose-600 rounded-full" />
-                      <h3 className="text-lg md:text-xl font-black uppercase tracking-widest italic">Continúa Viendo</h3>
+                      <h3 className="text-lg md:text-xl font-black uppercase tracking-widest">Continúa Viendo</h3>
                     </div>
                     <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-4">
                       {recentChannels.map(c => (
@@ -307,7 +317,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-1 h-5 bg-rose-600 rounded-full" />
-                        <h3 className="text-lg md:text-xl font-black uppercase tracking-widest italic text-rose-400">Nuevos Estrenos</h3>
+                        <h3 className="text-lg md:text-xl font-black uppercase tracking-widest text-rose-400">Nuevos Estrenos</h3>
                       </div>
                       <button onClick={() => setActiveCategory('Nuevos')} className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-rose-500 transition-colors">Ver todo</button>
                     </div>
@@ -331,7 +341,7 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-1 h-5 bg-white/20 rounded-full" />
-                          <h3 className="text-lg md:text-xl font-black uppercase tracking-widest italic">{cat}</h3>
+                          <h3 className="text-lg md:text-xl font-black uppercase tracking-widest">{cat}</h3>
                         </div>
                         <button onClick={() => setActiveCategory(cat)} className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-rose-500 transition-colors">Ver todo</button>
                       </div>
@@ -353,7 +363,7 @@ export default function App() {
                 <div className="flex items-end justify-between border-b border-white/[0.05] pb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-1 h-7 bg-rose-600 rounded-full" />
-                    <h2 className="text-2xl md:text-4xl font-black uppercase tracking-widest italic">
+                    <h2 className="text-2xl md:text-4xl font-black uppercase tracking-widest">
                       {searchQuery ? `"${searchQuery}"` : activeCategory}
                     </h2>
                   </div>
