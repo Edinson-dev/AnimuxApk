@@ -96,47 +96,79 @@ export default function App() {
       }
 
       setIsAppLoading(true);
-      const catSnapshot = await getDocs(collection(db, 'categories'));
+
+      // Fetch all sources in parallel for maximum speed
+      const [catSnapshot, chanSnapshot, movSnapshot, rChan, rM3U, rMov] = await Promise.all([
+        getDocs(collection(db, 'categories')),
+        getDocs(collection(db, 'channels')),
+        getDocs(collection(db, 'movies')),
+        fetch('/channels.json').catch(() => ({ ok: false })),
+        fetch('/m3u_channels.json').catch(() => ({ ok: false })),
+        fetch('/movies.json').catch(() => ({ ok: false }))
+      ]);
+
+      // Process Categories
       const cats = catSnapshot.docs.map(doc => doc.data().name).filter(n => n !== 'Regional');
       setCloudCategories(cats);
 
-      const chanSnapshot = await getDocs(collection(db, 'channels'));
-      const cloudChans = chanSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
-      const [rChan, rM3U] = await Promise.all([
-        fetch('/channels.json'),
-        fetch('/m3u_channels.json')
-      ]);
-      const jsonChans = rChan.ok ? (await rChan.json()).channels : [];
-      const m3uChans = rM3U.ok ? (await rM3U.json()).channels.map(c => ({ ...c, fromM3U: true })) : [];
+      // Process Movies (VOD)
+      const cloudMovs = movSnapshot.docs.map(doc => ({ 
+        ...doc.data(), 
+        id: doc.id, 
+        isVOD: true, 
+        displayName: doc.data().title, 
+        fromCloud: true 
+      }));
+      const jsonMovs = rMov.ok ? (await rMov.json()).map(m => ({ ...m, isVOD: true, displayName: m.title })) : [];
+      const finalMovies = [...cloudMovs, ...jsonMovs];
 
-      // Merge and deduplicate by name - PRIORITIZE M3U CHANNELS
+      // Process Channels
+      const cloudChans = chanSnapshot.docs.map(doc => ({ 
+        ...doc.data(), 
+        id: doc.id, 
+        fromCloud: true 
+      }));
+      const jsonChans = rChan.ok ? (await rChan.json()).channels : [];
+      const m3uChans = rM3U.ok ? (await rM3U.json()).channels.map(c => ({ 
+        ...c, 
+        fromM3U: true, 
+        isNew: true // Mark all M3U channels as NEW for better visibility
+      })) : [];
+
+      // Merge and deduplicate by name
+      // Priority: M3U > Cloud > Static JSON
       const allChannelsMap = new Map();
       
-      // We process M3U channels FIRST so they take precedence in the Map
-      [...m3uChans, ...cloudChans, ...jsonChans].forEach(ch => {
+      // 1. Static JSON (Base)
+      jsonChans.forEach(ch => {
         const key = (ch.name || ch.displayName || '').toLowerCase().trim();
-        if (!allChannelsMap.has(key)) {
-          allChannelsMap.set(key, ch);
-        }
+        if (key) allChannelsMap.set(key, ch);
       });
 
-      // Final filtering: exclude 'Regional' category
+      // 2. Cloud Channels (Override)
+      cloudChans.forEach(ch => {
+        const key = (ch.name || ch.displayName || '').toLowerCase().trim();
+        if (key) allChannelsMap.set(key, ch);
+      });
+
+      // 3. M3U Channels (Top Priority)
+      m3uChans.forEach(ch => {
+        const key = (ch.name || ch.displayName || '').toLowerCase().trim();
+        if (key) allChannelsMap.set(key, ch);
+      });
+
       const finalChannels = Array.from(allChannelsMap.values()).filter(c => c.category !== 'Regional');
       
-      const movSnapshot = await getDocs(collection(db, 'movies'));
-      const cloudMovs = movSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, displayName: doc.data().title, fromCloud: true }));
-      const rMov = await fetch('/movies.json');
-      const jsonMovs = rMov.ok ? (await rMov.json()).map(m => ({ ...m, isVOD: true, displayName: m.title })) : [];
-      
       setChannelData({ channels: finalChannels });
-      setLocalMovies([...cloudMovs, ...jsonMovs]);
+      setLocalMovies(finalMovies);
 
       localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
       localStorage.setItem('animux_cache_chans', JSON.stringify(finalChannels));
-      localStorage.setItem('animux_cache_movs', JSON.stringify([...cloudMovs, ...jsonMovs]));
+      localStorage.setItem('animux_cache_movs', JSON.stringify(finalMovies));
       localStorage.setItem('animux_last_fetch', now.toString());
 
     } catch (err) {
+      console.error("Error loading data:", err);
       const cachedCats = localStorage.getItem('animux_cache_cats');
       if (cachedCats) setCloudCategories(JSON.parse(cachedCats));
     } finally {
@@ -176,13 +208,18 @@ export default function App() {
   const filteredChannels = useMemo(() => {
     let result = [...allUnique];
 
-    if (activeCategory === 'Nuevos') return result.filter(c => c.isNew === true).reverse();
+    if (activeCategory === 'Nuevos') {
+      return result
+        .filter(c => c.isNew === true)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    }
+    
     if (activeCategory === 'Favoritos') return result.filter(c => favorites.includes(String(c.id)));
 
     if (activeCategory !== 'Inicio') {
       const catNorm = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
       result = result.filter(c => {
-        if (c.isNew) return false;
+        // If it's a "New" item, we only show it in "Nuevos" or "Inicio" unless it also matches the category
         const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
         if (catNorm === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || chCat.includes('movie') || chCat.includes('filmes') || chCat.includes('vod') || c.isVOD;
         if (catNorm === 'series') return chCat.includes('serie') || chCat.includes('show') || chCat.includes('novela');
@@ -195,7 +232,10 @@ export default function App() {
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(c => (c.name || c.title || '').toLowerCase().includes(q) || (c.category || '').toLowerCase().includes(q));
+      result = result.filter(c => 
+        (c.name || c.displayName || c.title || '').toLowerCase().includes(q) || 
+        (c.category || '').toLowerCase().includes(q)
+      );
     }
 
     return result;
@@ -208,7 +248,6 @@ export default function App() {
       if (cat === 'Favoritos') { counts[cat] = favorites.length; return; }
       const target = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
       counts[cat] = allUnique.filter(c => {
-        if (c.isNew) return false;
         const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
         if (target === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || chCat.includes('movie') || c.isVOD;
         if (target === 'series') return chCat.includes('serie') || chCat.includes('show');

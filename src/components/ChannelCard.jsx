@@ -32,10 +32,15 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
         </div>
 
         {/* Quality/Type Badge (DINÁMICO) */}
-        <div className="absolute top-3 left-3 flex gap-2">
-          <span className={`px-2 py-0.5 backdrop-blur-md border border-white/10 rounded text-[8px] font-black text-white uppercase tracking-widest ${isVOD ? 'bg-black/60' : 'bg-rose-600/80 animate-pulse'}`}>
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          <span className={`px-2 py-0.5 backdrop-blur-md border border-white/10 rounded text-[8px] font-black text-white uppercase tracking-widest shadow-lg ${isVOD ? 'bg-black/60' : 'bg-rose-600/80 animate-pulse'}`}>
             {badgeText}
           </span>
+          {channel.isNew && (
+            <span className="px-2 py-0.5 bg-green-500/90 backdrop-blur-md border border-green-400/30 rounded text-[7px] font-black text-white uppercase tracking-tighter shadow-lg animate-bounce">
+              Nuevo
+            </span>
+          )}
         </div>
 
         {/* Favorite Button */}
