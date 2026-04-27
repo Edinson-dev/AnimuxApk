@@ -10,6 +10,7 @@ import Player from './components/Player';
 import DetailsModal from './components/DetailsModal';
 import Skeleton from './components/Skeleton';
 import Toast, { toast } from './components/Toast';
+import InstallPWA from './components/InstallPWA';
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/AdminPanel';
@@ -36,9 +37,24 @@ export default function App() {
   const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); setShowInstall(true); };
+    // Detect if already running as standalone PWA
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://');
+    if (isStandalone) return;
+
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstall(true);
+    };
     window.addEventListener('beforeinstallprompt', handler);
-    if (window.matchMedia('(display-mode: standalone)').matches) setShowInstall(false);
+    window.addEventListener('appinstalled', () => {
+      setShowInstall(false);
+      setDeferredPrompt(null);
+      toast.success('¡Animux instalada correctamente! 🎉');
+    });
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -46,7 +62,7 @@ export default function App() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') { setShowInstall(false); toast.success('¡App instalada!'); }
+    if (outcome === 'accepted') { setShowInstall(false); toast.success('¡App instalada! 🎉'); }
     setDeferredPrompt(null);
   };
 
@@ -474,6 +490,13 @@ export default function App() {
         activeCategory={activeCategory}
         setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
         onSearchOpen={() => setMobileSearchOpen(true)}
+      />
+
+      {/* PWA Install Banner — Floating, for Android/iOS/Desktop */}
+      <InstallPWA
+        onInstall={handleInstall}
+        showInstall={showInstall}
+        variant="banner"
       />
 
       {/* Toast Notifications */}

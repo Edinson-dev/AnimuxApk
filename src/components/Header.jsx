@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, Bell, X, Download } from 'lucide-react';
+import { Search, Bell, X } from 'lucide-react';
+import InstallPWA from './InstallPWA';
 
 export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstall, showInstall }) {
 
@@ -10,7 +11,7 @@ export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstal
         {/* Logo */}
         <div onClick={onGoHome} className="flex items-center gap-3 cursor-pointer group shrink-0">
           <div className="w-8 h-8 md:w-9 md:h-9 bg-black rounded-xl flex items-center justify-center shadow-xl border border-white/10 group-hover:border-rose-500 transition-all duration-300 overflow-hidden">
-            <img src="/icon-512.png" alt="Animux" className="w-full h-full object-cover" />
+            <img src="/icon-192.png" alt="Animux" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase hidden sm:block">
             Animux
@@ -38,19 +39,17 @@ export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstal
 
         {/* Right controls */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Search handled by BottomNav on mobile */}
-
           <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-600 rounded-full" />
           </button>
 
-          {showInstall && (
-            <button onClick={onInstall} className="hidden md:flex items-center gap-2 px-4 py-2 bg-rose-600/10 border border-rose-600/30 text-rose-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-rose-600/20 transition-all">
-              <Download className="w-3.5 h-3.5" />
-              Instalar
-            </button>
-          )}
+          {/* Install button — visible on all screen sizes */}
+          <InstallPWA
+            onInstall={onInstall}
+            showInstall={showInstall}
+            variant="header"
+          />
         </div>
       </div>
     </header>

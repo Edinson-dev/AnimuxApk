@@ -6,16 +6,16 @@ let _add = null;
 
 export const toast = {
   success: (msg) => _add?.(msg, 'success'),
-  error:   (msg) => _add?.(msg, 'error'),
-  info:    (msg) => _add?.(msg, 'info'),
-  fav:     (msg) => _add?.(msg, 'fav'),
+  error: (msg) => _add?.(msg, 'error'),
+  info: (msg) => _add?.(msg, 'info'),
+  fav: (msg) => _add?.(msg, 'fav'),
 };
 
 const CONFIG = {
   success: { Icon: CheckCircle, cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  error:   { Icon: AlertCircle, cls: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  info:    { Icon: Info,         cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  fav:     { Icon: Heart,        cls: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
+  error: { Icon: AlertCircle, cls: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  info: { Icon: Info, cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  fav: { Icon: Heart, cls: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
 };
 
 export default function Toast() {
