@@ -62,8 +62,11 @@ export default function App() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Al detectar un cambio en el SW (nueva versión), recargamos la app
-        window.location.reload();
+        // Al detectar un cambio en el SW (nueva versión), avisamos y recargamos
+        toast.info('🚀 Actualizando Animux a la última versión...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       });
     }
   }, []);
