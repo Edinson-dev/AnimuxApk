@@ -14,7 +14,6 @@ export default defineConfig({
         'favicon.svg',
         'icon-192.png',
         'icon-512.png',
-        'icon-maskable.png',
         'apple-touch-icon.png',
         'channels.json',
         'movies.json',
@@ -36,7 +35,6 @@ export default defineConfig({
         dir: 'ltr',
         categories: ['entertainment', 'video'],
         icons: [
-          // Iconos estándar (any)
           {
             src: 'icon-192.png',
             sizes: '192x192',
@@ -47,16 +45,8 @@ export default defineConfig({
             src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any',
+            purpose: 'any maskable',
           },
-          // Icono maskable — archivo dedicado con safe zone correcta
-          {
-            src: 'icon-maskable.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-          // Apple
           {
             src: 'apple-touch-icon.png',
             sizes: '180x180',
