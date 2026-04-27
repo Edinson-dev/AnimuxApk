@@ -122,12 +122,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       tryNextServer();
     }, 7000); // Volvemos a los 7 segundos originales
 
-    // 🚀 TÚNEL DE DATOS: Si estamos en HTTPS y el stream es HTTP, usamos un proxy transparente
-    // Esto arregla la pantalla negra en Chrome y la App sin anuncios ni carteles.
-    let finalUrl = decodeCamouflage(currentUrl);
-    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
-      finalUrl = `https://corsproxy.io/?${encodeURIComponent(finalUrl)}`;
-    }
+    // Usar la URL original (decodificada) al natural, sin proxies ni seguridades.
+    const finalUrl = decodeCamouflage(currentUrl);
     
     if (isDirectVideo) {
       video.src = finalUrl;
