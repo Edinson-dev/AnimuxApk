@@ -41,7 +41,7 @@ export default function Header({ searchQuery, setSearchQuery, onGoHome, onInstal
         <div className="flex items-center gap-2 shrink-0">
           <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative">
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-600 rounded-full" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-600 rounded-full animate-pulse" />
           </button>
 
           {/* Install button — visible on all screen sizes */}
