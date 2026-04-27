@@ -84,13 +84,18 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
       {/* Footer */}
       <div className="hidden md:block px-4 py-6 border-t border-white/[0.03] space-y-4">
         <button 
-          onClick={onRefresh}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-white/[0.03] hover:bg-rose-600/10 text-gray-400 hover:text-rose-500 rounded-xl transition-all border border-white/[0.03] hover:border-rose-600/30 group"
+          onClick={() => {
+            if (window.confirm('¿Quieres sincronizar los últimos canales y películas?')) {
+              onRefresh();
+              setTimeout(() => window.location.reload(), 1000);
+            }
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-rose-600/5 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl transition-all border border-rose-600/20 hover:border-rose-600/40 group"
         >
-          <RefreshCw className="w-4 h-4 group-active:animate-spin" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Refrescar</span>
+          <RefreshCw className="w-4 h-4 group-hover:animate-spin" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Actualizar Datos</span>
         </button>
-        <p className="text-[8px] text-gray-800 font-bold uppercase tracking-widest px-2">Animux © 2025</p>
+        <p className="text-[8px] text-gray-800 font-bold uppercase tracking-widest px-2 text-center">v2.1 • Sincronización Lista</p>
       </div>
     </aside>
   );

@@ -58,22 +58,7 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // ── Auto-Update Logic ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Solo recargamos si NO hay nada reproduciéndose para no cortar la señal
-        if (!activeChannel) {
-          toast.info('🚀 Actualizando Animux a la última versión...');
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        } else {
-          console.log('📦 Nueva versión detectada, se aplicará al cerrar el reproductor.');
-        }
-      });
-    }
-  }, [activeChannel]);
+
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
@@ -97,7 +82,7 @@ export default function App() {
     try {
       const now = Date.now();
       const lastFetch = localStorage.getItem('animux_last_fetch') || 0;
-      const CACHE_TIME = 4 * 60 * 60 * 1000; // Increased to 4 hours to save Firebase quota
+      const CACHE_TIME = 5 * 60 * 1000; // Reducido a 5 minutos para que los cambios sean automáticos y frescos
 
       if (!force && (now - lastFetch < CACHE_TIME)) {
         const cachedCats = localStorage.getItem('animux_cache_cats');
