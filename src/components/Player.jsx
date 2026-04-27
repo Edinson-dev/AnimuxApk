@@ -120,23 +120,10 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const timeoutId = setTimeout(() => {
       if (!video.paused || video.currentTime > 0) return;
       tryNextServer();
-    }, 7000); // Reducido a 7 segundos para una respuesta más ágil
+    }, 7000); // Volvemos a los 7 segundos originales
 
-    // Usar la URL original (decodificada) sin forzar HTTPS para evitar errores de conexión
+    // Usar la URL original (decodificada)
     const finalUrl = decodeCamouflage(currentUrl);
-
-    // Detección inmediata de Bloqueo de Mezcla de Contenido (HTTP en HTTPS)
-    if (window.location.protocol === 'https:' && finalUrl.startsWith('http://')) {
-       console.warn('Mixed Content detected. Chrome will likely block this.');
-       // No bloqueamos de inmediato para dar una oportunidad al navegador/extensiones,
-       // pero reducimos el timeout de error a 3 segundos para que el botón aparezca rápido.
-       setTimeout(() => {
-         if (loading && !error) {
-           setError(true);
-           setLoading(false);
-         }
-       }, 3000);
-    }
 
     if (isDirectVideo) {
       video.src = finalUrl;
@@ -272,17 +259,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           {error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 p-6 text-center">
               <AlertCircle className="w-12 h-12 text-rose-600 mb-4 animate-bounce" />
-              <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Bloqueo de Seguridad</h3>
-              <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">Google Chrome bloquea esta señal por seguridad. Pulsa el botón de abajo para verla en una ventana externa.</p>
-              <div className="flex flex-col gap-3 mt-6 w-full max-w-xs">
-                <button 
-                  onClick={() => window.open(decodeCamouflage(currentUrl), '_blank')}
-                  className="px-10 py-4 bg-rose-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-rose-600/20 active:scale-95 transition-all"
-                >
-                  Abrir Señal Externa
-                </button>
-                <button onClick={onClose} className="px-10 py-3 bg-white/5 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/10">Volver</button>
-              </div>
+              <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Enlace no compatible</h3>
+              <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">No se pudo cargar este servidor.</p>
+              <button onClick={onClose} className="mt-8 px-10 py-3 bg-white/5 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">Cerrar</button>
             </div>
           )}
         </div>
