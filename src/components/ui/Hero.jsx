@@ -37,7 +37,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
   const displayName = featuredChannel.displayName || featuredChannel.name;
 
   return (
-    <div className="relative w-full h-[35vh] md:h-[52vh] overflow-hidden group mb-6 md:mb-10 animate-fade-in bg-black rounded-2xl border border-white/[0.05]">
+    <div className="relative w-full h-[45vh] md:h-[65vh] overflow-hidden group mb-6 md:mb-10 animate-fade-in bg-[#05050f] rounded-2xl md:rounded-3xl border-none">
 
       {/* Adaptive color glow */}
       <div
@@ -64,7 +64,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
       <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-10 max-w-3xl space-y-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-rose-600 text-white text-[9px] font-black uppercase tracking-widest rounded">
+            <span className="px-2 py-0.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded">
               {featuredChannel.isNew ? 'Nuevo' : 'Destacado'}
             </span>
             {featuredChannel.category && (

@@ -16,7 +16,7 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 
-const APP_VERSION = '2.6'; // ← Fuente única de verdad. Cambiar aquí actualiza toda la app.
+const APP_VERSION = '2.7'; // ← Fuente única de verdad. Cambiar aquí actualiza toda la app.
 
 export default function App() {
   const {
@@ -382,9 +382,9 @@ export default function App() {
           <h1 className="text-2xl font-black text-white tracking-widest uppercase">Animux</h1>
           <div className="flex flex-col items-center gap-2 mt-4">
             <div className="flex gap-1.5">
-              <div className="w-1 h-1 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-1 h-1 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-1 h-1 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="w-1 h-1 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1 h-1 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1 h-1 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
             <p className="text-[9px] font-black text-white/40 tracking-[0.4em] uppercase animate-pulse">
               Sincronizando Biblioteca...
@@ -476,7 +476,7 @@ export default function App() {
                 {recentChannels.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-1 h-5 bg-rose-600 rounded-full" />
+                      <div className="w-1 h-5 bg-blue-600 rounded-full" />
                       <h3 className="text-lg md:text-xl font-black uppercase tracking-widest">Continúa Viendo</h3>
                     </div>
                     <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-4">
@@ -494,10 +494,10 @@ export default function App() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-1 h-5 bg-rose-600 rounded-full" />
-                        <h3 className="text-lg md:text-xl font-black uppercase tracking-widest text-rose-400">Nuevos Estrenos</h3>
+                        <div className="w-1 h-5 bg-blue-600 rounded-full" />
+                        <h3 className="text-lg md:text-xl font-black uppercase tracking-widest text-blue-400">Nuevos Estrenos</h3>
                       </div>
-                      <button onClick={() => setActiveCategory('Nuevos')} className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-rose-500 transition-colors">Ver todo</button>
+                      <button onClick={() => setActiveCategory('Nuevos')} className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-blue-500 transition-colors">Ver todo</button>
                     </div>
                     <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-4">
                       {allUnique.filter(c => c.isNew).slice(0, 16).map(c => (
@@ -521,7 +521,7 @@ export default function App() {
                           <div className="w-1 h-5 bg-white/20 rounded-full" />
                           <h3 className="text-lg md:text-xl font-black uppercase tracking-widest">{cat}</h3>
                         </div>
-                        <button onClick={() => setActiveCategory(cat)} className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-rose-500 transition-colors">Ver todo</button>
+                        <button onClick={() => setActiveCategory(cat)} className="text-[9px] font-bold uppercase tracking-widest text-gray-600 hover:text-blue-500 transition-colors">Ver todo</button>
                       </div>
                       <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-4">
                         {items.slice(0, 16).map(c => (
@@ -540,7 +540,7 @@ export default function App() {
               <div className="animate-fade-in space-y-8">
                 <div className="flex items-end justify-between border-b border-white/[0.05] pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-1 h-7 bg-rose-600 rounded-full" />
+                    <div className="w-1 h-7 bg-blue-600 rounded-full" />
                     <h2 className="text-2xl md:text-4xl font-black uppercase tracking-widest">
                       {searchQuery ? `"${searchQuery}"` : activeCategory}
                     </h2>
@@ -573,7 +573,7 @@ export default function App() {
                       <div className="flex flex-col items-center gap-2 pt-4">
                         <button
                           onClick={() => setVisibleCount(v => v + 48)}
-                          className="px-10 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-600/40 text-white rounded-full font-black text-[11px] uppercase tracking-widest transition-all active:scale-95"
+                          className="px-10 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-600/40 text-white rounded-full font-black text-[11px] uppercase tracking-widest transition-all active:scale-95"
                         >
                           Ver más — {filteredChannels.length - visibleCount} restantes
                         </button>
@@ -627,7 +627,7 @@ export default function App() {
             placeholder="¿Qué quieres ver hoy?"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white font-semibold outline-none focus:border-rose-600 transition-all text-sm placeholder:text-gray-600"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white font-semibold outline-none focus:border-blue-600 transition-all text-sm placeholder:text-gray-600"
           />
           {searchQuery && (
             <div className="flex flex-col gap-3">
