@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
   // ── Lista de proxies CORS en orden de prioridad ────────────────────────────
   const PROXIES = [
+    '/api/proxy?url=',
     'https://corsproxy.io/?',
     'https://api.codetabs.com/v1/proxy?quest=',
     'https://api.allorigins.win/raw?url=',
@@ -274,11 +275,17 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 10,
+          manifestLoadingMaxRetry: 3,
+          manifestLoadingRetryDelay: 1000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingMaxRetry: 3,
+          fragLoadingRetryDelay: 500,
           fLoader: SecureLoader,
           pLoader: SecureLoader,
-          manifestLoadingMaxRetry: 1,
-          levelLoadingMaxRetry: 1,
-          fragLoadingMaxRetry: 2,
         });
 
         hlsRef.current = hls;
