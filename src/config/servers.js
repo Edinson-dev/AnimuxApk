@@ -30,7 +30,7 @@ export const fetchShortEPG = async (server, channelId) => {
     if (!response.ok) return null;
     const data = await response.json();
     if (data && data.epg_listings && data.epg_listings.length > 0) {
-      return data.epg_listings.map(item => ({
+      return data.epg_listings.map(item => ({ 
         title: atob(item.title),
         start: item.start,
         end: item.end,

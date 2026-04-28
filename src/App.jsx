@@ -16,7 +16,7 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.5'; // ← Fuente única de verdad. Cambiar aquí actualiza toda la app.
 
 export default function App() {
   const {
@@ -88,8 +88,6 @@ export default function App() {
 
   // Reset pagination on category/search change
   useEffect(() => { setVisibleCount(48); }, [activeCategory, searchQuery]);
-
-  const APP_VERSION = '2.4';
 
   // ── Data loading ─────────────────────────────────────────────────────────────
   const loadData = async (force = false) => {
@@ -220,6 +218,15 @@ export default function App() {
     }
   };
 
+  // ── Forzar actualización de datos (botón RefreshCw) ─────────────────────────
+  const forceRefresh = async () => {
+    toast.info('Actualizando datos...', { icon: '🔄' });
+    ['animux_last_fetch', 'animux_cache_cats', 'animux_cache_chans', 'animux_cache_movs'].forEach(k => localStorage.removeItem(k));
+    setIsAppLoading(true);
+    await loadData(true);
+  };
+
+  // Auto-carga al iniciar
   useEffect(() => { loadData(); }, []);
 
   // ── Memos ────────────────────────────────────────────────────────────────────
@@ -405,6 +412,9 @@ export default function App() {
         showInstall={showInstall}
         needRefresh={needRefresh}
         updateServiceWorker={updateServiceWorker}
+        onForceRefresh={forceRefresh}
+        appVersion={APP_VERSION}
+        lastSync={localStorage.getItem('animux_last_fetch')}
       />
 
       {/* ── CATEGORY CHIPS — Mobile only ─────────────────────────────────── */}

@@ -3,17 +3,53 @@ import Hls from 'hls.js';
 import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock } from 'lucide-react';
 import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
 
+// ── Lista de proxies CORS en orden de prioridad ────────────────────────────
+const PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
+  'https://corsproxy.io/?',
+  'https://thingproxy.freeboard.io/fetch/',
+];
+
+// ── Dominios que siempre necesitan proxy ──────────────────────────────────
+const PROXY_DOMAINS = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
+
+// ── Determina si una URL necesita proxy ──────────────────────────────────
+function needsProxy(url) {
+  if (!url) return false;
+  try {
+    const isHTTPS = window.location.protocol === 'https:';
+    const hostname = new URL(url).hostname;
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+    const isDomain = PROXY_DOMAINS.some(d => url.includes(d));
+    // Solo usar proxy para IPs cuando estamos en HTTPS (mixed-content)
+    // En localhost (HTTP) las IPs van directas
+    const needsHTTPProxy = isHTTPS && url.startsWith('http://');
+    return isDomain || needsHTTPProxy;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ── Aplica el primer proxy a una URL ─────────────────────────────────────
+function applyProxy(url, index = 0) {
+  const proxy = PROXIES[index] || PROXIES[0];
+  return `${proxy}${encodeURIComponent(url)}`;
+}
+
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+  const serverIndexRef = useRef(0); // ref para acceder en closures sin stale state
+  const freezeRef = useRef({ lastTime: 0, counter: 0 });
+
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [serverIndex, setServerIndex] = useState(-1);
+  const [serverIndex, setServerIndex] = useState(0);
   const [currentUrl, setCurrentUrl] = useState('');
-  const [epgData, setEpgData] = useState([]);
   const [isPiP, setIsPiP] = useState(false);
 
-  // ── PiP events ──────────────────────────────────────────────────────────
+  // ── PiP events ────────────────────────────────────────────────────────
   useEffect(() => {
     const onEnter = () => setIsPiP(true);
     const onLeave = () => setIsPiP(false);
@@ -25,13 +61,12 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     };
   }, []);
 
-  // ── MediaSession API — background playback + lock screen controls ────────
+  // ── MediaSession API ──────────────────────────────────────────────────
   useEffect(() => {
     if (!channel || !('mediaSession' in navigator)) return;
-    const title = channel.displayName || channel.name || 'Animux';
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title,
+        title: channel.displayName || channel.name || 'Animux',
         artist: channel.category || 'Animux Streaming',
         album: 'Animux',
         artwork: [
@@ -40,9 +75,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         ],
       });
       const vid = videoRef.current;
-      navigator.mediaSession.setActionHandler('play',  () => { vid?.play();  navigator.mediaSession.playbackState = 'playing'; });
+      navigator.mediaSession.setActionHandler('play', () => { vid?.play(); navigator.mediaSession.playbackState = 'playing'; });
       navigator.mediaSession.setActionHandler('pause', () => { vid?.pause(); navigator.mediaSession.playbackState = 'paused'; });
-      navigator.mediaSession.setActionHandler('stop',  () => onClose());
+      navigator.mediaSession.setActionHandler('stop', () => onClose());
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         const idx = playlist.findIndex(p => String(p.id) === String(channel.id));
         if (idx >= 0 && idx < playlist.length - 1) onPlayNext(playlist[idx + 1]);
@@ -51,20 +86,20 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         const idx = playlist.findIndex(p => String(p.id) === String(channel.id));
         if (idx > 0) onPlayNext(playlist[idx - 1]);
       });
-    } catch(e) {}
+    } catch (e) {}
     return () => {
       try {
         navigator.mediaSession.metadata = null;
-        ['play','pause','stop','nexttrack','previoustrack'].forEach(a => {
-          try { navigator.mediaSession.setActionHandler(a, null); } catch(_) {}
+        ['play', 'pause', 'stop', 'nexttrack', 'previoustrack'].forEach(a => {
+          try { navigator.mediaSession.setActionHandler(a, null); } catch (_) {}
         });
-      } catch(_) {}
+      } catch (_) {}
     };
   }, [channel, playlist]);
 
+  // ── Helpers ───────────────────────────────────────────────────────────
   const getYouTubeId = (url = '') => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = String(url).match(regExp);
+    const match = String(url).match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
@@ -76,33 +111,53 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const decodedChannelUrl = useMemo(() => decodeCamouflage(channel?.url), [channel?.url]);
   const isYouTube = !!getYouTubeId(decodedChannelUrl);
   const isDrive = !!getDriveId(decodedChannelUrl);
-  
-  // DETECTOR MEJORADO: Ahora detecta Cuevana y otros servidores automáticamente
+
   const isEmbed = useMemo(() => {
     const url = String(decodedChannelUrl || '').toLowerCase();
     if (isYouTube || isDrive) return true;
-    
-    // Si contiene estas palabras clave, es un EMBED/IFRAME
-    const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'view', 'video.php', 'cuevana', 'nu/', 'lat/'];
+    const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'cuevana', '/nu/', '/lat/'];
     const hasKeyword = embedKeywords.some(kw => url.includes(kw));
-    
-    // Si es un archivo directo, NO es embed
-    const isDirectFile = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.mkv') || url.includes('.ts') || url.includes('.mp3');
-    
+    const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
     return hasKeyword && !isDirectFile;
   }, [decodedChannelUrl, isYouTube, isDrive]);
 
+  // ── Inicialización al cambiar canal ───────────────────────────────────
   useEffect(() => {
     if (!channel) return;
+    serverIndexRef.current = 0;
+    freezeRef.current = { lastTime: 0, counter: 0 };
     setError(false);
     setLoading(true);
-    setServerIndex(-1);
-    setCurrentUrl(decodeCamouflage(channel.url));
+    setServerIndex(0);
+    // Usar URL directa del canal (ya viene decodificada si aplica)
+    const url = channel.url ? decodeCamouflage(channel.url) : '';
+    setCurrentUrl(url);
   }, [channel]);
 
+  // ── Saltar al siguiente servidor ──────────────────────────────────────
+  const tryNextServer = () => {
+    const nextIdx = serverIndexRef.current + 1;
+    if (nextIdx < XTREAM_SERVERS.length) {
+      console.warn(`🔄 Cambiando al servidor ${nextIdx}...`);
+      serverIndexRef.current = nextIdx;
+      setServerIndex(nextIdx);
+      freezeRef.current = { lastTime: 0, counter: 0 };
+      const nextUrl = buildStreamURL(channel, XTREAM_SERVERS[nextIdx]);
+      setCurrentUrl(nextUrl);
+      setLoading(true);
+      setError(false);
+    } else {
+      console.error('❌ Todos los servidores fallaron.');
+      setError(true);
+      setLoading(false);
+    }
+  };
+
+  // ── Efecto principal de reproducción ──────────────────────────────────
   useEffect(() => {
+    // Embeds se manejan en renderPlayer, solo quitamos loading
     if (!currentUrl || isEmbed) {
-      if (isEmbed) { 
+      if (isEmbed) {
         const t = setTimeout(() => setLoading(false), 1500);
         return () => clearTimeout(t);
       }
@@ -112,173 +167,175 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const video = videoRef.current;
     if (!video) return;
 
-    let hls;
-    const url = currentUrl.toLowerCase();
-    const isM3U8 = url.includes('.m3u8');
-    const isDirectVideo = (url.includes('.mp4') || url.includes('.mkv') || url.includes('.ts')) && !isM3U8;
-
-    const timeoutId = setTimeout(() => {
-      if (!video.paused || video.currentTime > 0) return;
-      tryNextServer();
-    }, 7000); // Volvemos a los 7 segundos originales
-
-    let finalUrl = decodeCamouflage(currentUrl);
-    const isHTTPS = window.location.protocol === 'https:';
-    
-    // Lista de dominios que SIEMPRE necesitan proxy por bloqueos de CORS
-    const needsProxy = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
-    const shouldForceProxy = needsProxy.some(domain => finalUrl.includes(domain));
-    const proxyPrefix = 'https://api.allorigins.win/raw?url=';
-    
-    if (((isHTTPS && finalUrl.startsWith('http://')) || shouldForceProxy) && !finalUrl.startsWith(proxyPrefix)) {
-      finalUrl = `${proxyPrefix}${encodeURIComponent(finalUrl)}`;
+    // 1. Limpiar instancia HLS previa
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
     }
-    
+
+    const urlLower = currentUrl.toLowerCase();
+    const isM3U8 = urlLower.includes('.m3u8');
+    const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
+
+    // 2. Timeout de conexión inicial (10s)
+    const loadTimeout = setTimeout(() => {
+      if (loading || video.currentTime === 0) {
+        console.warn('⏰ Timeout de conexión. Cambiando servidor...');
+        tryNextServer();
+      }
+    }, 10000);
+
+    // 3. Monitor de congelamiento (cada 1s)
+    const monitorInterval = setInterval(() => {
+      if (!video.paused && !video.ended && video.readyState >= 2) {
+        if (video.currentTime === freezeRef.current.lastTime) {
+          freezeRef.current.counter++;
+          if (freezeRef.current.counter >= 8) {
+            console.warn('❄️ Stream congelado. Cambiando servidor...');
+            clearInterval(monitorInterval);
+            tryNextServer();
+          }
+        } else {
+          freezeRef.current = { lastTime: video.currentTime, counter: 0 };
+        }
+      }
+    }, 1000);
+
+    // 4. Reproducción de video directo (mp4, ts, etc.)
     if (isDirectVideo) {
-      video.src = finalUrl;
-      video.crossOrigin = "anonymous";
+      const src = needsProxy(currentUrl) ? applyProxy(currentUrl) : currentUrl;
+      video.src = src;
       video.load();
-      video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
-      video.onerror = () => tryNextServer();
+      video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); video.play().catch(() => {}); };
+      video.onerror = () => { clearTimeout(loadTimeout); tryNextServer(); };
+
+    // 5. Reproducción HLS con SecureLoader
     } else if (Hls.isSupported() && isM3U8) {
-      const originalUrl = decodeCamouflage(currentUrl);
-      const urlObj = new URL(originalUrl);
-      const baseUrl = urlObj.origin + urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
+      let baseUrl = '';
+      try {
+        const urlObj = new URL(currentUrl);
+        baseUrl = urlObj.origin + urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
+      } catch (e) {}
 
       class SecureLoader extends Hls.DefaultConfig.loader {
         constructor(config) {
           super(config);
-          const originalLoad = this.load.bind(this);
-          this.load = (context, config, callbacks) => {
-            const proxies = [
-              'https://api.allorigins.win/raw?url=',
-              'https://api.codetabs.com/v1/proxy?quest=',
-              'https://corsproxy.io/?',
-              'https://thingproxy.freeboard.io/fetch/'
-            ];
+          const superLoad = this.load.bind(this);
 
-            let targetUrl = context.url;
-            
-            // 1. Asegurar URL absoluta de forma robusta
-            if (!targetUrl.startsWith('http')) {
-              try {
-                targetUrl = new URL(targetUrl, baseUrl).href;
-              } catch (e) {
-                const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-                targetUrl = cleanBase + targetUrl.replace(/^\//, '');
-              }
+          // Primera pasada: resolver URL relativas y aplicar proxy si necesario
+          this.load = (context, cfg, callbacks) => {
+            let url = context.url;
+
+            // Resolver URLs relativas
+            if (!url.startsWith('http')) {
+              try { url = new URL(url, baseUrl).href; }
+              catch (e) { url = (baseUrl.endsWith('/') ? baseUrl : baseUrl + '/') + url.replace(/^\//, ''); }
             }
 
-            // Inicializar el estado de reintentos
+            // Aplicar proxy si es primera vez en este contexto
             if (context.proxyIndex === undefined) {
-              context.originalUrl = targetUrl;
-              const isIP = /^[0-9.]+$/.test(new URL(targetUrl).hostname);
-              const shouldForce = needsProxy.some(d => targetUrl.includes(d)) || isIP || (isHTTPS && targetUrl.startsWith('http://'));
-              
-              if (shouldForce) {
-                // Empezar con el túnel que suele ser más estable
+              context.originalUrl = url;
+              if (needsProxy(url)) {
                 context.proxyIndex = 0;
-                context.url = `${proxies[0]}${encodeURIComponent(targetUrl)}`;
+                context.url = applyProxy(url, 0);
               } else {
-                context.proxyIndex = -1; // Directo
-                context.url = targetUrl;
+                context.proxyIndex = -1;
+                context.url = url;
               }
             }
 
-            originalLoad(context, config, callbacks);
-          };
-
-          const originalInternalLoad = this.load.bind(this);
-          this.load = (context, config, callbacks) => {
-            const originalOnError = callbacks.onError;
-
-            callbacks.onError = (response, context, loader) => {
-              const proxies = [
-                'https://api.allorigins.win/raw?url=',
-                'https://api.codetabs.com/v1/proxy?quest=',
-                'https://corsproxy.io/?',
-                'https://thingproxy.freeboard.io/fetch/'
-              ];
-
-              if (context.proxyIndex < proxies.length - 1) {
-                context.proxyIndex++;
-                const p = proxies[context.proxyIndex];
-                context.url = `${p}${encodeURIComponent(context.originalUrl)}`;
-                console.warn(`🔄 Rotando a Túnel ${context.proxyIndex + 1}...`);
-                originalInternalLoad(context, config, callbacks);
+            // Sobrescribir onError para rotar proxies
+            const origOnError = callbacks.onError;
+            callbacks.onError = (resp, ctx, ldr) => {
+              if (ctx.proxyIndex < PROXIES.length - 1) {
+                ctx.proxyIndex++;
+                ctx.url = applyProxy(ctx.originalUrl, ctx.proxyIndex);
+                console.warn(`🔄 Proxy ${ctx.proxyIndex + 1}/${PROXIES.length}...`);
+                superLoad(ctx, cfg, callbacks);
               } else {
-                originalOnError(response, context, loader);
+                origOnError(resp, ctx, ldr);
               }
             };
 
-            originalInternalLoad(context, config, callbacks);
+            superLoad(context, cfg, callbacks);
           };
         }
       }
 
-      hls = new Hls({ 
+      // Calcular URL del manifest (con proxy si aplica)
+      const manifestUrl = needsProxy(currentUrl) ? applyProxy(currentUrl, 0) : currentUrl;
+
+      const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
         fLoader: SecureLoader,
-        pLoader: SecureLoader
+        pLoader: SecureLoader,
+        manifestLoadingMaxRetry: 1,
+        levelLoadingMaxRetry: 1,
+        fragLoadingMaxRetry: 2,
       });
 
       hlsRef.current = hls;
-      hls.loadSource(finalUrl);
+      hls.loadSource(manifestUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-        clearTimeout(timeoutId); 
-        setLoading(false); 
-        video.play().catch(() => {}); 
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        clearTimeout(loadTimeout);
+        setLoading(false);
+        video.play().catch(() => {});
       });
 
-      hls.on(Hls.Events.ERROR, (event, data) => { 
-        if (data.fatal) { 
-          clearTimeout(timeoutId); 
-          tryNextServer(); 
-        } 
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          clearInterval(monitorInterval);
+          clearTimeout(loadTimeout);
+          // Intentar recuperar errores de media antes de saltar de servidor
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            tryNextServer();
+          }
+        }
       });
+
+    // 6. Fallback nativo del navegador
     } else {
-      video.src = finalUrl;
+      video.src = currentUrl;
       video.load();
       video.play().catch(() => {});
-      setLoading(false);
-      clearTimeout(timeoutId);
+      video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); };
+      video.onerror = () => { clearTimeout(loadTimeout); tryNextServer(); };
     }
-    return () => { clearTimeout(timeoutId); if (hls) hls.destroy(); };
+
+    return () => {
+      clearTimeout(loadTimeout);
+      clearInterval(monitorInterval);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
   }, [currentUrl, isEmbed]);
 
-  const tryNextServer = () => {
-    const nextIndex = serverIndex + 1;
-    if (nextIndex < XTREAM_SERVERS.length) {
-      setServerIndex(nextIndex);
-      setLoading(true);
-      setError(false);
-    } else {
-      setError(true);
-      setLoading(false);
-    }
-  };
-
+  // ── Renderizado del reproductor ───────────────────────────────────────
   const renderPlayer = () => {
     if (isYouTube) {
       const ytId = getYouTubeId(decodedChannelUrl);
-      return <iframe src={`https://www.youtube.com/embed/${ytId}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen></iframe>;
+      return <iframe src={`https://www.youtube.com/embed/${ytId}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />;
     }
     if (isDrive) {
       const driveId = getDriveId(decodedChannelUrl);
-      return <iframe src={`https://drive.google.com/file/d/${driveId}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen></iframe>;
+      return <iframe src={`https://drive.google.com/file/d/${driveId}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen />;
     }
     if (isEmbed) {
       return (
-        <iframe 
-          src={decodedChannelUrl} 
-          className="w-full h-full border-0 bg-black" 
-          allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" 
+        <iframe
+          src={decodedChannelUrl}
+          className="w-full h-full border-0 bg-black"
+          allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           allowFullScreen
           title="Embed Player"
-        ></iframe>
+        />
       );
     }
     return <video ref={videoRef} className="w-full h-full object-contain bg-black" controls autoPlay playsInline />;
@@ -291,9 +348,13 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       {!isInline && (
         <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black via-black/80 to-transparent z-50">
           <div className="flex items-center gap-4">
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all"><X className="w-6 h-6 text-white" /></button>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
+              <X className="w-6 h-6 text-white" />
+            </button>
             <div className="flex flex-col min-w-0">
-              <h2 className="text-white font-black text-lg md:text-xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase leading-tight">{channel.displayName || channel.name}</h2>
+              <h2 className="text-white font-black text-lg md:text-xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase leading-tight">
+                {channel.displayName || channel.name}
+              </h2>
               <span className="text-rose-600 text-[9px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
             </div>
           </div>
@@ -318,20 +379,17 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                   } else if (videoRef.current && document.pictureInPictureEnabled) {
                     await videoRef.current.requestPictureInPicture();
                   }
-                } catch(e) {}
+                } catch (e) {}
               }}
               title={isPiP ? 'Salir de PiP' : 'Pantalla en pantalla'}
-              className={`p-2.5 rounded-full border transition-all ${
-                isPiP
-                  ? 'bg-rose-600/20 border-rose-600/50 text-rose-400'
-                  : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
-              }`}
+              className={`p-2.5 rounded-full border transition-all ${isPiP ? 'bg-rose-600/20 border-rose-600/50 text-rose-400' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'}`}
             >
               <PictureInPicture className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
+
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         <div className="relative flex-1 bg-black flex items-center justify-center group overflow-hidden">
           {renderPlayer()}
@@ -346,27 +404,37 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               <AlertCircle className="w-12 h-12 text-rose-600 mb-4 animate-bounce" />
               <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Enlace no compatible</h3>
               <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">No se pudo cargar este servidor.</p>
-              <button onClick={onClose} className="mt-8 px-10 py-3 bg-white/5 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">Cerrar</button>
+              <button onClick={onClose} className="mt-8 px-10 py-3 bg-white/5 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">
+                Cerrar
+              </button>
             </div>
           )}
         </div>
 
         <div className="w-full lg:w-[400px] bg-[#050505] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-1/2 lg:h-full overflow-hidden">
-           <div className="p-4 border-b border-white/5 flex items-center gap-2">
-             <Clock className="w-4 h-4 text-rose-600" />
-             <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Siguiente</h3>
-           </div>
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-              {playlist.map((item) => (
-                <div key={item.id} onClick={() => onPlayNext(item)} className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${String(item.id) === String(channel.id) ? 'bg-rose-600/10 border-rose-600/30' : 'hover:bg-white/[0.03] border-transparent'}`}>
-                  <div className="rounded-lg overflow-hidden shrink-0 bg-black w-20 aspect-video"><img src={item.logo} className="w-full h-full object-contain p-2" alt="" /></div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h4 className={`text-[13px] font-black truncate tracking-tight uppercase ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-white'}`}>{item.name || item.title}</h4>
-                    <p className="text-[9px] text-gray-600 uppercase font-black tracking-widest mt-1">{item.category}</p>
-                  </div>
+          <div className="p-4 border-b border-white/5 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-rose-600" />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Siguiente</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+            {playlist.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => onPlayNext(item)}
+                className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${String(item.id) === String(channel.id) ? 'bg-rose-600/10 border-rose-600/30' : 'hover:bg-white/[0.03] border-transparent'}`}
+              >
+                <div className="rounded-lg overflow-hidden shrink-0 bg-black w-20 aspect-video">
+                  <img src={item.logo} className="w-full h-full object-contain p-2" alt="" />
                 </div>
-              ))}
-           </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <h4 className={`text-[13px] font-black truncate tracking-tight uppercase ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-white'}`}>
+                    {item.name || item.title}
+                  </h4>
+                  <p className="text-[9px] text-gray-600 uppercase font-black tracking-widest mt-1">{item.category}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
