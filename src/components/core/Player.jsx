@@ -153,14 +153,17 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             const currentProxy = 'https://api.allorigins.win/raw?url=';
             let targetUrl = context.url;
 
-            // 1. Corregir rutas relativas rotas por el proxy
+            // 1. Corregir rutas relativas rotas por el dominio del proxy
             if (targetUrl.includes('api.allorigins.win') && !targetUrl.includes('url=')) {
-               const relativePath = targetUrl.split('/raw')[1]; 
-               if (relativePath) { targetUrl = baseUrl + relativePath; }
+              // Si el navegador intentó pedir algo como 'allorigins.win/segmento.ts'
+              // lo redirigimos al servidor real
+              const parts = targetUrl.split('api.allorigins.win');
+              const path = parts[1];
+              if (path) targetUrl = baseUrl + path.replace(/^\//, '');
             }
 
             if (!targetUrl.startsWith('http')) {
-              targetUrl = baseUrl + targetUrl;
+              targetUrl = baseUrl + targetUrl.replace(/^\//, '');
             }
 
             // 3. Aplicamos el proxy si es necesario

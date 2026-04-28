@@ -61,11 +61,15 @@ export default function Header({
         <div className="flex items-center gap-2 shrink-0">
           <button 
             onClick={() => {
+              // Limpieza agresiva de memoria para forzar versión 2.3
               localStorage.removeItem('animux_last_fetch');
-              window.location.reload();
+              localStorage.removeItem('animux_cache_cats');
+              localStorage.removeItem('animux_cache_chans');
+              localStorage.removeItem('animux_cache_movs');
+              window.location.reload(true);
             }}
             className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-all relative group"
-            title="Sincronizar Datos"
+            title="Sincronizar y Actualizar App"
           >
             <RefreshCw className="w-5 h-5 group-hover:animate-spin" />
           </button>
