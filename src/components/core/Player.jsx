@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
 import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock } from 'lucide-react';
-import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../config/servers';
+import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
 
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
   const videoRef = useRef(null);
@@ -122,12 +122,17 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       tryNextServer();
     }, 7000); // Volvemos a los 7 segundos originales
 
-    // 🛡️ SEGURIDAD TOTAL: Túnel de Datos Inteligente (M3U8 + Segmentos)
     let finalUrl = decodeCamouflage(currentUrl);
     const isHTTPS = window.location.protocol === 'https:';
+    // Lista de dominios que SIEMPRE necesitan proxy por bloqueos de CORS
+    const needsProxy = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
+    const shouldForceProxy = needsProxy.some(domain => finalUrl.includes(domain));
+    const proxyPrefix = 'https://api.allorigins.win/raw?url=';
     
-    if (isHTTPS && finalUrl.startsWith('http://')) {
-      finalUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(finalUrl)}`;
+    // Activamos el proxy si: es una mezcla de https/http O si el dominio está en la lista de bloqueados (CORS)
+    // Pero SOLO si no está ya proxeado (para evitar duplicados)
+    if (((isHTTPS && finalUrl.startsWith('http://')) || shouldForceProxy) && !finalUrl.startsWith(proxyPrefix)) {
+      finalUrl = `${proxyPrefix}${encodeURIComponent(finalUrl)}`;
     }
     
     if (isDirectVideo) {
@@ -137,15 +142,41 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
       video.onerror = () => tryNextServer();
     } else if (Hls.isSupported() && isM3U8) {
-      // 🛡️ SISTEMA DE CARGA BLINDADA: Interceptamos cada fragmento antes de que el navegador lo vea
+      const originalUrl = decodeCamouflage(currentUrl);
+      const urlObj = new URL(originalUrl);
+      const baseUrl = urlObj.origin + urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
+
       class SecureLoader extends Hls.DefaultConfig.loader {
         constructor(config) {
           super(config);
           const originalLoad = this.load.bind(this);
           this.load = (context, config, callbacks) => {
-            if (isHTTPS && context.url.startsWith('http://')) {
-              context.url = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(context.url)}`;
+            const proxyPrefix = 'https://api.codetabs.com/v1/proxy?quest=';
+            const backupProxy = 'https://api.allorigins.win/raw?url=';
+            let targetUrl = context.url;
+
+            // 1. Corregir rutas relativas
+            if (targetUrl.includes('api.codetabs.com/v1/') && !targetUrl.includes('quest=')) {
+               const pathParts = targetUrl.split('api.codetabs.com/v1/');
+               const relativePath = pathParts[1]; 
+               if (relativePath) { targetUrl = baseUrl + relativePath; }
             }
+
+            if (!targetUrl.startsWith('http')) {
+              targetUrl = baseUrl + targetUrl;
+            }
+
+            // 3. Aplicamos el proxy (con backup si falla el principal)
+            const needsProxy = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
+            const shouldForceProxy = needsProxy.some(domain => targetUrl.includes(domain));
+
+            if (((isHTTPS && targetUrl.startsWith('http://')) || shouldForceProxy) && !targetUrl.startsWith(proxyPrefix)) {
+              // Intentamos con AllOrigins para mayor estabilidad en fragmentos pesados
+              context.url = `${backupProxy}${encodeURIComponent(targetUrl)}`;
+            } else {
+              context.url = targetUrl;
+            }
+
             originalLoad(context, config, callbacks);
           };
         }
@@ -157,7 +188,10 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         lowLatencyMode: true,
         backBufferLength: 90,
         fLoader: SecureLoader,
-        pLoader: SecureLoader
+        pLoader: SecureLoader,
+        xhrSetup: (xhr, url) => {
+          xhr.withCredentials = false;
+        }
       });
       hlsRef.current = hls;
       hls.loadSource(finalUrl);

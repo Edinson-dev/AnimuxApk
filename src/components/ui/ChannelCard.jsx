@@ -4,7 +4,7 @@ import { Play, Heart, Film, Tv } from 'lucide-react';
 export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavorite }) {
   if (!channel) return null;
 
-  const isVOD = channel.isVOD || channel.category?.toLowerCase().includes('cine') || channel.category?.toLowerCase().includes('pelicula') || channel.category?.toLowerCase().includes('movie');
+  const isVOD = channel.isVOD === true;
 
   // Obtenemos un nombre corto para la etiqueta (badge)
   const badgeText = isVOD 
@@ -16,11 +16,11 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
       className="group relative flex flex-col gap-2 cursor-pointer animate-scale-in"
       onClick={() => onPlay(channel)}
     >
-      <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 group-hover:border-rose-600/50 group-hover:shadow-[0_0_30px_rgba(225,29,72,0.2)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
+      <div className={`relative overflow-hidden rounded-xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 group-hover:border-rose-600/50 group-hover:shadow-[0_0_30px_rgba(225,29,72,0.2)] aspect-[2/3]`}>
         <img 
           src={channel.logo || channel.poster} 
           alt={channel.name || channel.title} 
-          className={`w-full h-full transition-transform duration-700 group-hover:scale-110 object-contain p-3`}
+          className={`w-full h-full transition-transform duration-700 group-hover:scale-110 ${isVOD ? 'object-cover' : 'object-contain p-4'}`}
           loading="lazy"
         />
         

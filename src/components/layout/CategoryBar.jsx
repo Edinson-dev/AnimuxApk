@@ -25,15 +25,7 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
           <RefreshCw className="w-4 h-4" />
         </button>
 
-        {/* Install Button — Mobile optimized (Permanent if not installed) */}
-        {!window.matchMedia('(display-mode: standalone)').matches && (
-          <button
-            onClick={onInstall}
-            className="flex-shrink-0 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-200 border whitespace-nowrap bg-rose-600/20 border-rose-600/40 text-rose-500 animate-pulse"
-          >
-            🚀 Instalar App
-          </button>
-        )}
+
 
         {['Inicio', ...categories].map(cat => {
           const isActive = activeCategory === cat;
@@ -43,11 +35,11 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
               data-active={isActive}
               onClick={() => setActiveCategory(cat)}
               className={`
-                flex-shrink-0 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest
-                transition-all duration-200 border whitespace-nowrap
+                flex-shrink-0 px-3 py-1.5 text-[13px] font-semibold tracking-wide
+                transition-all duration-200 whitespace-nowrap
                 ${isActive
-                  ? 'bg-rose-600 border-rose-600 text-white shadow-lg shadow-rose-600/30'
-                  : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:border-white/20 hover:text-white'
+                  ? 'text-rose-500 font-bold'
+                  : 'text-gray-400 hover:text-gray-200'
                 }
               `}
             >

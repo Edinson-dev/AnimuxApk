@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, Bell, X, RefreshCw } from 'lucide-react';
-import InstallPWA from './InstallPWA';
+
 
 export default function Header({ 
   searchQuery, 
@@ -15,15 +15,12 @@ export default function Header({
     e.preventDefault();
     e.stopPropagation();
     
-    const msg = '🚀 Nueva versión de Animux disponible. ¿Quieres actualizar ahora?';
-    if (window.confirm(msg)) {
-      if (updateServiceWorker) {
-        updateServiceWorker(true);
-      } else {
-        // Fallback si el SW no responde
-        localStorage.removeItem('animux_last_fetch');
-        window.location.reload();
-      }
+    // Sincronización rápida sin confirmación para mejor respuesta
+    if (updateServiceWorker) {
+      updateServiceWorker(true);
+    } else {
+      localStorage.removeItem('animux_last_fetch');
+      window.location.reload();
     }
   };
 
@@ -64,10 +61,8 @@ export default function Header({
         <div className="flex items-center gap-2 shrink-0">
           <button 
             onClick={() => {
-              if (window.confirm('¿Actualizar Animux a la última versión?')) {
-                localStorage.removeItem('animux_last_fetch');
-                window.location.reload();
-              }
+              localStorage.removeItem('animux_last_fetch');
+              window.location.reload();
             }}
             className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-all relative group"
             title="Sincronizar Datos"
@@ -86,12 +81,7 @@ export default function Header({
             )}
           </button>
 
-          {/* Install button — visible on all screen sizes */}
-          <InstallPWA
-            onInstall={onInstall}
-            showInstall={showInstall}
-            variant="header"
-          />
+
         </div>
       </div>
     </header>

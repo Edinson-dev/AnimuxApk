@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import Sidebar from './components/Sidebar';
-import CategoryBar from './components/CategoryBar';
-import BottomNav from './components/BottomNav';
-import ChannelCard from './components/ChannelCard';
-import Player from './components/Player';
-import DetailsModal from './components/DetailsModal';
-import Skeleton from './components/Skeleton';
-import Toast, { toast } from './components/Toast';
-import InstallPWA from './components/InstallPWA';
+import Header from './components/layout/Header';
+import Hero from './components/ui/Hero';
+import Sidebar from './components/layout/Sidebar';
+import CategoryBar from './components/layout/CategoryBar';
+import BottomNav from './components/layout/BottomNav';
+import ChannelCard from './components/ui/ChannelCard';
+import Player from './components/core/Player';
+import DetailsModal from './components/ui/DetailsModal';
+import Skeleton from './components/ui/Skeleton';
+import Toast, { toast } from './components/ui/Toast';
+
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import AdminPanel from './components/AdminPanel';
+import AdminPanel from './components/core/AdminPanel';
 
 const APP_VERSION = '2.2';
 
@@ -210,7 +210,10 @@ export default function App() {
       if (cachedMovs) setLocalMovies(JSON.parse(cachedMovs));
       
     } finally {
-      setTimeout(() => setIsAppLoading(false), 600);
+      setTimeout(() => {
+        setIsAppLoading(false);
+        toast.success('Contenido sincronizado', { icon: '✨' });
+      }, 800);
     }
   };
 
@@ -338,38 +341,35 @@ export default function App() {
     toast.error('Canal reportado como no disponible');
   };
 
-  // ── Skeleton loading screen ──────────────────────────────────────────────────
+  // ── Custom Splash Screen ───────────────────────────────────────────────────
   if (isAppLoading) {
     return (
-      <div className="h-[100dvh] bg-black text-white flex flex-col overflow-hidden">
-        {/* Fake header */}
-        <div className="h-[52px] shrink-0 bg-black border-b border-white/[0.05] flex items-center px-6 gap-3">
-          <div className="w-9 h-9 bg-white/5 rounded-xl animate-pulse" />
-          <div className="w-20 h-4 bg-white/5 rounded-full animate-pulse" />
-          <div className="flex-1 max-w-lg hidden md:block h-8 bg-white/5 rounded-full animate-pulse mx-4" />
+      <div className="h-[100dvh] w-full bg-[#05050f] flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Glow effect */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
+        
+        {/* Logo and Version */}
+        <div className="z-10 flex flex-col items-center gap-3 animate-fade-in">
+          <div className="w-24 h-24 mb-1 flex items-center justify-center">
+            <img src="/icon-192.png" alt="Animux" className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-widest uppercase">Animux</h1>
+          <div className="flex flex-col items-center gap-2 mt-4">
+            <div className="flex gap-1.5">
+              <div className="w-1 h-1 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1 h-1 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1 h-1 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <p className="text-[9px] font-black text-white/40 tracking-[0.4em] uppercase animate-pulse">
+              Sincronizando Biblioteca...
+            </p>
+          </div>
+          <p className="absolute bottom-8 text-[9px] font-bold text-gray-600 tracking-[0.2em]">VERSION {APP_VERSION}</p>
         </div>
-        {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
-          <div className="hidden md:block w-[220px] shrink-0 border-r border-white/[0.04] bg-[#090909]">
-            <div className="p-4 space-y-2">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-10 bg-white/[0.03] rounded-xl animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 flex flex-col overflow-hidden relative">
-            <div className="flex-1 overflow-y-auto">
-              <Skeleton />
-            </div>
-            {/* Version indicator in splash */}
-            <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 animate-fade-in">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Animux Definitive</span>
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-1 bg-rose-600 rounded-full animate-pulse" />
-                <span className="text-[9px] font-bold text-rose-500/60 uppercase tracking-[0.2em]">Versión {APP_VERSION}</span>
-              </div>
-            </div>
-          </div>
+
+        {/* Slogan */}
+        <div className="absolute bottom-12 left-0 right-0 flex justify-center z-10 animate-fade-in" style={{ animationDelay: '300ms' }}>
+          <p className="text-xs font-bold text-gray-300 tracking-wide italic">Más que streaming, Animux</p>
         </div>
       </div>
     );
@@ -619,15 +619,6 @@ export default function App() {
         activeCategory={activeCategory}
         setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
         onSearchOpen={() => setMobileSearchOpen(true)}
-      />
-
-      {/* PWA Install Banner — Floating, for Android/iOS/Desktop */}
-      <InstallPWA
-        onInstall={handleInstall}
-        showInstall={showInstall}
-        variant="banner"
-        needRefresh={needRefresh}
-        updateServiceWorker={updateServiceWorker}
       />
 
       {/* Toast Notifications */}

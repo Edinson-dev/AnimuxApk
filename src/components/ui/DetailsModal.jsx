@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Play, Heart, Share2, X } from 'lucide-react';
-import Player from './Player';
+import Player from '../core/Player';
 import ChannelCard from './ChannelCard';
 import { toast } from './Toast';
 
@@ -14,6 +14,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
     .slice(0, 12);
 
   const displayName = channel.displayName || channel.name;
+  const isVOD = channel.isVOD === true;
 
   const handleShare = async () => {
     const shareData = {
@@ -54,9 +55,9 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
         {!isPlaying ? (
           <div className="relative w-full h-full group">
             <img
-              src={channel.logo}
+              src={channel.logo || channel.poster}
               alt={displayName}
-              className="w-full h-full object-cover opacity-60 scale-105 group-hover:scale-100 transition-all duration-1000"
+              className={`w-full h-full opacity-60 scale-105 group-hover:scale-100 transition-all duration-1000 ${isVOD ? 'object-cover' : 'object-contain p-8'}`}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <button

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Search, Film, Tv, Save, LayoutGrid, ChevronDown, Edit3, AlertCircle } from 'lucide-react';
-import { db } from '../config/firebase';
+import { db } from '../../config/firebase';
 import { collection, addDoc, setDoc, doc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
-import { camouflageURL } from '../config/servers';
+import { camouflageURL } from '../../config/servers';
 
 export default function AdminPanel({ onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('channels');
@@ -205,9 +205,9 @@ export default function AdminPanel({ onClose, onUpdate }) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => handleEdit(item)} className="p-3 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition-all"><Edit3 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(item.id)} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
+                  <div className="flex items-center gap-2 transition-all">
+                    <button onClick={() => handleEdit(item)} className="p-3 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition-all" title="Editar"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(item.id)} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
