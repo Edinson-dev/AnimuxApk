@@ -16,7 +16,7 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 
 export default function App() {
   const {
@@ -89,7 +89,7 @@ export default function App() {
   // Reset pagination on category/search change
   useEffect(() => { setVisibleCount(48); }, [activeCategory, searchQuery]);
 
-  const APP_VERSION = '2.3';
+  const APP_VERSION = '2.4';
 
   // ── Data loading ─────────────────────────────────────────────────────────────
   const loadData = async (force = false) => {

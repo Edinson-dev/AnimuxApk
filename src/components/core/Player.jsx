@@ -150,40 +150,39 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           super(config);
           const originalLoad = this.load.bind(this);
           this.load = (context, config, callbacks) => {
-            let targetUrl = context.url;
-            // 1. Asegurar URL absoluta
-            if (!targetUrl.startsWith('http')) {
-              targetUrl = new URL(targetUrl, baseUrl).href;
-            }
-
-            // 2. Sistema de Triple Túnel (Proxy Fallback)
             const proxies = [
               'https://api.allorigins.win/raw?url=',
               'https://api.codetabs.com/v1/proxy?quest=',
               'https://corsproxy.io/?'
             ];
 
-            const shouldForce = needsProxy.some(domain => targetUrl.includes(domain));
-            const needsHttpProxy = isHTTPS && targetUrl.startsWith('http://');
-
-            if ((shouldForce || needsHttpProxy) && !proxies.some(p => targetUrl.startsWith(p))) {
-              // Por defecto usamos el primero, pero HLS.js reintentará si hay error (gestión externa)
-              context.url = `${proxies[0]}${encodeURIComponent(targetUrl)}`;
-            } else {
-              context.url = targetUrl;
+            let targetUrl = context.url;
+            
+            // 1. Asegurar URL absoluta
+            if (!targetUrl.startsWith('http')) {
+              targetUrl = new URL(targetUrl, baseUrl).href;
             }
 
-            // Guardar en el contexto para posibles reintentos si falla
-            context.originalUrl = targetUrl;
-            context.proxyIndex = 0;
+            // Inicializar el estado de reintentos
+            if (context.proxyIndex === undefined) {
+              context.originalUrl = targetUrl;
+              const shouldForce = needsProxy.some(domain => targetUrl.includes(domain));
+              const needsHttpProxy = isHTTPS && targetUrl.startsWith('http://');
+              
+              if (shouldForce || needsHttpProxy) {
+                context.proxyIndex = 0; // Empezar con el primer proxy
+                context.url = `${proxies[0]}${encodeURIComponent(targetUrl)}`;
+              } else {
+                context.proxyIndex = -1; // Intentar directo primero
+                context.url = targetUrl;
+              }
+            }
 
             originalLoad(context, config, callbacks);
           };
 
-          // Sobrescribimos el manejador de errores de carga para rotar proxies
           const originalInternalLoad = this.load.bind(this);
           this.load = (context, config, callbacks) => {
-            const originalOnSuccess = callbacks.onSuccess;
             const originalOnError = callbacks.onError;
 
             callbacks.onError = (response, context, loader) => {
@@ -195,8 +194,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
               if (context.proxyIndex < proxies.length - 1) {
                 context.proxyIndex++;
-                context.url = `${proxies[context.proxyIndex]}${encodeURIComponent(context.originalUrl || context.url)}`;
-                console.warn(`🔄 Reintentando con proxy ${context.proxyIndex}: ${proxies[context.proxyIndex]}`);
+                context.url = `${proxies[context.proxyIndex]}${encodeURIComponent(context.originalUrl)}`;
+                console.warn(`🔄 Fallo en carga. Reintentando con Túnel ${context.proxyIndex + 1}/${proxies.length}`);
                 originalInternalLoad(context, config, callbacks);
               } else {
                 originalOnError(response, context, loader);
