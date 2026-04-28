@@ -16,7 +16,7 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 
-const APP_VERSION = '2.5'; // ← Fuente única de verdad. Cambiar aquí actualiza toda la app.
+const APP_VERSION = '2.6'; // ← Fuente única de verdad. Cambiar aquí actualiza toda la app.
 
 export default function App() {
   const {
@@ -81,9 +81,9 @@ export default function App() {
     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') { 
-      setShowInstall(false); 
-      toast.success('¡App instalada! 🎉'); 
+    if (outcome === 'accepted') {
+      setShowInstall(false);
+      toast.success('¡App instalada! 🎉');
     }
     setDeferredPrompt(null);
   };
@@ -97,7 +97,7 @@ export default function App() {
       const now = Date.now();
       const lastFetch = localStorage.getItem('animux_last_fetch') || 0;
       const CACHE_TIME = 15 * 60 * 1000;
-      
+
       // Control de Versión Definitiva
       const currentStoredVersion = localStorage.getItem('animux_version');
       const isNewVersion = currentStoredVersion !== APP_VERSION;
@@ -119,7 +119,7 @@ export default function App() {
         setCloudCategories(JSON.parse(cachedCats));
         setChannelData({ channels: JSON.parse(cachedChans) });
         setLocalMovies(JSON.parse(cachedMovs));
-        
+
         if (!force && (now - lastFetch < CACHE_TIME)) {
           setIsAppLoading(false);
           return;
@@ -149,32 +149,32 @@ export default function App() {
       setCloudCategories(cats);
 
       // Process Movies (VOD)
-      const cloudMovs = (movSnapshot?.docs || []).map(doc => ({ 
-        ...doc.data(), 
-        id: doc.id, 
-        isVOD: true, 
-        displayName: doc.data().title, 
-        fromCloud: true 
+      const cloudMovs = (movSnapshot?.docs || []).map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        isVOD: true,
+        displayName: doc.data().title,
+        fromCloud: true
       }));
       const jsonMovs = rMov.ok ? (await rMov.json().catch(() => [])) : [];
       const finalMovies = [...cloudMovs, ...jsonMovs];
 
       // Process Channels
-      const cloudChans = (chanSnapshot?.docs || []).map(doc => ({ 
-        ...doc.data(), 
-        id: doc.id, 
-        fromCloud: true 
+      const cloudChans = (chanSnapshot?.docs || []).map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        fromCloud: true
       }));
       const jsonChans = rChan.ok ? (await rChan.json().catch(() => ({ channels: [] }))).channels : [];
-      const m3uChans = rM3U.ok ? (await rM3U.json().catch(() => ({ channels: [] }))).channels.map(c => ({ 
-        ...c, 
-        fromM3U: true, 
-        isNew: true 
+      const m3uChans = rM3U.ok ? (await rM3U.json().catch(() => ({ channels: [] }))).channels.map(c => ({
+        ...c,
+        fromM3U: true,
+        isNew: true
       })) : [];
 
       // Merge and deduplicate
       const allChannelsMap = new Map();
-      
+
       jsonChans.forEach(ch => {
         const key = (ch.name || ch.displayName || '').toLowerCase().trim();
         if (key) allChannelsMap.set(key, ch);
@@ -190,8 +190,16 @@ export default function App() {
         if (key) allChannelsMap.set(key, ch);
       });
 
-      const finalChannels = Array.from(allChannelsMap.values()).filter(c => c.category !== 'Regional');
-      
+      const finalChannels = Array.from(allChannelsMap.values())
+        .filter(c => c.category !== 'Regional')
+        .map(c => {
+          const nameNorm = (c.name || c.displayName || '').toLowerCase().trim();
+          if (nameNorm.includes('city tv') || nameNorm.includes('citytv') || nameNorm === 'red' || nameNorm === 'canal red' || nameNorm.includes('universal')) {
+            return { ...c, category: 'Nacionales' };
+          }
+          return c;
+        });
+
       setChannelData({ channels: finalChannels });
       setLocalMovies(finalMovies);
 
@@ -209,16 +217,13 @@ export default function App() {
       const cachedCats = localStorage.getItem('animux_cache_cats');
       const cachedChans = localStorage.getItem('animux_cache_chans');
       const cachedMovs = localStorage.getItem('animux_cache_movs');
-      
+
       if (cachedCats) setCloudCategories(JSON.parse(cachedCats));
       if (cachedChans) setChannelData({ channels: JSON.parse(cachedChans) });
       if (cachedMovs) setLocalMovies(JSON.parse(cachedMovs));
-      
+
     } finally {
-      setTimeout(() => {
-        setIsAppLoading(false);
-        toast.success('Contenido sincronizado', { icon: '✨' });
-      }, 800);
+      setIsAppLoading(false);
     }
   };
 
@@ -234,7 +239,7 @@ export default function App() {
 
   // ── Memos ────────────────────────────────────────────────────────────────────
   const allCategories = useMemo(() => {
-    const baseCats = ['Nuevos', 'Series', 'Películas', 'Deportes', 'Nacionales', 'Infantil', 'Música', 'Anime'];
+    const baseCats = ['Nuevos', 'Series', 'Películas', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime'];
     return Array.from(new Set([...baseCats, ...cloudCategories, 'Favoritos']));
   }, [cloudCategories]);
 
@@ -267,7 +272,7 @@ export default function App() {
         .filter(c => c.isNew === true)
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     }
-    
+
     if (activeCategory === 'Favoritos') return result.filter(c => favorites.includes(String(c.id)));
 
     if (activeCategory !== 'Inicio') {
@@ -278,16 +283,20 @@ export default function App() {
         if (catNorm === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || chCat.includes('movie') || chCat.includes('filmes') || chCat.includes('vod') || c.isVOD;
         if (catNorm === 'series') return chCat.includes('serie') || chCat.includes('show') || chCat.includes('novela');
         if (catNorm === 'deportes') return chCat.includes('deporte') || chCat.includes('sport') || chCat.includes('futbol');
-        if (catNorm === 'infantil') return chCat.includes('infantil') || chCat.includes('kid') || chCat.includes('dibujo') || chCat.includes('cartoon');
+        if (catNorm === 'noticias') return chCat.includes('noticia') || chCat.includes('news') || chCat.includes('info');
+        if (catNorm === 'documentales') return chCat.includes('docu') || chCat.includes('history') || chCat.includes('natgeo') || chCat.includes('discovery') || chCat.includes('animal');
+        if (catNorm === 'infantil') return chCat.includes('infantil') || chCat.includes('kid') || chCat.includes('dibujo') || chCat.includes('cartoon') || chCat.includes('family');
         if (catNorm === 'musica') return chCat.includes('musica') || chCat.includes('music') || chCat.includes('clip');
+        if (catNorm === 'cultura') return chCat.includes('cultura') || chCat.includes('legislative') || chCat.includes('edu') || chCat.includes('relig') || chCat.includes('science');
+        if (catNorm === 'variedades') return chCat.includes('general') || chCat.includes('undefined') || chCat.includes('variedade') || chCat.includes('lifestyle') || chCat === '';
         return chCat === catNorm || chCat.includes(catNorm);
       });
     }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(c => 
-        (c.name || c.displayName || c.title || '').toLowerCase().includes(q) || 
+      result = result.filter(c =>
+        (c.name || c.displayName || c.title || '').toLowerCase().includes(q) ||
         (c.category || '').toLowerCase().includes(q)
       );
     }
@@ -306,8 +315,12 @@ export default function App() {
         if (target === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || chCat.includes('movie') || c.isVOD;
         if (target === 'series') return chCat.includes('serie') || chCat.includes('show');
         if (target === 'deportes') return chCat.includes('deporte') || chCat.includes('sport');
-        if (target === 'infantil') return chCat.includes('infantil') || chCat.includes('kid') || chCat.includes('cartoon');
+        if (target === 'noticias') return chCat.includes('noticia') || chCat.includes('news') || chCat.includes('info');
+        if (target === 'documentales') return chCat.includes('docu') || chCat.includes('history') || chCat.includes('natgeo') || chCat.includes('discovery') || chCat.includes('animal');
+        if (target === 'infantil') return chCat.includes('infantil') || chCat.includes('kid') || chCat.includes('cartoon') || chCat.includes('family');
         if (target === 'musica') return chCat.includes('musica') || chCat.includes('music');
+        if (target === 'cultura') return chCat.includes('cultura') || chCat.includes('legislative') || chCat.includes('edu') || chCat.includes('relig') || chCat.includes('science');
+        if (target === 'variedades') return chCat.includes('general') || chCat.includes('undefined') || chCat.includes('lifestyle') || chCat === '';
         return chCat === target || chCat.includes(target);
       }).length;
     });
@@ -360,7 +373,7 @@ export default function App() {
       <div className="h-[100dvh] w-full bg-[#05050f] flex flex-col items-center justify-center relative overflow-hidden">
         {/* Glow effect */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
-        
+
         {/* Logo and Version */}
         <div className="z-10 flex flex-col items-center gap-3 animate-fade-in">
           <div className="w-24 h-24 mb-1 flex items-center justify-center">
@@ -394,8 +407,12 @@ export default function App() {
     if (target === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || chCat.includes('movie') || chCat.includes('vod') || c.isVOD;
     if (target === 'series') return chCat.includes('serie') || chCat.includes('show') || chCat.includes('novela');
     if (target === 'deportes') return chCat.includes('deporte') || chCat.includes('sport');
-    if (target === 'infantil') return chCat.includes('infantil') || chCat.includes('kid') || chCat.includes('cartoon');
+    if (target === 'noticias') return chCat.includes('noticia') || chCat.includes('news') || chCat.includes('info');
+    if (target === 'documentales') return chCat.includes('docu') || chCat.includes('history') || chCat.includes('natgeo') || chCat.includes('discovery') || chCat.includes('animal');
+    if (target === 'infantil') return chCat.includes('infantil') || chCat.includes('kid') || chCat.includes('cartoon') || chCat.includes('family');
     if (target === 'musica') return chCat.includes('musica') || chCat.includes('music');
+    if (target === 'cultura') return chCat.includes('cultura') || chCat.includes('legislative') || chCat.includes('edu') || chCat.includes('relig') || chCat.includes('science');
+    if (target === 'variedades') return chCat.includes('general') || chCat.includes('undefined') || chCat.includes('lifestyle') || chCat === '';
     return chCat === target || chCat.includes(target);
   };
 

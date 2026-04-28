@@ -1,12 +1,12 @@
 import React from 'react';
-import { Home, Star, Film, Heart, History, Search } from 'lucide-react';
+import { Home, Music, Trophy, Heart, Search } from 'lucide-react';
 
 const BOTTOM_TABS = [
   { key: 'Inicio',    label: 'Inicio',    Icon: Home },
-  { key: 'Nuevos',   label: 'Nuevos',    Icon: Star },
-  { key: 'Películas',label: 'Películas', Icon: Film },
-  { key: 'Favoritos',label: 'Favoritos', Icon: Heart },
-  { key: '__search', label: 'Buscar',    Icon: Search },
+  { key: 'Música',    label: 'Música',    Icon: Music },
+  { key: 'Deportes',  label: 'Deportes',  Icon: Trophy },
+  { key: 'Favoritos', label: 'Favoritos', Icon: Heart },
+  { key: '__search',  label: 'Buscar',    Icon: Search },
 ];
 
 export default function BottomNav({ activeCategory, setActiveCategory, onSearchOpen }) {
