@@ -3,46 +3,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
   import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
 
-  // ── Lista de proxies CORS en orden de prioridad ────────────────────────────
-  const PROXIES = [
-    '/api/proxy?url=',
-    'https://corsproxy.io/?',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    'https://api.allorigins.win/raw?url=',
-    'https://thingproxy.freeboard.io/fetch/',
-  ];
 
-  // ── Dominios que siempre necesitan proxy ──────────────────────────────────
-  const PROXY_DOMAINS = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
-
-  // ── Determina si una URL necesita proxy ──────────────────────────────────
-  function needsProxy(url) {
-    if (!url) return false;
-    try {
-      const isHTTPS = window.location.protocol === 'https:';
-      const hostname = new URL(url).hostname;
-      const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
-      const isDomain = PROXY_DOMAINS.some(d => url.includes(d));
-      // Solo usar proxy para IPs cuando estamos en HTTPS (mixed-content)
-      // En localhost (HTTP) las IPs van directas
-      const needsHTTPProxy = isHTTPS && url.startsWith('http://');
-      return isDomain || needsHTTPProxy;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // ── Aplica el primer proxy a una URL ─────────────────────────────────────
-  function applyProxy(url, index = 0) {
-    const proxy = PROXIES[index] || PROXIES[0];
-    // corsproxy.io a veces funciona mejor con la URL sin encodeURIComponent 
-    // pero para seguridad con caracteres especiales lo mantenemos encodeado,
-    // a menos que cause problemas.
-    if (proxy.includes('corsproxy.io')) {
-      return `${proxy}${url}`; // corsproxy.io lo prefiere sin codificar
-    }
-    return `${proxy}${encodeURIComponent(url)}`;
-  }
 
   export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
     const videoRef = useRef(null);
@@ -210,82 +171,32 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
       // 4. Reproducción de video directo (mp4, ts, etc.)
       if (isDirectVideo) {
-        const src = needsProxy(currentUrl) ? applyProxy(currentUrl) : currentUrl;
-        video.src = src;
+        video.src = `/api/proxy?url=${encodeURIComponent(currentUrl)}`;
         video.load();
         video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); video.play().catch(() => {}); };
         video.onerror = () => { clearTimeout(loadTimeout); tryNextServer(); };
 
-      // 5. Reproducción HLS con SecureLoader
+      // 5. Reproducción HLS Pura (El backend inyecta los proxies a los fragmentos)
       } else if (Hls.isSupported() && isM3U8) {
-        let baseUrl = '';
-        try {
-          const urlObj = new URL(currentUrl);
-          baseUrl = urlObj.origin + urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
-        } catch (e) {}
-
-        class SecureLoader extends Hls.DefaultConfig.loader {
-          constructor(config) {
-            super(config);
-            const superLoad = this.load.bind(this);
-
-            // Primera pasada: resolver URL relativas y aplicar proxy si necesario
-            this.load = (context, cfg, callbacks) => {
-              let url = context.url;
-
-              // Resolver URLs relativas
-              if (!url.startsWith('http')) {
-                try { url = new URL(url, baseUrl).href; }
-                catch (e) { url = (baseUrl.endsWith('/') ? baseUrl : baseUrl + '/') + url.replace(/^\//, ''); }
-              }
-
-              // Aplicar proxy si es primera vez en este contexto
-              if (context.proxyIndex === undefined) {
-                context.originalUrl = url;
-                if (needsProxy(url)) {
-                  context.proxyIndex = 0;
-                  context.url = applyProxy(url, 0);
-                } else {
-                  context.proxyIndex = -1;
-                  context.url = url;
-                }
-              }
-
-              // Sobrescribir onError para rotar proxies
-              const origOnError = callbacks.onError;
-              callbacks.onError = (resp, ctx, ldr) => {
-                if (ctx.proxyIndex < PROXIES.length - 1) {
-                  ctx.proxyIndex++;
-                  ctx.url = applyProxy(ctx.originalUrl, ctx.proxyIndex);
-                  console.warn(`🔄 Proxy ${ctx.proxyIndex + 1}/${PROXIES.length}...`);
-                  superLoad(ctx, cfg, callbacks);
-                } else {
-                  origOnError(resp, ctx, ldr);
-                }
-              };
-
-              superLoad(context, cfg, callbacks);
-            };
-          }
-        }
-
-        // Calcular URL del manifest (con proxy si aplica)
-        const manifestUrl = needsProxy(currentUrl) ? applyProxy(currentUrl, 0) : currentUrl;
+        
+        // FORZAMOS EL PROXY EN PRODUCCIÓN (HTTPS). En localhost (Vite) usamos directo porque no corre la API Serverless de Vercel.
+        const isProd = window.location.protocol === 'https:';
+        const manifestUrl = isProd 
+          ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` 
+          : currentUrl;
 
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          maxBufferLength: 30,
+          maxBufferLength: 30, // Corto para no ahogar la memoria del Proxy
           maxMaxBufferLength: 60,
           liveSyncDurationCount: 3,
           liveMaxLatencyDurationCount: 10,
           manifestLoadingMaxRetry: 3,
           manifestLoadingRetryDelay: 1000,
           levelLoadingMaxRetry: 3,
-          fragLoadingMaxRetry: 3,
+          fragLoadingMaxRetry: 5,     // 🚀 Alto retry automático por si un .ts falla
           fragLoadingRetryDelay: 500,
-          fLoader: SecureLoader,
-          pLoader: SecureLoader,
         });
 
         hlsRef.current = hls;
@@ -298,15 +209,26 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
           video.play().catch(() => {});
         });
 
+        let networkRetryCount = 0;
+        // Manejo y rotación automática de caídas
         hls.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
             clearInterval(monitorInterval);
             clearTimeout(loadTimeout);
-            // Intentar recuperar errores de media antes de saltar de servidor
-            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              networkRetryCount++;
+              if (networkRetryCount <= 2) {
+                console.warn('Network error, reintentando...', networkRetryCount);
+                hls.startLoad();
+              } else {
+                console.error('Network error persistente. Cambiando servidor...');
+                tryNextServer(); // 🔥 Fallback después de 2 intentos fallidos
+              }
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              console.warn('Media error, recuperando...');
               hls.recoverMediaError();
             } else {
-              tryNextServer();
+              tryNextServer(); // 🔥 Fallback de servidor de Xtream
             }
           }
         });

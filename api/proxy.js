@@ -1,83 +1,79 @@
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
-export default async function handler(req) {
-  const url = new URL(req.url);
-  const target = url.searchParams.get('url');
+export default async function handler(req, res) {
+  const urlParams = new URL(req.url, `http://${req.headers.host}`);
+  const target = req.query?.url || urlParams.searchParams.get('url');
 
-  // Habilitar CORS Preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-      },
-    });
-  }
+  // Headers CORS obligatorios
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
 
-  if (!target) {
-    return new Response(JSON.stringify({ error: 'Falta el parámetro url' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!target) return res.status(400).json({ error: 'Falta url' });
 
   try {
+    const originUrl = new URL(target).origin;
+    
+    // FETCH AL IPTV (Simulando un reproductor nativo para EVITAR BLOQUEOS)
     const response = await fetch(target, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
         'Accept': '*/*',
-        // Referer falso para eludir protecciones de algunos servidores Xtream
-        'Referer': new URL(target).origin + '/'
+        'Connection': 'keep-alive'
       },
-      redirect: 'follow' // CRÍTICO: Seguir redirecciones 302 de Xtream
+      redirect: 'follow'
     });
 
-    const newHeaders = new Headers();
-    newHeaders.set('Access-Control-Allow-Origin', '*');
-    
     const contentType = response.headers.get('content-type') || '';
-    newHeaders.set('Content-Type', contentType);
+    res.setHeader('Content-Type', contentType);
 
-    // ── MAGIA PRO: RESOLVER REDIRECCIONES 302 EN M3U8 ──
-    // Si el servidor IPTV redirige a otro nodo, los paths relativos fallarían.
-    // Nosotros interceptamos el m3u8 y convertimos todo a absoluto.
+    // ── REESCRIBIR M3U8 (Forzar proxy en todos los fragmentos) ──
     if (contentType.includes('mpegurl') || contentType.includes('m3u8') || target.toLowerCase().includes('.m3u8')) {
       const text = await response.text();
-      const finalUrl = response.url; // URL real después del 302
+      const finalUrl = response.url; 
       const baseUrlObj = new URL(finalUrl);
       const basePath = baseUrlObj.origin + baseUrlObj.pathname.substring(0, baseUrlObj.pathname.lastIndexOf('/') + 1);
+
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const proxyBase = `${proto}://${host}/api/proxy?url=`;
 
       const lines = text.split('\n');
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (line && !line.startsWith('#') && !line.startsWith('http')) {
-          if (line.startsWith('/')) {
-            lines[i] = baseUrlObj.origin + line; // Rutas absolutas a la raíz
-          } else {
-            lines[i] = basePath + line; // Rutas relativas al manifest
+        // Reescribir .ts y .aac
+        if (line && !line.startsWith('#')) {
+          let absoluteUrl = line.startsWith('http') ? line : (line.startsWith('/') ? baseUrlObj.origin + line : basePath + line);
+          lines[i] = proxyBase + encodeURIComponent(absoluteUrl);
+        }
+        // Reescribir llaves de encriptación (.key)
+        else if (line.startsWith('#EXT-X-KEY')) {
+          const uriMatch = line.match(/URI="([^"]+)"/);
+          if (uriMatch && uriMatch[1]) {
+            let keyUrl = uriMatch[1];
+            let absoluteKey = keyUrl.startsWith('http') ? keyUrl : (keyUrl.startsWith('/') ? baseUrlObj.origin + keyUrl : basePath + keyUrl);
+            lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteKey)}"`);
           }
         }
       }
-      return new Response(lines.join('\n'), {
-        status: 200,
-        headers: newHeaders
-      });
+      return res.status(200).send(lines.join('\n'));
     }
 
-    // Para segmentos de video (.ts) u otros archivos, Edge Functions lo manda como Stream.
-    return new Response(response.body, {
-      status: response.status,
-      headers: newHeaders
-    });
+    // ── STREAMING DE BINARIOS (.TS, .MP4) ──
+    if (!response.body) return res.status(200).end();
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+    return res.end();
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Proxy failed', details: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return res.status(500).json({ error: 'Proxy failed', details: error.message });
   }
 }
