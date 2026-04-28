@@ -217,19 +217,10 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       }
 
       hls = new Hls({ 
-        maxBufferLength: 30, 
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 60,
         fLoader: SecureLoader,
-        pLoader: SecureLoader,
-        // Seguridad Chrome
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
-        },
-        manifestLoadingMaxRetry: 6,
-        levelLoadingMaxRetry: 6,
-        fragLoadingMaxRetry: 6
+        pLoader: SecureLoader
       });
 
       hlsRef.current = hls;
@@ -244,27 +235,12 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
       hls.on(Hls.Events.ERROR, (event, data) => { 
         if (data.fatal) { 
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.warn("Error de red, reintentando carga...");
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.warn("Error de medios, intentando recuperar...");
-              hls.recoverMediaError();
-              break;
-            default:
-              console.error("Fallo total HLS, usando modo nativo");
-              clearTimeout(timeoutId);
-              video.src = finalUrl;
-              video.load();
-              break;
-          }
+          clearTimeout(timeoutId); 
+          tryNextServer(); 
         } 
       });
     } else {
       video.src = finalUrl;
-      video.crossOrigin = "anonymous";
       video.load();
       video.play().catch(() => {});
       setLoading(false);
@@ -305,7 +281,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         ></iframe>
       );
     }
-    return <video ref={videoRef} className="w-full h-full object-contain bg-black" controls autoPlay playsInline crossOrigin="anonymous" referrerPolicy="no-referrer" />;
+    return <video ref={videoRef} className="w-full h-full object-contain bg-black" controls autoPlay playsInline />;
   };
 
   if (!channel) return null;

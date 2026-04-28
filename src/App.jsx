@@ -16,7 +16,7 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 
 export default function App() {
   const {
