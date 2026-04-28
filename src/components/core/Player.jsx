@@ -152,24 +152,16 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           this.load = (context, config, callbacks) => {
             const currentProxy = 'https://api.allorigins.win/raw?url=';
             let targetUrl = context.url;
-
-            // 1. Corregir rutas relativas rotas por el dominio del proxy
-            if (targetUrl.includes('api.allorigins.win') && !targetUrl.includes('url=')) {
-              // Si el navegador intentó pedir algo como 'allorigins.win/segmento.ts'
-              // lo redirigimos al servidor real
-              const parts = targetUrl.split('api.allorigins.win');
-              const path = parts[1];
-              if (path) targetUrl = baseUrl + path.replace(/^\//, '');
-            }
-
+            // 1. Asegurar URL absoluta
             if (!targetUrl.startsWith('http')) {
-              targetUrl = baseUrl + targetUrl.replace(/^\//, '');
+              targetUrl = new URL(targetUrl, baseUrl).href;
             }
 
-            // 3. Aplicamos el proxy si es necesario
+            // 2. Aplicar proxy si el dominio está en la lista o es HTTP en sitio HTTPS
             const shouldForce = needsProxy.some(domain => targetUrl.includes(domain));
+            const needsHttpProxy = isHTTPS && targetUrl.startsWith('http://');
 
-            if (((isHTTPS && targetUrl.startsWith('http://')) || shouldForce) && !targetUrl.startsWith(currentProxy)) {
+            if ((shouldForce || needsHttpProxy) && !targetUrl.startsWith(currentProxy)) {
               context.url = `${currentProxy}${encodeURIComponent(targetUrl)}`;
             } else {
               context.url = targetUrl;
