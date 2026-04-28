@@ -123,17 +123,6 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     }, 7000); // Volvemos a los 7 segundos originales
 
     let finalUrl = decodeCamouflage(currentUrl);
-    const isHTTPS = window.location.protocol === 'https:';
-    // Lista de dominios que SIEMPRE necesitan proxy por bloqueos de CORS
-    const needsProxy = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
-    const shouldForceProxy = needsProxy.some(domain => finalUrl.includes(domain));
-    const proxyPrefix = 'https://api.allorigins.win/raw?url=';
-    
-    // Activamos el proxy si: es una mezcla de https/http O si el dominio está en la lista de bloqueados (CORS)
-    // Pero SOLO si no está ya proxeado (para evitar duplicados)
-    if (((isHTTPS && finalUrl.startsWith('http://')) || shouldForceProxy) && !finalUrl.startsWith(proxyPrefix)) {
-      finalUrl = `${proxyPrefix}${encodeURIComponent(finalUrl)}`;
-    }
     
     if (isDirectVideo) {
       video.src = finalUrl;
@@ -142,53 +131,12 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
       video.onerror = () => tryNextServer();
     } else if (Hls.isSupported() && isM3U8) {
-      const originalUrl = decodeCamouflage(currentUrl);
-      const urlObj = new URL(originalUrl);
-      const baseUrl = urlObj.origin + urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
-
-      class SecureLoader extends Hls.DefaultConfig.loader {
-        constructor(config) {
-          super(config);
-          const originalLoad = this.load.bind(this);
-          this.load = (context, config, callbacks) => {
-            const proxyPrefix = 'https://api.codetabs.com/v1/proxy?quest=';
-            const backupProxy = 'https://api.allorigins.win/raw?url=';
-            let targetUrl = context.url;
-
-            // 1. Corregir rutas relativas
-            if (targetUrl.includes('api.codetabs.com/v1/') && !targetUrl.includes('quest=')) {
-               const pathParts = targetUrl.split('api.codetabs.com/v1/');
-               const relativePath = pathParts[1]; 
-               if (relativePath) { targetUrl = baseUrl + relativePath; }
-            }
-
-            if (!targetUrl.startsWith('http')) {
-              targetUrl = baseUrl + targetUrl;
-            }
-
-            // 3. Aplicamos el proxy (con backup si falla el principal)
-            const needsProxy = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
-            const shouldForceProxy = needsProxy.some(domain => targetUrl.includes(domain));
-
-            if (((isHTTPS && targetUrl.startsWith('http://')) || shouldForceProxy) && !targetUrl.startsWith(proxyPrefix)) {
-              // Intentamos con AllOrigins para mayor estabilidad en fragmentos pesados
-              context.url = `${backupProxy}${encodeURIComponent(targetUrl)}`;
-            } else {
-              context.url = targetUrl;
-            }
-
-            originalLoad(context, config, callbacks);
-          };
-        }
-      }
 
       hls = new Hls({ 
         maxBufferLength: 30, 
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
-        fLoader: SecureLoader,
-        pLoader: SecureLoader,
         xhrSetup: (xhr, url) => {
           xhr.withCredentials = false;
         }
