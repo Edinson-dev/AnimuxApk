@@ -159,27 +159,28 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
             let targetUrl = context.url;
             
-            // 1. Asegurar URL absoluta
+            // 1. Asegurar URL absoluta de forma robusta
             if (!targetUrl.startsWith('http')) {
               try {
                 targetUrl = new URL(targetUrl, baseUrl).href;
               } catch (e) {
-                targetUrl = baseUrl + targetUrl.replace(/^\//, '');
+                const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+                targetUrl = cleanBase + targetUrl.replace(/^\//, '');
               }
             }
 
             // Inicializar el estado de reintentos
             if (context.proxyIndex === undefined) {
               context.originalUrl = targetUrl;
-              const isDirectIP = /^[0-9.]+$/.test(new URL(targetUrl).hostname);
-              const shouldForce = needsProxy.some(domain => targetUrl.includes(domain)) || isDirectIP;
-              const needsHttpProxy = isHTTPS && targetUrl.startsWith('http://');
+              const isIP = /^[0-9.]+$/.test(new URL(targetUrl).hostname);
+              const shouldForce = needsProxy.some(d => targetUrl.includes(d)) || isIP || (isHTTPS && targetUrl.startsWith('http://'));
               
-              if (shouldForce || needsHttpProxy) {
+              if (shouldForce) {
+                // Empezar con el túnel que suele ser más estable
                 context.proxyIndex = 0;
                 context.url = `${proxies[0]}${encodeURIComponent(targetUrl)}`;
               } else {
-                context.proxyIndex = -1;
+                context.proxyIndex = -1; // Directo
                 context.url = targetUrl;
               }
             }
@@ -201,9 +202,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
               if (context.proxyIndex < proxies.length - 1) {
                 context.proxyIndex++;
-                const nextProxy = proxies[context.proxyIndex];
-                context.url = `${nextProxy}${encodeURIComponent(context.originalUrl)}`;
-                console.warn(`⚠️ Error en túnel. Probando Túnel ${context.proxyIndex + 1}/${proxies.length}`);
+                const p = proxies[context.proxyIndex];
+                context.url = `${p}${encodeURIComponent(context.originalUrl)}`;
+                console.warn(`🔄 Rotando a Túnel ${context.proxyIndex + 1}...`);
                 originalInternalLoad(context, config, callbacks);
               } else {
                 originalOnError(response, context, loader);
@@ -219,25 +220,46 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         maxBufferLength: 30, 
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90,
+        backBufferLength: 60,
         fLoader: SecureLoader,
         pLoader: SecureLoader,
-        xhrSetup: (xhr, url) => {
+        // Seguridad Chrome
+        xhrSetup: (xhr) => {
           xhr.withCredentials = false;
-        }
+        },
+        manifestLoadingMaxRetry: 6,
+        levelLoadingMaxRetry: 6,
+        fragLoadingMaxRetry: 6
       });
+
       hlsRef.current = hls;
       hls.loadSource(finalUrl);
       hls.attachMedia(video);
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => { 
         clearTimeout(timeoutId); 
         setLoading(false); 
         video.play().catch(() => {}); 
       });
+
       hls.on(Hls.Events.ERROR, (event, data) => { 
         if (data.fatal) { 
-          clearTimeout(timeoutId); 
-          tryNextServer(); 
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.warn("Error de red, reintentando carga...");
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn("Error de medios, intentando recuperar...");
+              hls.recoverMediaError();
+              break;
+            default:
+              console.error("Fallo total HLS, usando modo nativo");
+              clearTimeout(timeoutId);
+              video.src = finalUrl;
+              video.load();
+              break;
+          }
         } 
       });
     } else {
