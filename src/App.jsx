@@ -109,8 +109,11 @@ export default function App() {
       // Si es una versión nueva, forzamos la limpieza total una sola vez
       if (isNewVersion) {
         localStorage.removeItem('animux_last_fetch');
+        localStorage.removeItem('animux_cache_cats');
+        localStorage.removeItem('animux_cache_chans');
+        localStorage.removeItem('animux_cache_movs');
         localStorage.setItem('animux_version', APP_VERSION);
-        // Seguimos con la carga normal pero ignorando la caché esta vez
+        console.log("🚀 Nueva versión detectada: " + APP_VERSION + ". Limpiando caché...");
       } else if (cachedCats && cachedChans && cachedMovs) {
         // Lógica de caché normal...
         setCloudCategories(JSON.parse(cachedCats));

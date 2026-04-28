@@ -123,6 +123,16 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     }, 7000); // Volvemos a los 7 segundos originales
 
     let finalUrl = decodeCamouflage(currentUrl);
+    const isHTTPS = window.location.protocol === 'https:';
+    
+    // Lista de dominios que SIEMPRE necesitan proxy por bloqueos de CORS
+    const needsProxy = ['pluto.tv', 'jmp2.uk', 'stirr.com', 'm3u8.space'];
+    const shouldForceProxy = needsProxy.some(domain => finalUrl.includes(domain));
+    const proxyPrefix = 'https://api.allorigins.win/raw?url=';
+    
+    if (((isHTTPS && finalUrl.startsWith('http://')) || shouldForceProxy) && !finalUrl.startsWith(proxyPrefix)) {
+      finalUrl = `${proxyPrefix}${encodeURIComponent(finalUrl)}`;
+    }
     
     if (isDirectVideo) {
       video.src = finalUrl;
@@ -131,12 +141,49 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       video.oncanplay = () => { clearTimeout(timeoutId); setLoading(false); video.play().catch(() => {}); };
       video.onerror = () => tryNextServer();
     } else if (Hls.isSupported() && isM3U8) {
+      const originalUrl = decodeCamouflage(currentUrl);
+      const urlObj = new URL(originalUrl);
+      const baseUrl = urlObj.origin + urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
+
+      class SecureLoader extends Hls.DefaultConfig.loader {
+        constructor(config) {
+          super(config);
+          const originalLoad = this.load.bind(this);
+          this.load = (context, config, callbacks) => {
+            const currentProxy = 'https://api.allorigins.win/raw?url=';
+            let targetUrl = context.url;
+
+            // 1. Corregir rutas relativas rotas por el proxy
+            if (targetUrl.includes('api.allorigins.win') && !targetUrl.includes('url=')) {
+               const relativePath = targetUrl.split('/raw')[1]; 
+               if (relativePath) { targetUrl = baseUrl + relativePath; }
+            }
+
+            if (!targetUrl.startsWith('http')) {
+              targetUrl = baseUrl + targetUrl;
+            }
+
+            // 3. Aplicamos el proxy si es necesario
+            const shouldForce = needsProxy.some(domain => targetUrl.includes(domain));
+
+            if (((isHTTPS && targetUrl.startsWith('http://')) || shouldForce) && !targetUrl.startsWith(currentProxy)) {
+              context.url = `${currentProxy}${encodeURIComponent(targetUrl)}`;
+            } else {
+              context.url = targetUrl;
+            }
+
+            originalLoad(context, config, callbacks);
+          };
+        }
+      }
 
       hls = new Hls({ 
         maxBufferLength: 30, 
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
+        fLoader: SecureLoader,
+        pLoader: SecureLoader,
         xhrSetup: (xhr, url) => {
           xhr.withCredentials = false;
         }
