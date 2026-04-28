@@ -153,27 +153,33 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             const proxies = [
               'https://api.allorigins.win/raw?url=',
               'https://api.codetabs.com/v1/proxy?quest=',
-              'https://corsproxy.io/?'
+              'https://corsproxy.io/?',
+              'https://thingproxy.freeboard.io/fetch/'
             ];
 
             let targetUrl = context.url;
             
             // 1. Asegurar URL absoluta
             if (!targetUrl.startsWith('http')) {
-              targetUrl = new URL(targetUrl, baseUrl).href;
+              try {
+                targetUrl = new URL(targetUrl, baseUrl).href;
+              } catch (e) {
+                targetUrl = baseUrl + targetUrl.replace(/^\//, '');
+              }
             }
 
             // Inicializar el estado de reintentos
             if (context.proxyIndex === undefined) {
               context.originalUrl = targetUrl;
-              const shouldForce = needsProxy.some(domain => targetUrl.includes(domain));
+              const isDirectIP = /^[0-9.]+$/.test(new URL(targetUrl).hostname);
+              const shouldForce = needsProxy.some(domain => targetUrl.includes(domain)) || isDirectIP;
               const needsHttpProxy = isHTTPS && targetUrl.startsWith('http://');
               
               if (shouldForce || needsHttpProxy) {
-                context.proxyIndex = 0; // Empezar con el primer proxy
+                context.proxyIndex = 0;
                 context.url = `${proxies[0]}${encodeURIComponent(targetUrl)}`;
               } else {
-                context.proxyIndex = -1; // Intentar directo primero
+                context.proxyIndex = -1;
                 context.url = targetUrl;
               }
             }
@@ -189,13 +195,15 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               const proxies = [
                 'https://api.allorigins.win/raw?url=',
                 'https://api.codetabs.com/v1/proxy?quest=',
-                'https://corsproxy.io/?'
+                'https://corsproxy.io/?',
+                'https://thingproxy.freeboard.io/fetch/'
               ];
 
               if (context.proxyIndex < proxies.length - 1) {
                 context.proxyIndex++;
-                context.url = `${proxies[context.proxyIndex]}${encodeURIComponent(context.originalUrl)}`;
-                console.warn(`🔄 Fallo en carga. Reintentando con Túnel ${context.proxyIndex + 1}/${proxies.length}`);
+                const nextProxy = proxies[context.proxyIndex];
+                context.url = `${nextProxy}${encodeURIComponent(context.originalUrl)}`;
+                console.warn(`⚠️ Error en túnel. Probando Túnel ${context.proxyIndex + 1}/${proxies.length}`);
                 originalInternalLoad(context, config, callbacks);
               } else {
                 originalOnError(response, context, loader);
