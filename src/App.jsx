@@ -43,6 +43,8 @@ export default function App() {
   const [logoClicks, setLogoClicks] = useState(0);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(48);
+  // Estado reactivo para el tiempo del último sync (se actualiza en tiempo real)
+  const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('animux_last_fetch'));
 
   // ── PWA Install ─────────────────────────────────────────────────────────────
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -194,10 +196,12 @@ export default function App() {
       setLocalMovies(finalMovies);
 
       // Update Cache
+      const syncTime = now.toString();
       localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
       localStorage.setItem('animux_cache_chans', JSON.stringify(finalChannels));
       localStorage.setItem('animux_cache_movs', JSON.stringify(finalMovies));
-      localStorage.setItem('animux_last_fetch', now.toString());
+      localStorage.setItem('animux_last_fetch', syncTime);
+      setLastSyncTime(syncTime); // ← Actualiza el estado reactivo en tiempo real
 
     } catch (err) {
       console.error("Critical error loading data:", err);
@@ -218,9 +222,8 @@ export default function App() {
     }
   };
 
-  // ── Forzar actualización de datos (botón RefreshCw) ─────────────────────────
+  // ── Forzar actualización de datos (botón RefreshCw y panel notificaciones) ────
   const forceRefresh = async () => {
-    toast.info('Actualizando datos...', { icon: '🔄' });
     ['animux_last_fetch', 'animux_cache_cats', 'animux_cache_chans', 'animux_cache_movs'].forEach(k => localStorage.removeItem(k));
     setIsAppLoading(true);
     await loadData(true);
@@ -414,7 +417,7 @@ export default function App() {
         updateServiceWorker={updateServiceWorker}
         onForceRefresh={forceRefresh}
         appVersion={APP_VERSION}
-        lastSync={localStorage.getItem('animux_last_fetch')}
+        lastSync={lastSyncTime}
       />
 
       {/* ── CATEGORY CHIPS — Mobile only ─────────────────────────────────── */}

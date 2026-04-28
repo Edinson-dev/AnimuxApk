@@ -54,16 +54,21 @@ export default function Header({
     }
   };
 
-  // Cerrar panel al hacer clic fuera
+  // Cerrar panel al hacer clic fuera (usando ref para evitar conflictos)
+  const panelRef = React.useRef(null);
   useEffect(() => {
     if (!showNotifications) return;
     const handler = (e) => {
-      if (!e.target.closest('#notif-panel') && !e.target.closest('#notif-btn')) {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
         setShowNotifications(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    // Pequeño delay para no cerrar inmediatamente al abrir
+    const timer = setTimeout(() => document.addEventListener('mousedown', handler), 100);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handler);
+    };
   }, [showNotifications]);
 
   return (
@@ -125,7 +130,7 @@ export default function Header({
           </button>
 
           {/* Botón Campanita (Notificaciones) */}
-          <div className="relative">
+          <div className="relative" ref={panelRef}>
             <button
               id="notif-btn"
               onClick={() => setShowNotifications(v => !v)}
