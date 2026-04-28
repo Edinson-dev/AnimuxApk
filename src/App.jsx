@@ -89,7 +89,7 @@ export default function App() {
   // Reset pagination on category/search change
   useEffect(() => { setVisibleCount(48); }, [activeCategory, searchQuery]);
 
-  const APP_VERSION = '2.2';
+  const APP_VERSION = '2.3';
 
   // ── Data loading ─────────────────────────────────────────────────────────────
   const loadData = async (force = false) => {
