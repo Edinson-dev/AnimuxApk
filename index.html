@@ -1,69 +1,68 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
 
-    <!-- ── Viewport & Basics ─────────────────────────────────────────────── -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<head>
+  <meta charset="UTF-8" />
 
-    <!-- ── PWA / Theme ──────────────────────────────────────────────────── -->
-    <meta name="theme-color" content="#000000" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#000000" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="mobile-web-app-capable" content="yes" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
 
-    <!-- ── Apple / iOS PWA ──────────────────────────────────────────────── -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Animux" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="120x120" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
-    <!-- iPhone X splash -->
-    <link rel="apple-touch-startup-image" href="/icon-512.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <!-- ── Favicons ──────────────────────────────────────────────────────── -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-    <link rel="icon" type="image/png" href="/icon-192.png" />
-    <link rel="shortcut icon" href="/icon-192.png" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
 
-    <!-- ── Microsoft / Edge ─────────────────────────────────────────────── -->
-    <meta name="msapplication-TileColor" content="#000000" />
-    <meta name="msapplication-TileImage" content="/icon-192.png" />
-    <meta name="msapplication-tap-highlight" content="no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Animux" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="120x120" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
+  <link rel="apple-touch-startup-image" href="/icon-512.png" />
 
-    <!-- ── SEO & Description ────────────────────────────────────────────── -->
-    <title>Animux — Streaming en vivo</title>
-    <meta name="description" content="Tu plataforma de TV, Cine y Streaming en alta definición. Series, películas, canales en vivo y anime." />
-    <meta name="keywords" content="streaming, tv en vivo, películas, series, anime, animux, iptv" />
-    <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+  <link rel="shortcut icon" href="/icon-192.png" />
 
-    <!-- ── Open Graph (WhatsApp, Facebook, etc.) ────────────────────────── -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Animux Streaming" />
-    <meta property="og:description" content="Tu plataforma de TV y Cine en alta definición." />
-    <meta property="og:image" content="https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=1200&h=630" />
-    <meta property="og:url" content="/" />
-    <meta property="og:site_name" content="Animux" />
+  <meta name="msapplication-TileColor" content="#000000" />
+  <meta name="msapplication-TileImage" content="/icon-192.png" />
+  <meta name="msapplication-tap-highlight" content="no" />
 
-    <!-- ── Twitter Card ─────────────────────────────────────────────────── -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Animux Streaming" />
-    <meta name="twitter:description" content="Tu plataforma de TV y Cine en alta definición." />
-    <meta name="twitter:image" content="https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=1200&h=630" />
+  <title>Animux — Streaming en vivo</title>
+  <meta name="description"
+    content="Tu plataforma de TV, Cine y Streaming en alta definición. Series, películas, canales en vivo y anime." />
+  <meta name="keywords" content="streaming, tv en vivo, películas, series, anime, animux, iptv" />
+  <meta name="robots" content="noindex, nofollow" />
 
-    <!-- ── Performance hints ────────────────────────────────────────────── -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Animux Streaming" />
+  <meta property="og:description" content="Tu plataforma de TV y Cine en alta definición." />
+  <meta property="og:image"
+    content="https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=1200&h=630" />
+  <meta property="og:url" content="/" />
+  <meta property="og:site_name" content="Animux" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Animux Streaming" />
+  <meta name="twitter:description" content="Tu plataforma de TV y Cine en alta definición." />
+  <meta name="twitter:image"
+    content="https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=1200&h=630" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>
