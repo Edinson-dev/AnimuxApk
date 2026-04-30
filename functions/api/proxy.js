@@ -29,14 +29,12 @@ export async function onRequest(context) {
     const response = await fetch(target, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
         'Accept': '*/*',
         'Accept-Language': 'es-ES,es;q=0.9',
-        'Referer': targetOrigin + '/',
         'Range': request.headers.get('Range') || '',
-        'X-Forwarded-For': '181.78.1.1',
-        'X-Real-IP': '181.78.1.1',
-        'X-Requested-With': 'com.mxtech.videoplayer.ad',
+        'X-Forwarded-For': '190.157.1.1', // IP Claro Colombia
+        'X-Real-IP': '190.157.1.1',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
