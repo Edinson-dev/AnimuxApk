@@ -72,7 +72,9 @@ export default function App() {
         setCloudCategories(JSON.parse(cachedCats));
         setChannelData({ channels: JSON.parse(cachedChans) });
         setLocalMovies(JSON.parse(cachedMovs));
-        setIsAppLoading(false);
+
+        // Mantenemos el splash un ratico incluso si es caché para profesionalismo
+        setTimeout(() => setIsAppLoading(false), 4500);
         return;
       }
 
@@ -115,7 +117,8 @@ export default function App() {
     }
     finally {
       if (!force) {
-        setTimeout(() => setIsAppLoading(false), 2000);
+        // Aumentado a 4.5 segundos para que se aprecie bien la marca
+        setTimeout(() => setIsAppLoading(false), 4500);
       }
     }
   };
