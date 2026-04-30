@@ -32,19 +32,20 @@ export async function onRequest(context) {
 
     let response;
     try {
+      // Headers idénticos al proxy de Vercel que funcionaba — sin extras
+      const fetchHeaders = {
+        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
+        'Accept': '*/*',
+      };
+      // Solo enviar Range si el browser lo envía (range requests de video)
+      const rangeHeader = request.headers.get('Range');
+      if (rangeHeader) fetchHeaders['Range'] = rangeHeader;
+
       response = await fetch(target, {
         method: 'GET',
-        headers: {
-          // VLC es la clave: los servidores IPTV colombianos tienen whitelist de VLC
-          'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
-          'Accept': '*/*',
-          'Icy-MetaData': '1',
-          'Range': request.headers.get('Range') || '',
-          'Connection': 'keep-alive',
-        },
+        headers: fetchHeaders,
         redirect: 'follow',
         signal: controller.signal,
-        cf: { cacheTtl: isVideoSegment ? 30 : 0, cacheEverything: false }
       });
     } finally {
       clearTimeout(timeoutId);
