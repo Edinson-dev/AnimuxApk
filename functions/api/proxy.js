@@ -31,6 +31,7 @@ export async function onRequest(context) {
       headers: {
         'User-Agent': request.headers.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
+        'Range': request.headers.get('Range') || '',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
@@ -40,6 +41,12 @@ export async function onRequest(context) {
     const contentType = response.headers.get('content-type') || '';
     const headers = new Headers();
     headers.set('Content-Type', contentType);
+    
+    // Soporte para streaming y rangos
+    const contentRange = response.headers.get('Content-Range');
+    const acceptRanges = response.headers.get('Accept-Ranges');
+    if (contentRange) headers.set('Content-Range', contentRange);
+    if (acceptRanges) headers.set('Accept-Ranges', acceptRanges);
     
     // CORS TOTALMENTE ABIERTO
     headers.set('Access-Control-Allow-Origin', '*');
