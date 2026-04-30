@@ -142,7 +142,8 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       }
 
       const urlLower = currentUrl.toLowerCase();
-      const isM3U8 = urlLower.includes('.m3u8');
+      // Si la URL tiene .m3u8 o es de mp2.uk, la tratamos como HLS
+      const isM3U8 = urlLower.includes('.m3u8') || urlLower.includes('mp2.uk');
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
 
       // 2. Timeout de conexión inicial (10s)
