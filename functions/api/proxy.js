@@ -25,20 +25,22 @@ export async function onRequest(context) {
   }
 
   try {
+    const targetUrl = new URL(target);
+    const targetOrigin = targetUrl.origin;
+
     const response = await fetch(target, {
       method: 'GET',
       headers: {
         'User-Agent': request.headers.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none'
+        'Accept': '*/*',
+        'Accept-Language': 'es-ES,es;q=0.9',
+        'Referer': targetOrigin + '/',
+        'Origin': targetOrigin,
+        'X-Forwarded-For': request.headers.get('CF-Connecting-IP') || '1.1.1.1',
+        'Connection': 'keep-alive'
       },
       redirect: 'follow',
-      cf: { cacheTtl: 0 }
+      cf: { cacheTtl: (target.includes('.ts') || target.includes('.mp4')) ? 600 : 0 }
     });
 
     const contentType = response.headers.get('content-type') || '';
