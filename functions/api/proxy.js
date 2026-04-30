@@ -29,12 +29,9 @@ export async function onRequest(context) {
     const response = await fetch(target, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
         'Accept': '*/*',
-        'Accept-Language': 'es-ES,es;q=0.9',
         'Range': request.headers.get('Range') || '',
-        'X-Forwarded-For': '190.157.1.1', // IP Claro Colombia
-        'X-Real-IP': '190.157.1.1',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
@@ -71,18 +68,27 @@ export async function onRequest(context) {
       headers.set('Expires', '0');
     }
 
+    // Si el servidor de IPTV devuelve un error, lo pasamos tal cual al reproductor
+    if (!response.ok) {
+      return new Response(response.body, {
+        status: response.status,
+        headers: headers
+      });
+    }
+
     // ── REESCRIBIR M3U8 (Forzar proxy en todos los fragmentos) ──
     if (contentType.includes('mpegurl') || contentType.includes('m3u8') || target.toLowerCase().includes('.m3u8')) {
       const text = await response.text();
-      const finalUrl = response.url; 
+      const finalUrl = response.url || target;
       const baseUrlObj = new URL(finalUrl);
-      const basePath = baseUrlObj.origin + baseUrlObj.pathname.substring(0, baseUrlObj.pathname.lastIndexOf('/') + 1);
+      const basePath = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
 
       const proxyBase = `${urlParams.origin}/api/proxy?url=`;
 
       const lines = text.split('\n');
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
+        
         // 1. Reescribir fragmentos de video/audio directos
         if (line && !line.startsWith('#')) {
           let absoluteUrl = line.startsWith('http') ? line : (line.startsWith('/') ? baseUrlObj.origin + line : basePath + line);

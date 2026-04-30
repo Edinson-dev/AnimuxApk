@@ -149,10 +149,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
 
-      // Determinamos si necesitamos proxy (En producción, todo lo externo necesita proxy por CORS/MixedContent)
+      // Determinamos si necesitamos proxy
       const isProd = window.location.protocol === 'https:';
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const isExternal = currentUrl.startsWith('http');
-      const needsProxy = isProd && isExternal;
+      // Forzamos proxy en prod y permitimos en local para pruebas
+      const needsProxy = (isProd && isExternal) || (isLocal && isExternal);
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
