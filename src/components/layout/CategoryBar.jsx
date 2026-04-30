@@ -15,7 +15,7 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
     <div className="md:hidden sticky top-[52px] z-[60] bg-black/95 backdrop-blur-md border-b border-white/[0.04]">
       <div
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto no-scrollbar px-4 py-2.5"
+        className="flex gap-2 overflow-x-auto no-scrollbar px-4 py-2"
       >
         <button
           onClick={onRefresh}
@@ -35,7 +35,7 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
               data-active={isActive}
               onClick={() => setActiveCategory(cat)}
               className={`
-                flex-shrink-0 px-3 py-1.5 text-[13px] font-semibold tracking-wide
+                flex-shrink-0 px-3 py-1.5 text-[12px] font-semibold tracking-wide
                 transition-all duration-200 whitespace-nowrap
                 ${isActive
                   ? 'text-rose-500 font-bold'

@@ -27,7 +27,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       const catSnapshot = await getDocs(collection(db, 'categories'));
       const manualCats = catSnapshot.docs.map(doc => doc.data().name);
       // Las categorías base son fijas, pero permitimos que las de la nube se sumen
-      const baseCats = ['Series', 'Películas', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'General'];
+      const baseCats = ['Series', 'Películas', 'Cine', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'General'];
       const finalCats = Array.from(new Set([...baseCats, ...manualCats]));
       setCategories(finalCats.sort());
       if (!formData.category && finalCats.length > 0) setFormData(prev => ({ ...prev, category: finalCats[0] }));

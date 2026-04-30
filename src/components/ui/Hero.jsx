@@ -18,7 +18,6 @@ const getDominantColor = (imgSrc, onResult) => {
         onResult(Math.round(r/pixels), Math.round(g/pixels), Math.round(b/pixels));
       } catch { onResult(150, 10, 30); }
     };
-    img.onerror = () => onResult(150, 10, 30);
     img.src = imgSrc;
   } catch { onResult(150, 10, 30); }
 };
@@ -37,7 +36,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
   const displayName = featuredChannel.displayName || featuredChannel.name;
 
   return (
-    <div className="relative w-full h-[45vh] md:h-[65vh] overflow-hidden group mb-6 md:mb-10 animate-fade-in bg-[#05050f] rounded-2xl md:rounded-3xl border-none">
+    <div className="relative w-full h-[38vh] md:h-[65vh] overflow-hidden group mb-6 md:mb-10 animate-fade-in bg-[#05050f] rounded-2xl md:rounded-3xl border-none">
 
       {/* Adaptive color glow */}
       <div
@@ -72,29 +71,31 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
               Animux Original • Premium
             </span>
           </div>
-
-          <h1 className="text-3xl md:text-7xl font-black leading-[0.9] tracking-tighter text-white uppercase drop-shadow-2xl italic">
+          
+          <h1 className="text-3xl md:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] animate-slide-up animation-delay-100">
             {displayName}
           </h1>
           
-          <p className="text-gray-300 text-[11px] md:text-sm leading-relaxed max-w-2xl line-clamp-2 md:line-clamp-none font-semibold tracking-wide drop-shadow-lg">
+          <p className="text-xs md:text-lg text-gray-300 font-medium max-w-2xl line-clamp-2 md:line-clamp-3 animate-slide-up animation-delay-200">
             {featuredChannel.description || 'Disfruta de la mejor calidad de imagen y sonido envolvente. Solo aquí en la plataforma líder de streaming.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4 pt-2">
+        <div className="flex items-center gap-3 md:gap-4 pt-2 animate-slide-up animation-delay-300">
           <button
             onClick={() => onPlay(featuredChannel)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-6 md:px-10 py-3.5 md:py-4 bg-rose-600 text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs hover:bg-rose-500 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-rose-600/40 active:scale-95 group"
+            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-xl shadow-rose-600/20 active:scale-95 group/btn"
           >
-            <Play className="w-4 h-4 md:w-5 md:h-5 fill-current group-hover:scale-110 transition-transform" /> Reproducir
+            <Play className="w-5 h-5 fill-current transition-transform group-hover/btn:scale-110" />
+            Reproducir
           </button>
           
           <button
             onClick={() => onDetails(featuredChannel)}
-            className="flex items-center justify-center gap-2 md:gap-3 px-6 md:px-10 py-3.5 md:py-4 bg-white/5 backdrop-blur-md text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs hover:bg-white/10 border border-white/10 transition-all uppercase tracking-[0.2em] active:scale-95"
+            className="flex items-center justify-center gap-3 px-6 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all active:scale-95"
           >
-            <Info className="w-4 h-4 md:w-5 md:h-5" /> Info
+            <Info className="w-5 h-5" />
+            <span className="hidden md:inline">Info</span>
           </button>
         </div>
       </div>
