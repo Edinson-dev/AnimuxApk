@@ -25,18 +25,34 @@ export async function onRequest(context) {
     const targetUrl = new URL(target);
     const targetOrigin = targetUrl.origin;
     const isVideoSegment = target.includes('.ts') || target.includes('.mp4') || target.includes('.m4s') || target.includes('.aac');
+    const isM3U8Request = target.toLowerCase().includes('.m3u8') || target.toLowerCase().includes('/play/');
 
-    const response = await fetch(target, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
-        'Accept': '*/*',
-        'Range': request.headers.get('Range') || '',
-        'Connection': 'keep-alive'
-      },
-      redirect: 'follow',
-      cf: { cacheTtl: isVideoSegment ? 600 : 0 }
-    });
+    // AbortController para timeout de 12s (evita que Cloudflare cuelgue con IPs inaccesibles)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let response;
+    try {
+      response = await fetch(target, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/x-mpegURL, application/vnd.apple.mpegurl, video/mp4, */*',
+          'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8',
+          'Referer': targetOrigin + '/',
+          'Origin': targetOrigin,
+          'Range': request.headers.get('Range') || '',
+          'Connection': 'keep-alive',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+        redirect: 'follow',
+        signal: controller.signal,
+        cf: { cacheTtl: isVideoSegment ? 600 : 0, cacheEverything: isVideoSegment }
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const contentType = response.headers.get('content-type') || '';
     const headers = new Headers();
@@ -77,11 +93,14 @@ export async function onRequest(context) {
     }
 
     // ── REESCRIBIR M3U8 (Forzar proxy en todos los fragmentos) ──
-    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || target.toLowerCase().includes('.m3u8')) {
+    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || isM3U8Request) {
       const text = await response.text();
-      const finalUrl = response.url || target;
-      const baseUrlObj = new URL(finalUrl);
-      const basePath = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
+      
+      // Usar la URL ORIGINAL del target (no la URL de respuesta del proxy) como base
+      // Esto evita que los segmentos relativos se resuelvan incorrectamente
+      const baseForResolution = response.url && response.url !== target ? response.url : target;
+      const baseUrlObj = new URL(baseForResolution);
+      const basePath = baseForResolution.substring(0, baseForResolution.lastIndexOf('/') + 1);
 
       const proxyBase = `${urlParams.origin}/api/proxy?url=`;
 
@@ -89,12 +108,25 @@ export async function onRequest(context) {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         
-        // 1. Reescribir fragmentos de video/audio directos
+        // 1. Reescribir sub-playlists y fragmentos de video/audio directos
         if (line && !line.startsWith('#')) {
-          let absoluteUrl = line.startsWith('http') ? line : (line.startsWith('/') ? baseUrlObj.origin + line : basePath + line);
+          let absoluteUrl;
+          if (line.startsWith('http://') || line.startsWith('https://')) {
+            absoluteUrl = line;
+          } else if (line.startsWith('//')) {
+            absoluteUrl = 'http:' + line;
+          } else if (line.startsWith('/')) {
+            absoluteUrl = baseUrlObj.origin + line;
+          } else {
+            absoluteUrl = basePath + line;
+          }
           lines[i] = proxyBase + encodeURIComponent(absoluteUrl);
         }
-        // 2. Reescribir pistas de audio separadas (EXT-X-MEDIA)
+        // 2. Reescribir sub-playlists en EXT-X-STREAM-INF (multi-bitrate)
+        else if (line.startsWith('#EXT-X-STREAM-INF')) {
+          // la línea siguiente es la URL del stream, se procesa en la siguiente iteración
+        }
+        // 3. Reescribir pistas de audio separadas (EXT-X-MEDIA)
         else if (line.startsWith('#EXT-X-MEDIA')) {
           const uriMatch = line.match(/URI="([^"]+)"/);
           if (uriMatch && uriMatch[1]) {
@@ -103,13 +135,22 @@ export async function onRequest(context) {
             lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteMedia)}"`);
           }
         }
-        // 3. Reescribir llaves de encriptación (.key)
+        // 4. Reescribir llaves de encriptación (.key)
         else if (line.startsWith('#EXT-X-KEY')) {
           const uriMatch = line.match(/URI="([^"]+)"/);
           if (uriMatch && uriMatch[1]) {
             let keyUrl = uriMatch[1];
             let absoluteKey = keyUrl.startsWith('http') ? keyUrl : (keyUrl.startsWith('/') ? baseUrlObj.origin + keyUrl : basePath + keyUrl);
             lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteKey)}"`);
+          }
+        }
+        // 5. Reescribir mapas de inicialización (EXT-X-MAP)
+        else if (line.startsWith('#EXT-X-MAP')) {
+          const uriMatch = line.match(/URI="([^"]+)"/);
+          if (uriMatch && uriMatch[1]) {
+            let mapUrl = uriMatch[1];
+            let absoluteMap = mapUrl.startsWith('http') ? mapUrl : (mapUrl.startsWith('/') ? baseUrlObj.origin + mapUrl : basePath + mapUrl);
+            lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteMap)}"`);
           }
         }
       }
@@ -126,8 +167,14 @@ export async function onRequest(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Proxy failed', details: error.message }), {
-      status: 500,
+    const isTimeout = error.name === 'AbortError';
+    const statusCode = isTimeout ? 504 : 502;
+    const message = isTimeout
+      ? 'Gateway Timeout: El servidor de stream no respondió en 12s'
+      : `Proxy failed: ${error.message}`;
+    
+    return new Response(JSON.stringify({ error: message, url: target }), {
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

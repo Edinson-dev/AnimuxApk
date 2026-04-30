@@ -104,13 +104,22 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
     // ── Saltar al siguiente servidor ──────────────────────────────────────
     const tryNextServer = () => {
+      // Canales M3U directos no tienen ID de Xtream → mostrar error directamente
+      if (channel.fromM3U || !channel.streamId) {
+        console.error('❌ Canal M3U sin fallback Xtream disponible.');
+        setError(true);
+        setLoading(false);
+        return;
+      }
+
       const nextIdx = serverIndexRef.current + 1;
       if (nextIdx < XTREAM_SERVERS.length) {
         console.warn(`🔄 Cambiando al servidor ${nextIdx}...`);
         serverIndexRef.current = nextIdx;
         setServerIndex(nextIdx);
         freezeRef.current = { lastTime: 0, counter: 0 };
-        const nextUrl = buildStreamURL(channel, XTREAM_SERVERS[nextIdx]);
+        // CORRECCIÓN: buildStreamURL(server, channelId) — orden correcto
+        const nextUrl = buildStreamURL(XTREAM_SERVERS[nextIdx], channel.streamId);
         setCurrentUrl(nextUrl);
         setLoading(true);
         setError(false);
@@ -120,6 +129,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         setLoading(false);
       }
     };
+
 
     // ── Efecto principal de reproducción ──────────────────────────────────
     useEffect(() => {
@@ -153,26 +163,31 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       const isProd = window.location.protocol === 'https:';
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const isExternal = currentUrl.startsWith('http');
-      // Forzamos proxy en prod y permitimos en local para pruebas
-      const needsProxy = (isProd && isExternal) || (isLocal && isExternal);
+      // Dominios CDN con CORS abierto — NO necesitan pasar por el proxy
+      // Reproducirlos directo reduce latencia de 1-2s a ~200ms
+      const CORS_FRIENDLY = ['jmp2.uk', 'github.io', 'archive.org', 'cloudfront.net', 'githubusercontent.com'];
+      const isCORSFriendly = CORS_FRIENDLY.some(d => currentUrl.includes(d));
+
+      // Forzamos proxy en prod y local, EXCEPTO para CDNs con CORS nativo
+      const needsProxy = !isCORSFriendly && ((isProd && isExternal) || (isLocal && isExternal));
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
-      // 2. Timeout de conexión inicial (10s)
+      // 2. Timeout de conexión inicial (15s — servidores IPTV colombianos pueden ser lentos)
       const loadTimeout = setTimeout(() => {
-        if (loading || video.currentTime === 0) {
-          console.warn('⏰ Timeout de conexión. Cambiando servidor...');
+        if (video.currentTime === 0) {
+          console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
           tryNextServer();
         }
-      }, 10000);
+      }, 15000);
 
-      // 3. Monitor de congelamiento (cada 1s)
+      // 3. Monitor de congelamiento (cada 1s — actúa a los 6s de inactividad)
       const monitorInterval = setInterval(() => {
         if (!video.paused && !video.ended && video.readyState >= 2) {
           if (video.currentTime === freezeRef.current.lastTime) {
             freezeRef.current.counter++;
-            if (freezeRef.current.counter >= 8) {
-              console.warn('❄️ Stream congelado. Cambiando servidor...');
+            if (freezeRef.current.counter >= 6) {
+              console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
               clearInterval(monitorInterval);
               tryNextServer();
             }

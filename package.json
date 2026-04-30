@@ -8,6 +8,7 @@
     "frontend": "vite",
     "backend": "node backend/server.js",
     "dev": "vite",
+    "pages:dev": "npx wrangler pages dev dist --port 8788",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
