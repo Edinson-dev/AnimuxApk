@@ -8,9 +8,6 @@ export async function onRequest(context) {
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Expose-Headers': '*',
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
   };
 
   if (request.method === 'OPTIONS') {
@@ -27,28 +24,36 @@ export async function onRequest(context) {
   try {
     const targetUrl = new URL(target);
     const targetOrigin = targetUrl.origin;
+    const isVideoSegment = target.includes('.ts') || target.includes('.mp4') || target.includes('.m4s') || target.includes('.aac');
 
     const response = await fetch(target, {
       method: 'GET',
       headers: {
         'User-Agent': request.headers.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
-        'Accept-Language': 'es-ES,es;q=0.9',
         'Referer': targetOrigin + '/',
         'Origin': targetOrigin,
-        'X-Forwarded-For': request.headers.get('CF-Connecting-IP') || '1.1.1.1',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
-      cf: { cacheTtl: (target.includes('.ts') || target.includes('.mp4')) ? 600 : 0 }
+      cf: { cacheTtl: isVideoSegment ? 600 : 0 }
     });
 
     const contentType = response.headers.get('content-type') || '';
-    
-    // Setup headers
     const headers = new Headers();
     headers.set('Content-Type', contentType);
+    
+    // Aplicar CORS
     Object.keys(corsHeaders).forEach(key => headers.set(key, corsHeaders[key]));
+
+    // CACHE DINÁMICA: Video se cachea, Listas no.
+    if (isVideoSegment) {
+      headers.set('Cache-Control', 'public, max-age=600');
+    } else {
+      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      headers.set('Pragma', 'no-cache');
+      headers.set('Expires', '0');
+    }
 
     // ── REESCRIBIR M3U8 (Forzar proxy en todos los fragmentos) ──
     if (contentType.includes('mpegurl') || contentType.includes('m3u8') || target.toLowerCase().includes('.m3u8')) {
