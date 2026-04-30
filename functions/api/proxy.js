@@ -5,7 +5,7 @@ export async function onRequest(context) {
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Expose-Headers': '*',
   };
@@ -22,12 +22,11 @@ export async function onRequest(context) {
   }
 
   try {
-    const targetUrl = new URL(target);
-    const targetOrigin = targetUrl.origin;
-    const isVideoSegment = target.includes('.ts') || target.includes('.mp4') || target.includes('.m4s') || target.includes('.aac');
-    const isM3U8Request = target.toLowerCase().includes('.m3u8') || target.toLowerCase().includes('/play/');
+    const targetLower = target.toLowerCase();
+    const isVideoSegment = targetLower.includes('.ts') || targetLower.includes('.mp4') || targetLower.includes('.m4s') || targetLower.includes('.aac');
+    const isM3U8 = targetLower.includes('.m3u8') || targetLower.includes('/play/');
 
-    // AbortController para timeout de 12s (evita que Cloudflare cuelgue con IPs inaccesibles)
+    // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
@@ -36,55 +35,59 @@ export async function onRequest(context) {
       response = await fetch(target, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'application/x-mpegURL, application/vnd.apple.mpegurl, video/mp4, */*',
-          'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8',
-          'Referer': targetOrigin + '/',
-          'Origin': targetOrigin,
+          // VLC es la clave: los servidores IPTV colombianos tienen whitelist de VLC
+          'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
+          'Accept': '*/*',
+          'Icy-MetaData': '1',
           'Range': request.headers.get('Range') || '',
           'Connection': 'keep-alive',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
         },
         redirect: 'follow',
         signal: controller.signal,
-        cf: { cacheTtl: isVideoSegment ? 600 : 0, cacheEverything: isVideoSegment }
+        cf: { cacheTtl: isVideoSegment ? 30 : 0, cacheEverything: false }
       });
     } finally {
       clearTimeout(timeoutId);
     }
 
-    const contentType = response.headers.get('content-type') || '';
+    // ── Determinar Content-Type correcto ──
+    // Forzar el Content-Type basado en extensión si el servidor no lo envía bien
+    let contentType = response.headers.get('content-type') || '';
+    if (isVideoSegment) {
+      if (targetLower.includes('.ts'))  contentType = 'video/mp2t';
+      else if (targetLower.includes('.mp4') || targetLower.includes('.m4s')) contentType = 'video/mp4';
+      else if (targetLower.includes('.aac')) contentType = 'audio/aac';
+    } else if (isM3U8 && !contentType.includes('mpegurl') && !contentType.includes('m3u')) {
+      contentType = 'application/x-mpegURL';
+    }
+
     const headers = new Headers();
     headers.set('Content-Type', contentType);
-    
-    // Pasar Set-Cookie solo si el servidor lo envía
-    const setCookie = response.headers.get('Set-Cookie');
-    if (setCookie) headers.set('Set-Cookie', setCookie);
-    
+
     // Soporte para streaming y rangos
     const contentRange = response.headers.get('Content-Range');
     const acceptRanges = response.headers.get('Accept-Ranges');
-    if (contentRange) headers.set('Content-Range', contentRange);
-    if (acceptRanges) headers.set('Accept-Ranges', acceptRanges);
-    
-    // CORS TOTALMENTE ABIERTO
+    const contentLength = response.headers.get('Content-Length');
+    if (contentRange)  headers.set('Content-Range', contentRange);
+    if (acceptRanges)  headers.set('Accept-Ranges', acceptRanges);
+    if (contentLength && isVideoSegment) headers.set('Content-Length', contentLength);
+
+    // CORS abierto
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
     headers.set('Access-Control-Allow-Headers', '*');
     headers.set('Access-Control-Expose-Headers', '*');
-    headers.set('Access-Control-Allow-Credentials', 'true');
 
-    // CACHE DINÁMICA: Video se cachea, Listas no.
+    // Cache: segmentos cortos (vivo), playlists nunca
     if (isVideoSegment) {
-      headers.set('Cache-Control', 'public, max-age=600');
+      headers.set('Cache-Control', 'public, max-age=30');
     } else {
-      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
 
-    // Si el servidor de IPTV devuelve un error, lo pasamos tal cual al reproductor
+    // Si el servidor IPTV devuelve error, lo pasamos directamente
     if (!response.ok) {
       return new Response(response.body, {
         status: response.status,
@@ -92,89 +95,74 @@ export async function onRequest(context) {
       });
     }
 
-    // ── REESCRIBIR M3U8 (Forzar proxy en todos los fragmentos) ──
-    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || isM3U8Request) {
+    // ── REESCRIBIR M3U8 ──
+    // CRÍTICO: verificar isVideoSegment PRIMERO — nunca reescribir binarios .ts como texto
+    if (!isVideoSegment && (contentType.includes('mpegurl') || contentType.includes('m3u') || isM3U8)) {
       const text = await response.text();
-      
-      // Usar la URL ORIGINAL del target (no la URL de respuesta del proxy) como base
-      // Esto evita que los segmentos relativos se resuelvan incorrectamente
+
+      // Base para resolver URLs relativas — usar URL final tras redirects
       const baseForResolution = response.url && response.url !== target ? response.url : target;
       const baseUrlObj = new URL(baseForResolution);
       const basePath = baseForResolution.substring(0, baseForResolution.lastIndexOf('/') + 1);
-
       const proxyBase = `${urlParams.origin}/api/proxy?url=`;
 
       const lines = text.split('\n');
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        
-        // 1. Reescribir sub-playlists y fragmentos de video/audio directos
+
+        // Segmentos y sub-playlists (líneas sin #)
         if (line && !line.startsWith('#')) {
-          let absoluteUrl;
+          let abs;
           if (line.startsWith('http://') || line.startsWith('https://')) {
-            absoluteUrl = line;
+            abs = line;
           } else if (line.startsWith('//')) {
-            absoluteUrl = 'http:' + line;
+            abs = 'http:' + line;
           } else if (line.startsWith('/')) {
-            absoluteUrl = baseUrlObj.origin + line;
+            abs = baseUrlObj.origin + line;
           } else {
-            absoluteUrl = basePath + line;
+            abs = basePath + line;
           }
-          lines[i] = proxyBase + encodeURIComponent(absoluteUrl);
+          lines[i] = proxyBase + encodeURIComponent(abs);
         }
-        // 2. Reescribir sub-playlists en EXT-X-STREAM-INF (multi-bitrate)
-        else if (line.startsWith('#EXT-X-STREAM-INF')) {
-          // la línea siguiente es la URL del stream, se procesa en la siguiente iteración
-        }
-        // 3. Reescribir pistas de audio separadas (EXT-X-MEDIA)
+        // EXT-X-MEDIA (pistas de audio separadas)
         else if (line.startsWith('#EXT-X-MEDIA')) {
-          const uriMatch = line.match(/URI="([^"]+)"/);
-          if (uriMatch && uriMatch[1]) {
-            let mediaUrl = uriMatch[1];
-            let absoluteMedia = mediaUrl.startsWith('http') ? mediaUrl : (mediaUrl.startsWith('/') ? baseUrlObj.origin + mediaUrl : basePath + mediaUrl);
-            lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteMedia)}"`);
+          const m = line.match(/URI="([^"]+)"/);
+          if (m) {
+            const abs = m[1].startsWith('http') ? m[1] : (m[1].startsWith('/') ? baseUrlObj.origin + m[1] : basePath + m[1]);
+            lines[i] = line.replace(`URI="${m[1]}"`, `URI="${proxyBase + encodeURIComponent(abs)}"`);
           }
         }
-        // 4. Reescribir llaves de encriptación (.key)
+        // EXT-X-KEY (cifrado)
         else if (line.startsWith('#EXT-X-KEY')) {
-          const uriMatch = line.match(/URI="([^"]+)"/);
-          if (uriMatch && uriMatch[1]) {
-            let keyUrl = uriMatch[1];
-            let absoluteKey = keyUrl.startsWith('http') ? keyUrl : (keyUrl.startsWith('/') ? baseUrlObj.origin + keyUrl : basePath + keyUrl);
-            lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteKey)}"`);
+          const m = line.match(/URI="([^"]+)"/);
+          if (m) {
+            const abs = m[1].startsWith('http') ? m[1] : (m[1].startsWith('/') ? baseUrlObj.origin + m[1] : basePath + m[1]);
+            lines[i] = line.replace(`URI="${m[1]}"`, `URI="${proxyBase + encodeURIComponent(abs)}"`);
           }
         }
-        // 5. Reescribir mapas de inicialización (EXT-X-MAP)
+        // EXT-X-MAP (init segment CMAF)
         else if (line.startsWith('#EXT-X-MAP')) {
-          const uriMatch = line.match(/URI="([^"]+)"/);
-          if (uriMatch && uriMatch[1]) {
-            let mapUrl = uriMatch[1];
-            let absoluteMap = mapUrl.startsWith('http') ? mapUrl : (mapUrl.startsWith('/') ? baseUrlObj.origin + mapUrl : basePath + mapUrl);
-            lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteMap)}"`);
+          const m = line.match(/URI="([^"]+)"/);
+          if (m) {
+            const abs = m[1].startsWith('http') ? m[1] : (m[1].startsWith('/') ? baseUrlObj.origin + m[1] : basePath + m[1]);
+            lines[i] = line.replace(`URI="${m[1]}"`, `URI="${proxyBase + encodeURIComponent(abs)}"`);
           }
         }
       }
-      return new Response(lines.join('\n'), {
-        status: response.status,
-        headers: headers
-      });
+
+      return new Response(lines.join('\n'), { status: 200, headers });
     }
 
-    // ── STREAMING DE BINARIOS (.TS, .MP4) ──
-    return new Response(response.body, {
-      status: response.status,
-      headers: headers
-    });
+    // ── BINARIOS: .ts, .mp4, etc. ──
+    return new Response(response.body, { status: response.status, headers });
 
   } catch (error) {
     const isTimeout = error.name === 'AbortError';
-    const statusCode = isTimeout ? 504 : 502;
-    const message = isTimeout
-      ? 'Gateway Timeout: El servidor de stream no respondió en 12s'
-      : `Proxy failed: ${error.message}`;
-    
-    return new Response(JSON.stringify({ error: message, url: target }), {
-      status: statusCode,
+    return new Response(JSON.stringify({
+      error: isTimeout ? 'Timeout: servidor no respondió en 12s' : `Proxy error: ${error.message}`,
+      url: target
+    }), {
+      status: isTimeout ? 504 : 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

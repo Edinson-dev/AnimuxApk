@@ -152,24 +152,22 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       }
 
       const urlLower = currentUrl.toLowerCase();
-      // Detección refinada: .m3u8, mp2.uk, o links de servidores colombianos tipo /play/
-      const isM3U8 = urlLower.includes('.m3u8') || 
-                     urlLower.includes('mp2.uk') || 
-                     (currentUrl.includes('/play/') && !urlLower.includes('.mp4') && !urlLower.includes('.mkv'));
-      
-      const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
-
-      // Determinamos si necesitamos proxy
       const isProd = window.location.protocol === 'https:';
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const isExternal = currentUrl.startsWith('http');
-      // Dominios CDN con CORS abierto — NO necesitan pasar por el proxy
-      // Reproducirlos directo reduce latencia de 1-2s a ~200ms
-      const CORS_FRIENDLY = ['jmp2.uk', 'github.io', 'archive.org', 'cloudfront.net', 'githubusercontent.com'];
-      const isCORSFriendly = CORS_FRIENDLY.some(d => currentUrl.includes(d));
 
-      // Forzamos proxy en prod y local, EXCEPTO para CDNs con CORS nativo
-      const needsProxy = !isCORSFriendly && ((isProd && isExternal) || (isLocal && isExternal));
+      // Detección de tipo de stream
+      // .ts directo se trata como HLS: el proxy lo sirve con Content-Type correcto
+      const isM3U8 = urlLower.includes('.m3u8') ||
+                     urlLower.includes('jmp2.uk') ||
+                     urlLower.includes('.ts') ||
+                     (currentUrl.includes('/play/') && !urlLower.includes('.mp4') && !urlLower.includes('.mkv'));
+
+      const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3'].some(e => urlLower.includes(e));
+
+      // TODOS los streams externos siempre pasan por el proxy
+      // El proxy gestiona CORS — sin excepciones
+      const needsProxy = isExternal && (isProd || isLocal);
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
