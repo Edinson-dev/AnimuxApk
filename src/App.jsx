@@ -19,7 +19,7 @@ import AdminPanel from './components/core/AdminPanel';
 import LegalModal from './components/ui/LegalModal';
 import InstallGuide from './components/ui/InstallGuide';
 
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1';
 
 export default function App() {
   const {
@@ -208,48 +208,56 @@ export default function App() {
     return recentlyWatched.map(id => allUnique.find(c => String(c.id) === String(id))).filter(Boolean).slice(0, 12);
   }, [recentlyWatched, allUnique]);
 
-  // ── Custom Splash Screen (Minimalist Netflix Style) ─────────────────────────
   if (isAppLoading) {
     return (
       <div className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center font-sans overflow-hidden">
-        <div className="flex flex-col items-center gap-6 animate-pulse">
-          {/* Logo Central */}
-          <div className="w-32 h-32 md:w-40 md:h-40">
-            <img
-              src="/icon-192.png"
-              alt="Animux Logo"
-              className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-            />
+        {/* Animated Background Nebula */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-rose-600/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center gap-10">
+          {/* Logo con Glow Radiante */}
+          <div className="relative group scale-110">
+            <div className="absolute inset-0 bg-rose-600 rounded-full blur-[40px] opacity-20 animate-pulse" />
+            <div className="relative w-24 h-24 md:w-32 md:h-32 p-4 bg-white/5 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl flex items-center justify-center transform animate-float">
+              <img
+                src="/icon-192.png"
+                alt="Animux Logo"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]"
+              />
+            </div>
           </div>
 
-          {/* Titulo con Estilo Netflix */}
-          <div className="text-center space-y-4">
-            <div className="space-y-1">
-              <h1 className="text-4xl md:text-5xl font-black text-rose-600 tracking-tighter uppercase">
+          {/* Titulo Cinematográfico */}
+          <div className="text-center space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 tracking-[-0.05em] uppercase animate-letter-spacing">
                 ANIMUX
               </h1>
-              <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-[0.4em]">
-                Streaming de alta fidelidad
-              </p>
+              <div className="flex items-center justify-center gap-3 opacity-0 animate-fade-in animation-delay-500">
+                <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-rose-600" />
+                <p className="text-[10px] md:text-xs text-rose-500 font-black uppercase tracking-[0.5em]">
+                  Premium Streaming
+                </p>
+                <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-rose-600" />
+              </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-48 h-[2px] bg-white/10 rounded-full overflow-hidden mx-auto">
-              <div className="h-full bg-rose-600 rounded-full animate-loading-bar" />
+            {/* Progress Bar Luxury */}
+            <div className="w-48 h-[3px] bg-white/5 rounded-full overflow-hidden mx-auto border border-white/5">
+              <div className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full animate-loading-bar shadow-[0_0_10px_rgba(225,29,72,0.8)]" />
             </div>
           </div>
         </div>
 
-        {/* Info de Desarrollo (Footer) */}
-        <div className="absolute bottom-12 text-center space-y-2 opacity-60">
-          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full inline-block">
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-              Versión {APP_VERSION} • Stable Build
-            </p>
-          </div>
-          <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest block">
-            © 2026 Desarrollo Independiente
+        {/* Footer Info */}
+        <div className="absolute bottom-10 text-center space-y-2 opacity-30 animate-fade-in animation-delay-700">
+          <p className="text-[9px] font-black text-white uppercase tracking-[0.3em]">
+            V{APP_VERSION} • Sistema Verificado
           </p>
+          <div className="w-1 h-1 bg-rose-600 rounded-full mx-auto animate-ping" />
         </div>
       </div>
     );

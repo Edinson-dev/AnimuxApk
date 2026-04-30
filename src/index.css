@@ -128,14 +128,36 @@
 }
 
 @keyframes loading-bar {
-  0% { transform: translateY(100%); }
-  50% { transform: translateY(0); }
-  100% { transform: translateY(100%); }
+  0%   { width: 0%;   transform: translateX(-100%); }
+  50%  { width: 70%;  transform: translateX(0); }
+  100% { width: 100%;  transform: translateX(0); }
+}
+
+@keyframes letter-spacing {
+  0% { letter-spacing: -0.5em; opacity: 0; filter: blur(10px); }
+  40% { letter-spacing: 0.1em; opacity: 1; filter: blur(0); }
+  100% { letter-spacing: 0.05em; opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.02); }
 }
 
 .animate-loading-bar {
-  animation: loading-bar 1.5s ease-in-out infinite;
+  animation: loading-bar 2.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
 }
+
+.animate-letter-spacing {
+  animation: letter-spacing 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animation-delay-500 { animation-delay: 500ms; }
+.animation-delay-700 { animation-delay: 700ms; }
 
 /* Skeleton Loading Animation */
 @keyframes skeleton-pulse {
