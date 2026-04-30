@@ -72,28 +72,50 @@ export default function App() {
       }
 
       setIsAppLoading(true);
-      const [catSnapshot, chanSnapshot, movSnapshot] = await Promise.all([
+
+      // Fetch everything in parallel: Firebase + Local JSONs
+      const [catSnapshot, chanSnapshot, movSnapshot, m3uRes, localRes] = await Promise.all([
         getDocs(collection(db, 'categories')),
         getDocs(collection(db, 'channels')),
-        getDocs(collection(db, 'movies'))
+        getDocs(collection(db, 'movies')),
+        fetch('/m3u_channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] })),
+        fetch('/channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] }))
       ]);
 
+      // Firebase Data
       const cats = catSnapshot.docs.map(doc => doc.data().name);
-      const chans = chanSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      const movs = movSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true }));
+      const firebaseChans = chanSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
+      const firebaseMovs = movSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, fromCloud: true }));
+
+      // Merge Channels: Local M3U + Public JSON + Firebase
+      // Prioritize M3U and Firebase over general public channels
+      const allChans = [
+        ...m3uRes.channels.map(c => ({ ...c, isExternal: true })),
+        ...firebaseChans,
+        ...localRes.channels.map(c => ({ ...c, isLocal: true }))
+      ];
+
+      // Merge Movies
+      const allMovs = [...firebaseMovs];
 
       setCloudCategories(cats);
-      setChannelData({ channels: chans });
-      setLocalMovies(movs);
+      setChannelData({ channels: allChans });
+      setLocalMovies(allMovs);
       
       localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
-      localStorage.setItem('animux_cache_chans', JSON.stringify(chans));
-      localStorage.setItem('animux_cache_movs', JSON.stringify(movs));
+      localStorage.setItem('animux_cache_chans', JSON.stringify(allChans));
+      localStorage.setItem('animux_cache_movs', JSON.stringify(allMovs));
       localStorage.setItem('animux_last_fetch', now.toString());
       setLastSyncTime(now.toString());
 
-    } catch (err) { console.error(err); }
-    finally { setIsAppLoading(false); }
+    } catch (err) { 
+      console.error('Error loading app data:', err);
+      toast.error('Error al sincronizar contenidos');
+    }
+    finally { 
+      // Pequeño delay artificial para que el splash se vea profesional
+      setTimeout(() => setIsAppLoading(false), 2000);
+    }
   };
 
   const forceRefresh = () => loadData(true);
@@ -106,7 +128,17 @@ export default function App() {
   const allUnique = useMemo(() => {
     let base = [...localMovies, ...channelData.channels].filter(c => !brokenChannels.includes(String(c.id)));
     const deleted = JSON.parse(localStorage.getItem('animux_deleted') || '[]');
-    return base.filter(c => !deleted.includes((c.name || c.title || '').toLowerCase().trim()));
+    
+    // Deduplicación por nombre para evitar repetidos entre Local y Firebase
+    const unique = new Map();
+    base.forEach(item => {
+      const name = (item.name || item.title || '').toLowerCase().trim();
+      if (!deleted.includes(name) && !unique.has(name)) {
+        unique.set(name, item);
+      }
+    });
+    
+    return Array.from(unique.values());
   }, [localMovies, channelData, brokenChannels]);
 
   const filteredChannels = useMemo(() => {
@@ -144,66 +176,53 @@ export default function App() {
     return chCat === target || chCat.includes(target);
   };
 
-  // ── Custom Splash Screen (Premium) ─────────────────────────────────────────
+  // ── Custom Splash Screen (Minimalist Netflix Style) ─────────────────────────
   if (isAppLoading) {
     return (
-      <div className="h-[100dvh] w-full bg-[#020206] flex flex-col items-center justify-center relative overflow-hidden font-sans">
-        {/* Fondo con efectos de luz dinámica */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/5 blur-[120px] rounded-full animate-pulse [animation-delay:1s]" />
-        
-        {/* Contenedor Central */}
-        <div className="z-10 flex flex-col items-center gap-8 animate-fade-in">
-          {/* Logo con Resplandor Animado */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-full animate-pulse group-hover:bg-blue-600/40 transition-all duration-700" />
-            <div className="relative w-28 h-28 md:w-36 md:h-36 bg-gradient-to-tr from-white/10 to-white/5 border border-white/10 backdrop-blur-2xl rounded-[2.5rem] flex items-center justify-center shadow-2xl p-6 overflow-hidden">
-              <img 
-                src="/icon-192.png" 
-                alt="Animux" 
-                className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" 
-              />
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-            </div>
+      <div className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center font-sans overflow-hidden">
+        <div className="flex flex-col items-center gap-6 animate-pulse">
+          {/* Logo Central */}
+          <div className="w-32 h-32 md:w-40 md:h-40">
+            <img 
+              src="/icon-192.png" 
+              alt="Animux Logo" 
+              className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            />
           </div>
-
-          {/* Nombre y Versión */}
-          <div className="flex flex-col items-center gap-2">
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-[0.2em] uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
-              Animux
+          
+          {/* Titulo con Estilo Netflix */}
+          <div className="text-center space-y-1">
+            <h1 className="text-4xl md:text-5xl font-black text-rose-600 tracking-tighter uppercase">
+              ANIMUX
             </h1>
-            <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
-              <p className="text-[10px] font-black text-blue-500 tracking-[0.3em] uppercase">
-                Sistema v{APP_VERSION}
-              </p>
-            </div>
-          </div>
-
-          {/* Barra de Progreso Minimalista */}
-          <div className="w-48 h-[2px] bg-white/5 rounded-full overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 w-full animate-pulse" />
-          </div>
-
-          {/* Mensajes de Estado Dinámicos */}
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-[9px] font-bold text-white/40 tracking-[0.4em] uppercase animate-pulse">
-              Optimizando Biblioteca...
+            <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-[0.4em]">
+              Streaming de alta fidelidad
             </p>
           </div>
         </div>
 
-        {/* Footer info */}
-        <div className="absolute bottom-12 flex flex-col items-center gap-3 animate-fade-in opacity-40">
-          <p className="text-[9px] font-bold text-gray-500 tracking-widest uppercase">Streaming de alta fidelidad</p>
-          <div className="flex gap-4">
-             <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-             <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-             <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
+        {/* Info de Desarrollo (Footer) */}
+        <div className="absolute bottom-12 text-center space-y-2 opacity-60">
+          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full inline-block">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+              Versión {APP_VERSION} • Stable Build
+            </p>
           </div>
+          <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest block">
+            © 2026 Desarrollo Independiente
+          </p>
+        </div>
+
+        {/* Loader Minimalista */}
+        <div className="absolute bottom-24 flex gap-1.5">
+          <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+          <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
