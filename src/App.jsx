@@ -269,44 +269,120 @@ export default function App() {
           <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-4 md:py-6 space-y-6 md:space-y-10">
             
             {activeCategory === 'Inicio' && !searchQuery ? (
-              <div className="space-y-8 animate-fade-in">
+              <div className="space-y-12 animate-fade-in">
                 <Hero featuredChannel={allUnique.find(m => m.featured) || allUnique[0]} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
 
-                {recentChannels.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg md:text-xl font-black uppercase tracking-widest border-l-4 border-blue-600 pl-3">Continúa Viendo</h3>
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-                      {recentChannels.map(c => <div key={c.id} className="w-[110px] md:w-[160px] shrink-0"><ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} /></div>)}
+                {/* Fila 1: Añadidos Recientemente (Solo los marcados como Nuevos) */}
+                {allUnique.filter(c => c.isNew).length > 0 && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Estrenos Exclusivos</h3>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                      {allUnique.filter(c => c.isNew).slice(0, 10).map(c => (
+                        <div key={c.id} className="w-[140px] md:w-[220px] shrink-0 transform transition-transform hover:scale-105 duration-300">
+                          <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {allCategories.filter(c => c !== 'Favoritos' && c !== 'Nuevos').map(cat => {
+                {/* Fila 2: Deportes en Vivo */}
+                {allUnique.filter(c => matchesCat(c, 'deportes')).length > 0 && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Deportes en Vivo</h3>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                      {allUnique.filter(c => matchesCat(c, 'deportes')).slice(0, 15).map(c => (
+                        <div key={c.id} className="w-[160px] md:w-[260px] shrink-0">
+                          <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fila 3: Cine Premium (VOD) */}
+                {allUnique.filter(c => c.isVOD).length > 0 && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Cine de Taquilla</h3>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                      {allUnique.filter(c => c.isVOD).slice(0, 15).map(c => (
+                        <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                          <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fila 4: Continuar Viendo */}
+                {recentChannels.length > 0 && (
+                  <div className="space-y-5 bg-white/[0.02] p-6 rounded-3xl border border-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                        <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto no-scrollbar">
+                      {recentChannels.map(c => (
+                        <div key={c.id} className="w-[120px] md:w-[180px] shrink-0 opacity-80 hover:opacity-100 transition-opacity">
+                          <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resto de Categorías dinámicas */}
+                {allCategories.filter(c => !['Favoritos', 'Nuevos', 'Inicio', 'Deportes', 'Cine', 'Películas'].includes(c)).map(cat => {
                   const target = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
                   const items = allUnique.filter(c => matchesCat(c, target));
                   if (!items.length) return null;
                   return (
-                    <div key={cat} className="space-y-4">
+                    <div key={cat} className="space-y-5">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg md:text-xl font-black uppercase tracking-widest border-l-4 border-white/20 pl-3">{cat}</h3>
-                        <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-tighter">Ver todo</button>
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-6 bg-white/20 rounded-full" />
+                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">{cat}</h3>
+                        </div>
+                        <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest bg-rose-500/10 px-4 py-2 rounded-full transition-all">Explorar Todo</button>
                       </div>
-                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-                        {items.slice(0, 15).map(c => <div key={c.id} className="w-[110px] md:w-[160px] shrink-0"><ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} /></div>)}
+                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        {items.slice(0, 15).map(c => <div key={c.id} className="w-[130px] md:w-[200px] shrink-0"><ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} /></div>)}
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3 md:gap-4">
-                {filteredChannels.slice(0, visibleCount).map(c => (
-                  <ChannelCard key={c.id} channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={(id) => {
-                    const next = favorites.includes(String(id)) ? favorites.filter(f => f !== String(id)) : [...favorites, String(id)];
-                    setFavorites(next);
-                    localStorage.setItem('animux_favs', JSON.stringify(next));
-                  }} />
-                ))}
+              <div className="animate-fade-in">
+                <div className="flex items-center justify-between mb-8">
+                   <div className="flex items-center gap-3">
+                      <div className="w-2 h-8 bg-rose-600 rounded-full" />
+                      <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">{activeCategory}</h2>
+                   </div>
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                     {filteredChannels.length} Resultados
+                   </p>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
+                  {filteredChannels.slice(0, visibleCount).map(c => (
+                    <ChannelCard key={c.id} channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={(id) => {
+                      const next = favorites.includes(String(id)) ? favorites.filter(f => f !== String(id)) : [...favorites, String(id)];
+                      setFavorites(next);
+                      localStorage.setItem('animux_favs', JSON.stringify(next));
+                    }} />
+                  ))}
+                </div>
               </div>
             )}
           </div>

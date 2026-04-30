@@ -33,12 +33,22 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
 
         {/* Quality/Type Badge */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          <span className={`px-2 py-0.5 border border-white/10 rounded text-[8px] font-black text-white uppercase tracking-widest ${isVOD ? 'bg-black/80' : 'bg-rose-600'}`}>
-            {badgeText}
-          </span>
+          <div className={`px-2 py-1 border border-white/10 rounded-lg flex items-center gap-1.5 shadow-lg ${isVOD ? 'bg-black/80' : 'bg-rose-600'}`}>
+            {!isVOD && (
+              <div className="flex items-end gap-0.5 h-3">
+                <div className="waveform-bar" style={{ animationDelay: '0s' }} />
+                <div className="waveform-bar" style={{ animationDelay: '0.2s' }} />
+                <div className="waveform-bar" style={{ animationDelay: '0.4s' }} />
+              </div>
+            )}
+            <span className="text-[8px] font-black text-white uppercase tracking-widest">
+              {badgeText}
+            </span>
+          </div>
+          
           {channel.isNew && (
-            <span className="px-2 py-0.5 bg-green-500 border border-green-400/30 rounded text-[7px] font-black text-white uppercase tracking-tighter">
-              Nuevo
+            <span className="px-2 py-1 bg-white text-black border border-white/10 rounded-lg text-[7px] font-black uppercase tracking-tighter shadow-xl">
+              TOP 10
             </span>
           )}
         </div>
