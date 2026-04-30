@@ -32,8 +32,9 @@ export async function onRequest(context) {
         'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
         'Accept': '*/*',
         'Range': request.headers.get('Range') || '',
-        'X-Forwarded-For': '181.78.8.199', // Simular IP de Colombia (ETB)
-        'X-Real-IP': '181.78.8.199',
+        'X-Forwarded-For': '181.61.1.123', // IP Residencial Bogotá
+        'X-Real-IP': '181.61.1.123',
+        'Cookie': request.headers.get('Cookie') || '',
         'Accept-Encoding': 'identity',
         'Connection': 'keep-alive'
       },
@@ -44,6 +45,10 @@ export async function onRequest(context) {
     const contentType = response.headers.get('content-type') || '';
     const headers = new Headers();
     headers.set('Content-Type', contentType);
+    
+    // Pasar Set-Cookie solo si el servidor lo envía
+    const setCookie = response.headers.get('Set-Cookie');
+    if (setCookie) headers.set('Set-Cookie', setCookie);
     
     // Soporte para streaming y rangos
     const contentRange = response.headers.get('Content-Range');
