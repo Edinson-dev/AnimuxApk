@@ -29,20 +29,13 @@ export async function onRequest(context) {
     const response = await fetch(target, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
         'Accept': '*/*',
         'Accept-Language': 'es-ES,es;q=0.9',
         'Referer': targetOrigin + '/',
-        'Origin': targetOrigin,
-        'Range': request.headers.get('Range') || '',
-        'X-Forwarded-For': '181.61.1.123',
-        'X-Real-IP': '181.61.1.123',
-        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'cross-site',
+        'X-Forwarded-For': '181.78.1.1', // IP ETB Colombia
+        'X-Real-IP': '181.78.1.1',
+        'X-Requested-With': 'com.mxtech.videoplayer.ad',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
@@ -91,12 +84,21 @@ export async function onRequest(context) {
       const lines = text.split('\n');
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        // Reescribir .ts y .aac
+        // 1. Reescribir fragmentos de video/audio directos
         if (line && !line.startsWith('#')) {
           let absoluteUrl = line.startsWith('http') ? line : (line.startsWith('/') ? baseUrlObj.origin + line : basePath + line);
           lines[i] = proxyBase + encodeURIComponent(absoluteUrl);
         }
-        // Reescribir llaves de encriptación (.key)
+        // 2. Reescribir pistas de audio separadas (EXT-X-MEDIA)
+        else if (line.startsWith('#EXT-X-MEDIA')) {
+          const uriMatch = line.match(/URI="([^"]+)"/);
+          if (uriMatch && uriMatch[1]) {
+            let mediaUrl = uriMatch[1];
+            let absoluteMedia = mediaUrl.startsWith('http') ? mediaUrl : (mediaUrl.startsWith('/') ? baseUrlObj.origin + mediaUrl : basePath + mediaUrl);
+            lines[i] = line.replace(`URI="${uriMatch[1]}"`, `URI="${proxyBase + encodeURIComponent(absoluteMedia)}"`);
+          }
+        }
+        // 3. Reescribir llaves de encriptación (.key)
         else if (line.startsWith('#EXT-X-KEY')) {
           const uriMatch = line.match(/URI="([^"]+)"/);
           if (uriMatch && uriMatch[1]) {
