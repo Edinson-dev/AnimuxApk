@@ -1,50 +1,67 @@
-# 🚀 Animux (StreamTV) - Documentación del Proyecto
+# Animux Streaming Platform 🚀
 
-Bienvenido a la documentación de la estructura del código de Animux. 
-Esta guía rápida te permitirá saber a qué archivo exacto debes ir si deseas modificar funciones, estilos o lógicas de negocio en el futuro.
+Manual técnico y guía de estructura para el mantenimiento de la plataforma.
 
-## 📂 Arquitectura Principal (Core)
-
-*   `src/App.jsx` **(El Cerebro de la App)**
-    *   **¿Qué hace?** Es el punto de entrada principal. Maneja toda la memoria de la aplicación, el "Splash Screen" (pantalla de carga), controla el caché de los navegadores (localStorage), y decide qué lista de categorías mostrar (`baseCats`).
-    *   **Edítalo si:** Quieres agregar una categoría maestra nueva, cambiar la lógica de carga inicial, o modificar qué pantalla se muestra cuando alguien busca un canal.
-
-*   `api/proxy.js` **(El Rompe-Bloqueos)**
-    *   **¿Qué hace?** Es una función Serverless de Vercel. Recibe un canal de Xtream Codes, se disfraza de reproductor "VLC" y reescribe internamente todos los fragmentos `.ts` y `.key` de un `.m3u8`. Su objetivo es evadir errores CORS y "GEO-BLOCKED".
-    *   **Edítalo si:** Cambia el sistema de seguridad de los proveedores IPTV, si Vercel cambia políticas de streaming, o si quieres añadir cabeceras (headers) más agresivas.
-
-*   `src/components/core/Player.jsx` **(El Reproductor HLS)**
-    *   **¿Qué hace?** Es el corazón visual del streaming. Usa la librería `Hls.js` para los videos en vivo. Tiene la lógica del "Fallback" (si el servidor actual se cae o da error, intenta cargar el siguiente canal de la lista).
-    *   **Edítalo si:** Quieres mejorar el buffer, añadir un nuevo reproductor (ej. Video.js), o personalizar qué pasa si un canal da error de red.
-
-*   `src/components/core/AdminPanel.jsx` **(Panel de Control Oculto)**
-    *   **¿Qué hace?** Se activa al tocar 5 veces el logo de "Animux". Permite Añadir/Editar/Eliminar canales y guardarlos en Firebase.
-    *   **Edítalo si:** Quieres añadir campos nuevos a los canales (como "Idioma" o "País") o si quieres modificar las categorías que aparecen en el dropdown.
-
-*   `src/config/servers.js` **(El Motor Xtream Codes)**
-    *   **¿Qué hace?** Contiene los arrays de todos tus servidores IPTV privados/públicos. Arma las URLs de usuario/contraseña, y desencripta las URL camufladas.
-    *   **Edítalo si:** Tienes que añadir nuevos servidores Xtream de respaldo o modificar la forma en la que se generan los streams.
-
-## 📱 Diseño y Navegación (Layout)
-
-*   `src/components/layout/BottomNav.jsx` **(Barra Inferior Móvil)**
-    *   **¿Qué hace?** Dibuja los 5 iconos flotantes en la parte inferior de los teléfonos celulares (Inicio, Música, Deportes, Favoritos, Buscar).
-    *   **Edítalo si:** Quieres cambiar un ícono inferior o poner un atajo nuevo.
-
-*   `src/components/layout/Header.jsx` **(Barra Superior)**
-    *   **¿Qué hace?** Contiene la barra de búsqueda universal y el logo (que a su vez cuenta los clics para lanzar el panel de Admin).
-
-*   `src/components/layout/Sidebar.jsx` & `CategoryBar.jsx`
-    *   **¿Qué hacen?** El Sidebar es la barra izquierda que se ve en PCs y Tablets. El CategoryBar es la fila de botones deslizables horizontales debajo del buscador en móviles.
-
-## 💾 Bases de Datos (Data)
-
-*   `public/channels.json` & `public/m3u_channels.json` & `public/movies.json`
-    *   **¿Qué hacen?** Son tus listas en frío. Si Firebase (la base de la nube) excede su límite diario gratuito, Animux carga todos los miles de canales directamente de aquí para no dejar sin TV a tus usuarios.
-    *   **Edítalo si:** Quieres insertar listas masivas de cientos de canales con herramientas automatizadas.
-
-*   `src/config/firebase.js`
-    *   **¿Qué hace?** Tiene las llaves maestras para conectarte a Google Firebase Cloud Firestore (donde se guardan los canales que editas desde el panel Admin).
+## 📡 Arquitectura de Proxy & Relay
+La plataforma utiliza un sistema de dos niveles para garantizar la reproducción:
+1.  **Cloudflare Pages Function (`/functions/api/proxy.js`)**: Procesa todas las peticiones, inyecta headers CORS y decide si un canal es seguro o si está bloqueado por IP.
+2.  **Render Relay (Externo)**: Actúa como un puente (bridge) para las IPs colombianas (`181.78.x.x`) que bloquean a Cloudflare. **No requiere mantenimiento constante.**
 
 ---
-*Desarrollado en React + Vite + TailwindCSS. Listo para escalar a Progressive Web App (PWA).*
+
+## 📂 Guía de Carpetas y Archivos
+
+### 🎨 Frontend (`/src`)
+- **`/components/core/Player.jsx`**: El reproductor principal. Aquí se gestiona la lógica de qué canal necesita proxy.
+- **`/components/layout`**: Sidebar y estructura general de la página.
+- **`/hooks`**: Funciones que se conectan a Firebase para traer canales y categorías.
+
+## 🛠️ Mapa de Edición (¿Qué cambiar y dónde?)
+
+Si quieres modificar algo visual, busca el archivo correspondiente aquí:
+
+### Navegación y Menús (`src/components/layout`)
+- **`Sidebar.jsx`**: Edita el menú lateral de PC (Categorías, Logos).
+- **`BottomNav.jsx`**: Edita la barra de botones inferior para Celulares.
+- **`Navbar.jsx`**: Edita la barra superior (Buscador y Logo principal).
+- **`Hero.jsx`**: Edita el banner animado superior (el destacado estilo Apple TV).
+
+### Reproducción y Canales (`src/components/core`)
+- **`Player.jsx`**: El motor del video. Edita controles, tiempos de carga y lógica de proxy.
+- **`ChannelCard.jsx`**: Diseño de las tarjetas de canales (Efectos hover, tamaños).
+- **`CategorySection.jsx`**: Cómo se agrupan los canales por categorías en el inicio.
+
+### Ventanas y Diálogos (`src/components/modals`)
+- **`SettingsModal.jsx`**: Contenido de la ventana de ajustes/configuración.
+
+### 🧠 Backend (`/functions`)
+- **`/api/proxy.js`**: Gestiona el bypass de seguridad de los proveedores IPTV. Es el archivo que "engaña" al servidor para que crea que somos un reproductor VLC.
+
+### 🛠️ Scripts de Datos (Raíz)
+- **`fetch-*.cjs`**: Scripts para scrapear y actualizar canales.
+- **`build-ultimate-list.cjs`**: Script para consolidar bases de datos de canales.
+
+### ⚙️ Configuración
+- **`wrangler.toml`**: Configuración de Cloudflare Pages.
+- **`vite.config.js`**: Reglas de compilación y optimización PWA.
+- **`package.json`**: Listado de dependencias del proyecto.
+
+---
+
+## 🚀 Flujo de Trabajo (Mantenimiento)
+
+### 1. ¿Cómo actualizar la web?
+Simplemente realiza tus cambios en `src` y ejecuta:
+```bash
+npm run build
+git add -A
+git commit -m "Descripción del cambio"
+git push
+```
+Cloudflare actualizará la web automáticamente en 1 minuto.
+
+### 2. ¿Cómo agregar un canal bloqueado?
+Si agregas un canal que no carga, verifica su IP. Si empieza por algo nuevo (ej: `190.x.x.x`), agrégalo a la lista `BLOCKED_IPS` en `functions/api/proxy.js`.
+
+---
+Mantenido por Edinson-dev.

@@ -20,7 +20,7 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
         <img 
           src={channel.logo || channel.poster} 
           alt={channel.name || channel.title} 
-          className={`w-full h-full transition-transform duration-700 group-hover:scale-110 ${isVOD ? 'object-cover' : 'object-contain p-4'}`}
+          className={`w-full h-full transition-transform duration-700 group-hover:scale-110 ${isVOD ? 'object-cover' : 'object-contain p-1'}`}
           loading="lazy"
         />
         
