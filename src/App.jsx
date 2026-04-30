@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { X, Scale, Shield } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import Header from './components/layout/Header';
 import Hero from './components/ui/Hero';
@@ -16,8 +16,10 @@ import NewsBanner from './components/ui/NewsBanner';
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
+import LegalModal from './components/ui/LegalModal';
+import InstallGuide from './components/ui/InstallGuide';
 
-const APP_VERSION = '2.9';
+const APP_VERSION = '3.0';
 
 export default function App() {
   const {
@@ -46,6 +48,8 @@ export default function App() {
   const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('animux_last_fetch'));
   const [showInstall, setShowInstall] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showLegal, setShowLegal] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -258,6 +262,8 @@ export default function App() {
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         onGoHome={() => { setActiveCategory('Inicio'); setSearchQuery(''); setLogoClicks(p => p + 1 === 5 ? (setShowAdmin(true), 0) : p + 1); }}
         onForceRefresh={() => loadData(true)} 
+        onInstall={() => setShowInstallGuide(true)}
+        showInstall={showInstall}
         lastSync={lastSyncTime} 
         appVersion={APP_VERSION}
         needRefresh={needRefresh}
@@ -266,6 +272,7 @@ export default function App() {
         setIsSearchOpen={setIsSearchOpen}
         isKidsMode={isKidsMode}
         setIsKidsMode={setIsKidsMode}
+        onShowLegal={() => setShowLegal(true)}
       />
 
       <CategoryBar
@@ -278,6 +285,7 @@ export default function App() {
           categories={['Inicio', ...allCategories]} activeCategory={activeCategory}
           setActiveCategory={setActiveCategory} counts={categoryCounts} version={APP_VERSION}
           isKidsMode={isKidsMode} setIsKidsMode={setIsKidsMode}
+          onShowLegal={() => setShowLegal(true)}
         />
 
         <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-black pt-16 pb-24 md:pb-6">
@@ -468,6 +476,43 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* Footer de la Aplicación */}
+            <footer className="mt-20 pb-10 pt-10 border-t border-white/5 flex flex-col items-center gap-6 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+                  <img src="/icon-192.png" alt="Animux" className="w-6 h-6 opacity-50" />
+                </div>
+                <h2 className="text-sm font-black text-white/30 uppercase tracking-[0.4em]">Animux</h2>
+              </div>
+              
+              <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
+                <button 
+                  onClick={() => setShowLegal(true)}
+                  className="text-[10px] font-black text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-2"
+                >
+                  <Scale className="w-3 h-3" />
+                  Términos y Condiciones
+                </button>
+                <button 
+                  onClick={() => setShowLegal(true)}
+                  className="text-[10px] font-black text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-2"
+                >
+                  <Shield className="w-3 h-3" />
+                  Privacidad
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-[9px] text-gray-700 font-bold uppercase tracking-[0.2em]">
+                  Versión {APP_VERSION} • © {new Date().getFullYear()}
+                </p>
+                <p className="text-[8px] text-gray-800 font-medium max-w-[280px] leading-relaxed">
+                  Animux es un reproductor de medios independiente. No alojamos contenido en nuestros servidores.
+                  Edinson_Dev
+                </p>
+              </div>
+            </footer>
           </div>
         </main>
       </div>
@@ -477,6 +522,21 @@ export default function App() {
       {activeChannel && <Player channel={activeChannel} onClose={() => setActiveChannel(null)} />}
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onUpdate={loadData} />}
+      {showLegal && <LegalModal onClose={() => setShowLegal(false)} />}
+      {showInstallGuide && (
+        <InstallGuide 
+          onClose={() => setShowInstallGuide(false)} 
+          onInstall={() => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              deferredPrompt.userChoice.then(() => {
+                setDeferredPrompt(null);
+                setShowInstall(false);
+              });
+            }
+          }} 
+        />
+      )}
       
       <Toast />
       <NewsBanner />

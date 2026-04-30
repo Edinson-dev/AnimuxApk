@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Star, Tv, Film, Activity, Smile, Music, Zap, Heart, History, Layers, Monitor, RefreshCw, Flag, MapPin } from 'lucide-react';
+import { Home, Star, Tv, Film, Activity, Smile, Music, Zap, Heart, History, Layers, Monitor, RefreshCw, Flag, MapPin, Scale } from 'lucide-react';
 
 const ICON_MAP = {
   'inicio': Home,
@@ -21,7 +21,7 @@ const getCatIcon = (cat) => {
   return ICON_MAP[key] || Layers;
 };
 
-export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode }) {
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode, onShowLegal }) {
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
@@ -108,9 +108,18 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
           <RefreshCw className="w-4 h-4 group-hover:animate-spin" />
           <span className="text-[10px] font-black uppercase tracking-widest">Actualizar Datos</span>
         </button>
-        <div className="flex flex-col items-center gap-1 px-2">
-          <p className="text-[8px] text-rose-600/50 font-black uppercase tracking-widest">Animux v{version}</p>
-          <p className="text-[7px] text-gray-800 font-bold uppercase tracking-[0.2em]">Sincronización Lista</p>
+        <div className="flex flex-col items-center gap-2 px-2">
+          <button
+            onClick={onShowLegal}
+            className="flex items-center gap-2 text-[8px] text-gray-500 hover:text-rose-500 font-black uppercase tracking-widest transition-all"
+          >
+            <Scale className="w-3 h-3" />
+            Información Legal
+          </button>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-[8px] text-rose-600/50 font-black uppercase tracking-widest">Animux v{version}</p>
+            <p className="text-[7px] text-gray-800 font-bold uppercase tracking-[0.2em]">Sincronización Lista</p>
+          </div>
         </div>
       </div>
     </aside>

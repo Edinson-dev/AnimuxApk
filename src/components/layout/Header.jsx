@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile } from 'lucide-react';
+import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale } from 'lucide-react';
 
 export default function Header({ 
   searchQuery, 
@@ -16,6 +16,7 @@ export default function Header({
   setIsKidsMode,
   isSearchOpen,
   setIsSearchOpen,
+  onShowLegal,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -269,7 +270,14 @@ export default function Header({
                 </div>
 
                 {/* Footer del panel */}
-                <div className="px-4 py-2 border-t border-white/5 bg-black/30">
+                <div className="px-4 py-3 border-t border-white/5 bg-black/30 space-y-2">
+                  <button 
+                    onClick={() => { onShowLegal(); setShowNotifications(false); }}
+                    className="w-full flex items-center justify-center gap-2 py-2 text-[9px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 rounded-lg transition-all"
+                  >
+                    <Scale className="w-3 h-3" />
+                    Términos y Privacidad
+                  </button>
                   <p className="text-[9px] text-gray-600 text-center font-medium">
                     Animux v{appVersion} • {new Date().getFullYear()}
                   </p>
