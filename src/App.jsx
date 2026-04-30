@@ -71,9 +71,9 @@ export default function App() {
         return;
       }
 
-      setIsAppLoading(true);
+      // Solo mostramos el Splash si es la carga inicial (no forzada por botón)
+      if (!force) setIsAppLoading(true);
 
-      // Fetch everything in parallel: Firebase + Local JSONs
       const [catSnapshot, chanSnapshot, movSnapshot, m3uRes, localRes] = await Promise.all([
         getDocs(collection(db, 'categories')),
         getDocs(collection(db, 'channels')),
@@ -82,39 +82,36 @@ export default function App() {
         fetch('/channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] }))
       ]);
 
-      // Firebase Data
       const cats = catSnapshot.docs.map(doc => doc.data().name);
       const firebaseChans = chanSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
       const firebaseMovs = movSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, fromCloud: true }));
 
-      // Merge Channels: Local M3U + Public JSON + Firebase
-      // Prioritize M3U and Firebase over general public channels
       const allChans = [
         ...m3uRes.channels.map(c => ({ ...c, isExternal: true })),
         ...firebaseChans,
         ...localRes.channels.map(c => ({ ...c, isLocal: true }))
       ];
 
-      // Merge Movies
-      const allMovs = [...firebaseMovs];
-
       setCloudCategories(cats);
       setChannelData({ channels: allChans });
-      setLocalMovies(allMovs);
+      setLocalMovies(firebaseMovs);
       
       localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
       localStorage.setItem('animux_cache_chans', JSON.stringify(allChans));
-      localStorage.setItem('animux_cache_movs', JSON.stringify(allMovs));
+      localStorage.setItem('animux_cache_movs', JSON.stringify(firebaseMovs));
       localStorage.setItem('animux_last_fetch', now.toString());
       setLastSyncTime(now.toString());
+
+      if (force) toast.success('Canales actualizados correctamente');
 
     } catch (err) { 
       console.error('Error loading app data:', err);
       toast.error('Error al sincronizar contenidos');
     }
     finally { 
-      // Pequeño delay artificial para que el splash se vea profesional
-      setTimeout(() => setIsAppLoading(false), 2000);
+      if (!force) {
+        setTimeout(() => setIsAppLoading(false), 2000);
+      }
     }
   };
 
@@ -229,7 +226,11 @@ export default function App() {
       <Header
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         onGoHome={() => { setActiveCategory('Inicio'); setSearchQuery(''); setLogoClicks(p => p + 1 === 5 ? (setShowAdmin(true), 0) : p + 1); }}
-        onForceRefresh={loadData} lastSync={lastSyncTime} appVersion={APP_VERSION}
+        onForceRefresh={() => loadData(true)} 
+        lastSync={lastSyncTime} 
+        appVersion={APP_VERSION}
+        needRefresh={needRefresh}
+        updateServiceWorker={updateServiceWorker}
       />
 
       <CategoryBar
