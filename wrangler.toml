@@ -1,0 +1,16 @@
+name = "animux-proxy"
+compatibility_date = "2026-04-30"
+
+# Smart Placement: ejecuta el Worker en el servidor de Cloudflare
+# más cercano al BACKEND (servidor IPTV en Colombia),
+# NO al usuario. Esto permite alcanzar IPs colombianas (181.78.x.x)
+# desde el PoP de Bogotá (BOG) o Medellín (MDE).
+[placement]
+mode = "smart"
+
+[build]
+command = "npm run build"
+cwd = ""
+
+[[pages:build.upload.assets]]
+directory = "dist"
