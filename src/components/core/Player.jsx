@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const [serverIndex, setServerIndex] = useState(0);
     const [currentUrl, setCurrentUrl] = useState('');
     const [isPiP, setIsPiP] = useState(false);
+    const [minimized, setMinimized] = useState(false);
 
     // ── PiP events ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -76,18 +77,17 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       return match ? match[1] : null;
     };
 
-    const decodedChannelUrl = useMemo(() => decodeCamouflage(channel?.url), [channel?.url]);
-    const isYouTube = !!getYouTubeId(decodedChannelUrl);
-    const isDrive = !!getDriveId(decodedChannelUrl);
+    const isYouTube = !!getYouTubeId(currentUrl);
+    const isDrive = !!getDriveId(currentUrl);
 
     const isEmbed = useMemo(() => {
-      const url = String(decodedChannelUrl || '').toLowerCase();
+      const url = String(currentUrl || '').toLowerCase();
       if (isYouTube || isDrive) return true;
       const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'cuevana', '/nu/', '/lat/'];
       const hasKeyword = embedKeywords.some(kw => url.includes(kw));
       const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
       return hasKeyword && !isDirectFile;
-    }, [decodedChannelUrl, isYouTube, isDrive]);
+    }, [currentUrl, isYouTube, isDrive]);
 
     // ── Inicialización al cambiar canal ───────────────────────────────────
     useEffect(() => {
@@ -97,6 +97,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       setError(false);
       setLoading(true);
       setServerIndex(0);
+      setMinimized(false);
       // Usar URL directa del canal (ya viene decodificada si aplica)
       const url = channel.url ? decodeCamouflage(channel.url) : '';
       setCurrentUrl(url);
@@ -276,35 +277,16 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       };
     }, [currentUrl, isEmbed]);
 
-    // ── Renderizado del reproductor ───────────────────────────────────────
-    const renderPlayer = () => {
-      if (isYouTube) {
-        const ytId = getYouTubeId(decodedChannelUrl);
-        return <iframe src={`https://www.youtube.com/embed/${ytId}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />;
-      }
-      if (isDrive) {
-        const driveId = getDriveId(decodedChannelUrl);
-        return <iframe src={`https://drive.google.com/file/d/${driveId}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen />;
-      }
-      if (isEmbed) {
-        return (
-          <iframe
-            src={decodedChannelUrl}
-            className="w-full h-full border-0 bg-black"
-            allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-            title="Embed Player"
-          />
-        );
-      }
-      return <video ref={videoRef} className="w-full h-full object-contain bg-black" controls autoPlay playsInline />;
-    };
-
     if (!channel) return null;
 
+    const playerContainerClasses = minimized 
+      ? "fixed bottom-24 right-4 w-64 md:w-80 aspect-video z-[150] rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-600/30 animate-slide-up group bg-black"
+      : `${isInline ? 'relative h-full w-full' : 'fixed inset-0'} z-[110] flex flex-col bg-black animate-fade-in`;
+
     return (
-      <div className={`${isInline ? 'relative h-full' : 'fixed inset-0'} z-[110] flex flex-col bg-black animate-fade-in`}>
-        {!isInline && (
+      <div className={playerContainerClasses}>
+        {/* Full Controls */}
+        {!minimized && !isInline && (
           <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black via-black/80 to-transparent z-50">
             <div className="flex items-center gap-4">
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
@@ -319,16 +301,11 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  if (window.confirm('¿Reportar este canal como caído?')) {
-                    onReportBroken?.(channel);
-                    onClose();
-                  }
-                }}
-                className="px-3 py-2 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl border border-rose-600/20 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                onClick={() => setMinimized(true)}
+                title="Minimizar"
+                className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-white transition-all"
               >
-                <AlertCircle className="w-4 h-4" />
-                <span className="hidden md:inline">Reportar Error</span>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </button>
               <button
                 onClick={async () => {
@@ -349,52 +326,179 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
           </div>
         )}
 
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-          <div className="relative flex-1 bg-black flex items-center justify-center group overflow-hidden">
-            {renderPlayer()}
+        {/* Mini Controls */}
+        {minimized && (
+          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+             <button onClick={() => setMinimized(false)} className="p-2 bg-black/60 backdrop-blur-md rounded-full text-white border border-white/10">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+             </button>
+             <button onClick={onClose} className="p-2 bg-black/60 backdrop-blur-md rounded-full text-white border border-white/10">
+                <X className="w-4 h-4" />
+             </button>
+          </div>
+        )}
+
+        <div className={`flex-1 flex flex-col ${minimized ? '' : 'lg:flex-row'} overflow-hidden relative`}>
+          {/* Ambience Background Layer */}
+          {!minimized && (
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-tr from-rose-900/20 via-black to-black" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rose-600/5 blur-[120px] rounded-full animate-pulse" />
+              <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-600/5 blur-[100px] rounded-full" />
+            </div>
+          )}
+
+          <div className="relative flex-1 flex items-center justify-center group overflow-hidden z-10">
+            {/* Real Video Player */}
+            <div className="w-full h-full flex items-center justify-center relative">
+              {isYouTube ? (
+                 <iframe src={`https://www.youtube.com/embed/${getYouTubeId(currentUrl)}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
+              ) : isDrive ? (
+                 <iframe src={`https://drive.google.com/file/d/${getDriveId(currentUrl)}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen />
+              ) : isEmbed ? (
+                 <iframe src={currentUrl} className="w-full h-full border-0 bg-black" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen title="Embed Player" />
+              ) : (
+                 <video 
+                   ref={videoRef} 
+                   className="w-full h-full object-contain shadow-2xl" 
+                   controls 
+                   autoPlay 
+                   playsInline 
+                   onPlay={() => setLoading(false)}
+                   onPlaying={() => setLoading(false)}
+                 />
+              )}
+
+              {/* Technical Badges (Hidden when minimized) */}
+              {!minimized && !loading && (
+                <div className="absolute top-6 right-6 flex flex-col items-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-[9px] font-black text-white uppercase tracking-widest">Señal Estable</span>
+                  </div>
+                  <div className="bg-rose-600/20 backdrop-blur-md px-3 py-1 rounded-md border border-rose-600/30">
+                    <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Full HD 1080p</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Status Overlays */}
             {loading && !error && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 pointer-events-none">
-                <Loader2 className="w-10 h-10 text-rose-600 animate-spin mb-4" />
-                <p className="text-white font-black text-[10px] tracking-[0.4em] uppercase opacity-70">Conectando...</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xl z-20">
+                <div className="relative">
+                  <Loader2 className="w-12 h-12 text-rose-600 animate-spin mb-4" />
+                  <div className="absolute inset-0 blur-xl bg-rose-600/20 animate-pulse rounded-full" />
+                </div>
+                <p className="text-white font-black text-[11px] tracking-[0.5em] uppercase opacity-80 animate-pulse">Optimizando Señal...</p>
+                <div className="mt-8 flex gap-1">
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className="w-1 h-4 bg-white/10 rounded-full overflow-hidden">
+                      <div className="w-full h-full bg-rose-600 animate-loading-bar" style={{ animationDelay: `${i * 0.1}s` }} />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+            
             {error && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 p-6 text-center">
-                <AlertCircle className="w-12 h-12 text-rose-600 mb-4 animate-bounce" />
-                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Enlace no compatible</h3>
-                <p className="text-gray-400 text-sm max-w-xs mx-auto font-medium">No se pudo cargar este servidor.</p>
-                <button onClick={onClose} className="mt-8 px-10 py-3 bg-white/5 text-white rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">
-                  Cerrar
-                </button>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-30 p-6 text-center">
+                <AlertCircle className="w-16 h-16 text-rose-600 mb-6 animate-bounce" />
+                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">Enlace Caído</h3>
+                <p className="text-gray-500 text-sm mb-10 max-w-xs font-medium">Este servidor no responde. Estamos intentando reconectar con otra fuente...</p>
+                <div className="flex gap-4">
+                  <button onClick={onClose} className="px-10 py-4 bg-white/5 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/10 hover:bg-white/10 transition-all">
+                    Cerrar
+                  </button>
+                  <button onClick={tryNextServer} className="px-10 py-4 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-600/20 hover:scale-105 transition-all">
+                    Siguiente Fuente
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="w-full lg:w-[400px] bg-[#050505] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-1/2 lg:h-full overflow-hidden">
-            <div className="p-4 border-b border-white/5 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-rose-600" />
-              <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Siguiente</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-              {playlist.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => onPlayNext(item)}
-                  className={`flex gap-4 p-4 rounded-2xl cursor-pointer transition-all border ${String(item.id) === String(channel.id) ? 'bg-rose-600/10 border-rose-600/30' : 'hover:bg-white/[0.03] border-transparent'}`}
-                >
-                  <div className="rounded-lg overflow-hidden shrink-0 bg-black w-20 aspect-video">
-                    <img src={item.logo} className="w-full h-full object-contain p-2" alt="" />
+          {/* Side Panel - Vertical on Desktop, Horizontal on Mobile */}
+          {!minimized && (
+            <div className="w-full lg:w-[400px] bg-[#050505]/60 backdrop-blur-3xl border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-auto lg:h-full overflow-hidden z-20 relative">
+              {/* Quick Info / Description (Visible only when not minimized) */}
+              <div className="p-4 lg:p-6 border-b border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-rose-600/10 rounded-lg">
+                      <Clock className="w-4 h-4 text-rose-600" />
+                    </div>
+                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Programación</h3>
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h4 className={`text-[13px] font-black truncate tracking-tight uppercase ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-white'}`}>
-                      {item.name || item.title}
-                    </h4>
-                    <p className="text-[9px] text-gray-600 uppercase font-black tracking-widest mt-1">{item.category}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                        if (window.confirm('¿Reportar este canal?')) onReportBroken?.(channel);
+                    }} className="p-2 hover:bg-rose-600/20 rounded-full transition-all group">
+                      <AlertCircle className="w-4 h-4 text-gray-500 group-hover:text-rose-500" />
+                    </button>
                   </div>
                 </div>
-              ))}
+                <p className="text-gray-400 text-[11px] leading-relaxed font-medium line-clamp-2 lg:line-clamp-none">
+                  Estás viendo <span className="text-white font-bold">{channel.displayName || channel.name}</span> en alta definición. Disfruta de la mejor programación de {channel.category} sin interrupciones.
+                </p>
+              </div>
+
+              {/* Responsive List: Horizontal on Mobile, Vertical on Desktop */}
+              <div className="p-2 lg:p-4">
+                 <div className="flex items-center justify-between mb-4 px-2 lg:px-0">
+                    <div className="flex items-center gap-2">
+                       <div className="w-1 h-4 bg-rose-600 rounded-full" />
+                       <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Más de {channel.category}</h4>
+                    </div>
+                    <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest animate-pulse">En Vivo</span>
+                 </div>
+                 
+                 <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto custom-scrollbar gap-3 pb-6 lg:pb-0">
+                    {playlist.filter(item => String(item.id) !== String(channel.id)).map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => onPlayNext(item)}
+                        className="group flex flex-col lg:flex-row gap-3 lg:gap-4 p-3 lg:p-4 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border shrink-0 w-40 lg:w-full bg-white/[0.02] hover:bg-rose-600/5 border-transparent hover:border-rose-600/20"
+                      >
+                        <div className="rounded-xl lg:rounded-2xl overflow-hidden shrink-0 bg-black w-full lg:w-24 aspect-video relative group-hover:scale-105 transition-transform duration-500">
+                          <img src={item.logo} className="w-full h-full object-contain p-2 lg:p-3" alt="" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                             <Play className="w-4 h-4 text-white fill-current" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <h4 className="text-[11px] lg:text-[12px] font-black truncate tracking-tight uppercase group-hover:text-rose-500 transition-colors text-white">
+                            {item.name || item.title}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1">
+                             <span className="text-[8px] lg:text-[9px] text-gray-500 uppercase font-black tracking-widest">Sugerido</span>
+                             <div className="w-1 h-1 bg-rose-600 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+
+                 {/* Second Section: Global Trends */}
+                 <div className="mt-6 lg:mt-8 px-2 lg:px-0">
+                    <div className="flex items-center gap-2 mb-4">
+                       <div className="w-1 h-4 bg-blue-600 rounded-full" />
+                       <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Tendencias Globales</h4>
+                    </div>
+                    <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto custom-scrollbar gap-3">
+                       {playlist.slice(0, 5).map((item) => (
+                          <div key={`trend-${item.id}`} onClick={() => onPlayNext(item)} className="shrink-0 w-32 lg:w-full group cursor-pointer">
+                             <div className="aspect-video bg-white/5 rounded-xl lg:rounded-2xl border border-white/5 group-hover:border-blue-600/30 overflow-hidden transition-all">
+                                <img src={item.logo} className="w-full h-full object-contain p-3 grayscale group-hover:grayscale-0 transition-all" alt="" />
+                             </div>
+                             <p className="text-[9px] font-black text-gray-500 mt-2 uppercase tracking-tighter truncate text-center lg:text-left">{item.name}</p>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );

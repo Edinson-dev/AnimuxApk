@@ -21,7 +21,7 @@ const getCatIcon = (cat) => {
   return ICON_MAP[key] || Layers;
 };
 
-export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version }) {
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode }) {
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
@@ -83,6 +83,19 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
 
       {/* Footer */}
       <div className="hidden md:block px-4 py-6 border-t border-white/[0.03] space-y-4">
+        {/* Kids Mode Toggle */}
+        <button
+          onClick={() => setIsKidsMode(!isKidsMode)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border group ${
+            isKidsMode 
+              ? 'bg-yellow-400 text-black border-yellow-500 shadow-lg shadow-yellow-400/20' 
+              : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+          }`}
+        >
+          <Smile className={`w-4 h-4 ${isKidsMode ? 'fill-current' : 'group-hover:text-yellow-400'}`} />
+          <span className="text-[10px] font-black uppercase tracking-widest">{isKidsMode ? 'Modo Kids On' : 'Modo Kids'}</span>
+        </button>
+
         <button 
           onClick={() => {
             if (window.confirm('¿Quieres sincronizar los últimos canales y películas?')) {

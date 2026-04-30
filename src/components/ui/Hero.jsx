@@ -61,40 +61,40 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-12 max-w-4xl space-y-6">
+      <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-12 max-w-4xl space-y-4 md:space-y-6">
         <div className="space-y-3">
           <div className="flex items-center gap-3 animate-slide-up">
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-rose-600/30">
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-600 text-white text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-rose-600/30">
+              <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
               {featuredChannel.isNew ? 'Estreno Exclusivo' : 'Tendencia'}
             </span>
-            <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] hidden sm:block">
+            <span className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] hidden xs:block">
               Animux Original • Premium
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-7xl font-black leading-[0.9] tracking-tighter text-white uppercase drop-shadow-2xl italic">
+          <h1 className="text-3xl md:text-7xl font-black leading-[0.9] tracking-tighter text-white uppercase drop-shadow-2xl italic">
             {displayName}
           </h1>
           
-          <p className="text-gray-300 text-[12px] md:text-sm leading-relaxed max-w-2xl line-clamp-2 font-semibold tracking-wide drop-shadow-lg">
+          <p className="text-gray-300 text-[11px] md:text-sm leading-relaxed max-w-2xl line-clamp-2 md:line-clamp-none font-semibold tracking-wide drop-shadow-lg">
             {featuredChannel.description || 'Disfruta de la mejor calidad de imagen y sonido envolvente. Solo aquí en la plataforma líder de streaming.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-4 pt-2">
+        <div className="flex items-center gap-3 md:gap-4 pt-2">
           <button
             onClick={() => onPlay(featuredChannel)}
-            className="flex items-center gap-3 px-10 py-4 bg-rose-600 text-white rounded-2xl font-black text-[11px] md:text-xs hover:bg-rose-500 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-rose-600/40 active:scale-95 group"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-6 md:px-10 py-3.5 md:py-4 bg-rose-600 text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs hover:bg-rose-500 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-rose-600/40 active:scale-95 group"
           >
-            <Play className="w-5 h-5 fill-current group-hover:scale-110 transition-transform" /> Reproducir Ahora
+            <Play className="w-4 h-4 md:w-5 md:h-5 fill-current group-hover:scale-110 transition-transform" /> Reproducir
           </button>
           
           <button
             onClick={() => onDetails(featuredChannel)}
-            className="flex items-center gap-3 px-10 py-4 bg-white/5 backdrop-blur-md text-white rounded-2xl font-black text-[11px] md:text-xs hover:bg-white/10 border border-white/10 transition-all uppercase tracking-[0.2em] active:scale-95"
+            className="flex items-center justify-center gap-2 md:gap-3 px-6 md:px-10 py-3.5 md:py-4 bg-white/5 backdrop-blur-md text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs hover:bg-white/10 border border-white/10 transition-all uppercase tracking-[0.2em] active:scale-95"
           >
-            <Info className="w-5 h-5" /> Info
+            <Info className="w-4 h-4 md:w-5 md:h-5" /> Info
           </button>
         </div>
       </div>

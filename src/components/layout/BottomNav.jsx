@@ -11,7 +11,7 @@ const BOTTOM_TABS = [
 
 export default function BottomNav({ activeCategory, setActiveCategory, onSearchOpen }) {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-black/95 backdrop-blur-3xl border-t border-white/[0.06] safe-area-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bottom-nav-glass safe-area-bottom">
       <div className="flex items-stretch">
         {BOTTOM_TABS.map(({ key, label, Icon }) => {
           const isActive = key !== '__search' && activeCategory === key;

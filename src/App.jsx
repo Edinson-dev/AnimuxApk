@@ -17,7 +17,7 @@ import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 
 export default function App() {
   const {
@@ -39,8 +39,9 @@ export default function App() {
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
   const [showAdmin, setShowAdmin] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isKidsMode, setIsKidsMode] = useState(false);
   const [logoClicks, setLogoClicks] = useState(0);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(48);
   const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('animux_last_fetch'));
   const [showInstall, setShowInstall] = useState(false);
@@ -153,6 +154,17 @@ export default function App() {
 
   const filteredChannels = useMemo(() => {
     let result = [...allUnique];
+
+    // Filtro maestro de Modo Kids
+    if (isKidsMode) {
+      const kidsKeywords = ['infantil', 'kids', 'muñeco', 'disney', 'nickelodeon', 'cartoon', 'dibujo', 'niño', 'junior', 'boing', 'clan'];
+      result = result.filter(c => {
+        const cat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const name = (c.name || c.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return kidsKeywords.some(kw => cat.includes(kw) || name.includes(kw));
+      });
+    }
+
     if (searchQuery) return result.filter(c => (c.name || c.title || '').toLowerCase().includes(searchQuery.toLowerCase()));
     
     if (activeCategory === 'Favoritos') return result.filter(c => favorites.includes(String(c.id)));
@@ -165,10 +177,8 @@ export default function App() {
       return result.filter(c => c.isNew === true);
     }
 
-    // Para el resto de categorías, excluimos los que son "Nuevos" si el usuario así lo prefiere
-    // o simplemente filtramos por categoría asegurándonos de que no se mezclen.
     return result.filter(c => matchesCat(c, target));
-  }, [searchQuery, activeCategory, favorites, allUnique]);
+  }, [searchQuery, activeCategory, favorites, allUnique, isKidsMode]);
 
   const categoryCounts = useMemo(() => {
     const counts = {};
@@ -252,6 +262,10 @@ export default function App() {
         appVersion={APP_VERSION}
         needRefresh={needRefresh}
         updateServiceWorker={updateServiceWorker}
+        isSearchOpen={isSearchOpen}
+        setIsSearchOpen={setIsSearchOpen}
+        isKidsMode={isKidsMode}
+        setIsKidsMode={setIsKidsMode}
       />
 
       <CategoryBar
@@ -263,6 +277,7 @@ export default function App() {
         <Sidebar
           categories={['Inicio', ...allCategories]} activeCategory={activeCategory}
           setActiveCategory={setActiveCategory} counts={categoryCounts} version={APP_VERSION}
+          isKidsMode={isKidsMode} setIsKidsMode={setIsKidsMode}
         />
 
         <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-black pt-16 pb-24 md:pb-6">
@@ -270,9 +285,68 @@ export default function App() {
             
             {activeCategory === 'Inicio' && !searchQuery ? (
               <div className="space-y-12 animate-fade-in">
-                <Hero featuredChannel={allUnique.find(m => m.featured) || allUnique[0]} onPlay={setActiveChannel} onDetails={setSelectedDetail} />
+                <Hero 
+                  featuredChannel={
+                    isKidsMode 
+                      ? allUnique.find(c => (c.category || '').toLowerCase().includes('infantil') && c.featured) || allUnique.find(c => (c.category || '').toLowerCase().includes('infantil')) || allUnique[0]
+                      : allUnique.find(m => m.featured) || allUnique[0]
+                  } 
+                  onPlay={setActiveChannel} 
+                  onDetails={setSelectedDetail} 
+                />
 
-                {/* Fila 1: Añadidos Recientemente (Solo los marcados como Nuevos) */}
+                {isKidsMode ? (
+                  <div className="space-y-12">
+                    {/* Fila 1: Top Infantiles */}
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-yellow-400 rounded-full" />
+                        <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Top Infantiles</h3>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        {allUnique.filter(c => (c.category || '').toLowerCase().includes('infantil')).slice(0, 15).map(c => (
+                          <div key={c.id} className="w-[140px] md:w-[220px] shrink-0 transform transition-transform hover:scale-105 duration-300">
+                            <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Fila 2: Anime y Dibujos */}
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-blue-400 rounded-full" />
+                        <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Anime y Dibujos</h3>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        {allUnique.filter(c => (c.category || '').toLowerCase().includes('anime') || (c.category || '').toLowerCase().includes('muñeco')).slice(0, 15).map(c => (
+                          <div key={c.id} className="w-[140px] md:w-[220px] shrink-0 transform transition-transform hover:scale-105 duration-300">
+                            <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Fila 3: Canales Disney & Nick */}
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-purple-400 rounded-full" />
+                        <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Mundo Disney & Nick</h3>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        {allUnique.filter(c => {
+                          const name = (c.name || '').toLowerCase();
+                          return name.includes('disney') || name.includes('nick') || name.includes('cartoon');
+                        }).slice(0, 15).map(c => (
+                          <div key={c.id} className="w-[140px] md:w-[220px] shrink-0 transform transition-transform hover:scale-105 duration-300">
+                            <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-12">
+                    {/* Fila 1: Añadidos Recientemente (Solo los marcados como Nuevos) */}
                 {allUnique.filter(c => c.isNew).length > 0 && (
                   <div className="space-y-5">
                     <div className="flex items-center gap-3">
@@ -343,7 +417,14 @@ export default function App() {
                 )}
 
                 {/* Resto de Categorías dinámicas */}
-                {allCategories.filter(c => !['Favoritos', 'Nuevos', 'Inicio', 'Deportes', 'Cine', 'Películas'].includes(c)).map(cat => {
+                {allCategories.filter(c => {
+                  const baseFilter = !['Favoritos', 'Nuevos', 'Inicio', 'Deportes', 'Cine', 'Películas'].includes(c);
+                  if (isKidsMode) {
+                    const lowCat = c.toLowerCase();
+                    return baseFilter && (lowCat.includes('infantil') || lowCat.includes('kids') || lowCat.includes('muñeco') || lowCat.includes('anime') || lowCat.includes('dibujo'));
+                  }
+                  return baseFilter;
+                }).map(cat => {
                   const target = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
                   const items = allUnique.filter(c => matchesCat(c, target));
                   if (!items.length) return null;
@@ -362,6 +443,8 @@ export default function App() {
                     </div>
                   );
                 })}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="animate-fade-in">
@@ -389,7 +472,7 @@ export default function App() {
         </main>
       </div>
 
-      <BottomNav activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSearchOpen={() => {}} />
+      <BottomNav activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSearchOpen={() => setIsSearchOpen(true)} />
       
       {activeChannel && <Player channel={activeChannel} onClose={() => setActiveChannel(null)} />}
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}
