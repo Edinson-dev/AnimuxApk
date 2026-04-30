@@ -26,6 +26,16 @@ export async function onRequest(context) {
     const isVideoSegment = targetLower.includes('.ts') || targetLower.includes('.mp4') || targetLower.includes('.m4s') || targetLower.includes('.aac');
     const isM3U8 = targetLower.includes('.m3u8') || targetLower.includes('/play/');
 
+    // ── Relay colombiano: IPs 181.78.x.x bloquean Cloudflare ──
+    // Fly.io BOG (Bogotá) tiene IPs colombianas que los servidores IPTV aceptan.
+    // Pon aquí la URL de tu app en Fly.io cuando esté deployada.
+    const RELAY_URL = 'https://animux-relay.onrender.com'; // Relay Render.com (AWS) para IPs colombianas
+    const BLOCKED_IPS = ['181.78.', '181.114.'];
+    const needsRelay = RELAY_URL && BLOCKED_IPS.some(ip => target.includes(ip));
+    const fetchTarget = needsRelay
+      ? `${RELAY_URL}/proxy?url=${encodeURIComponent(target)}`
+      : target;
+
     // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
@@ -41,7 +51,7 @@ export async function onRequest(context) {
       const rangeHeader = request.headers.get('Range');
       if (rangeHeader) fetchHeaders['Range'] = rangeHeader;
 
-      response = await fetch(target, {
+      response = await fetch(fetchTarget, {
         method: 'GET',
         headers: fetchHeaders,
         redirect: 'follow',
