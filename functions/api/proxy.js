@@ -7,6 +7,10 @@ export async function onRequest(context) {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': '*',
+    'Access-Control-Expose-Headers': '*',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
   };
 
   if (request.method === 'OPTIONS') {
@@ -28,7 +32,8 @@ export async function onRequest(context) {
         'Accept': '*/*',
         'Connection': 'keep-alive'
       },
-      redirect: 'follow'
+      redirect: 'follow',
+      cf: { cacheTtl: 0 }
     });
 
     const contentType = response.headers.get('content-type') || '';
