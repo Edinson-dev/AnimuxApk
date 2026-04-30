@@ -33,7 +33,6 @@ export async function onRequest(context) {
         'Accept': '*/*',
         'Referer': targetOrigin + '/',
         'Origin': targetOrigin,
-        'Cookie': request.headers.get('Cookie') || '',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
@@ -43,10 +42,6 @@ export async function onRequest(context) {
     const contentType = response.headers.get('content-type') || '';
     const headers = new Headers();
     headers.set('Content-Type', contentType);
-    
-    // Pasar cookies del servidor al navegador
-    const setCookie = response.headers.get('Set-Cookie');
-    if (setCookie) headers.set('Set-Cookie', setCookie);
     
     // Aplicar CORS
     Object.keys(corsHeaders).forEach(key => headers.set(key, corsHeaders[key]));

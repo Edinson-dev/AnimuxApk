@@ -142,18 +142,18 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       }
 
       const urlLower = currentUrl.toLowerCase();
-      // Detección inteligente: .m3u8, mp2.uk, o patrones comunes de IPTV como /play/ o /stream/
+      // Detección refinada: .m3u8, mp2.uk, o links de servidores colombianos tipo /play/
       const isM3U8 = urlLower.includes('.m3u8') || 
                      urlLower.includes('mp2.uk') || 
-                     urlLower.includes('/play/') || 
-                     urlLower.includes('/stream/');
+                     (currentUrl.includes('/play/') && !urlLower.includes('.mp4') && !urlLower.includes('.mkv'));
       
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
 
-      // Determinamos si necesitamos proxy (en producción para contenido HTTP)
+      // Determinamos si necesitamos proxy
       const isProd = window.location.protocol === 'https:';
       const needsProxy = isProd && currentUrl.startsWith('http:');
 
+      console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
       // 2. Timeout de conexión inicial (10s)
       const loadTimeout = setTimeout(() => {
