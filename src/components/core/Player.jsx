@@ -142,9 +142,18 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       }
 
       const urlLower = currentUrl.toLowerCase();
-      // Si la URL tiene .m3u8 o es de mp2.uk, la tratamos como HLS
-      const isM3U8 = urlLower.includes('.m3u8') || urlLower.includes('mp2.uk');
+      // Detección inteligente: .m3u8, mp2.uk, o patrones comunes de IPTV como /play/ o /stream/
+      const isM3U8 = urlLower.includes('.m3u8') || 
+                     urlLower.includes('mp2.uk') || 
+                     urlLower.includes('/play/') || 
+                     urlLower.includes('/stream/');
+      
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
+
+      // Determinamos si necesitamos proxy (en producción para contenido HTTP)
+      const isProd = window.location.protocol === 'https:';
+      const needsProxy = isProd && currentUrl.startsWith('http:');
+
 
       // 2. Timeout de conexión inicial (10s)
       const loadTimeout = setTimeout(() => {
@@ -172,7 +181,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
       // 4. Reproducción de video directo (mp4, ts, etc.)
       if (isDirectVideo) {
-        video.src = `/api/proxy?url=${encodeURIComponent(currentUrl)}`;
+        video.src = needsProxy ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` : currentUrl;
         video.load();
         video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); video.play().catch(() => {}); };
         video.onerror = () => { clearTimeout(loadTimeout); tryNextServer(); };
@@ -180,9 +189,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       // 5. Reproducción HLS Pura (El backend inyecta los proxies a los fragmentos)
       } else if (Hls.isSupported() && isM3U8) {
         
-        // FORZAMOS EL PROXY EN PRODUCCIÓN (HTTPS). En localhost (Vite) usamos directo porque no corre la API Serverless de Vercel.
-        const isProd = window.location.protocol === 'https:';
-        const manifestUrl = isProd 
+        const manifestUrl = needsProxy 
           ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` 
           : currentUrl;
 
