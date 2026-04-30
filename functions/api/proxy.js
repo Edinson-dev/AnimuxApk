@@ -29,9 +29,12 @@ export async function onRequest(context) {
     const response = await fetch(target, {
       method: 'GET',
       headers: {
-        'User-Agent': request.headers.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
         'Accept': '*/*',
         'Range': request.headers.get('Range') || '',
+        'X-Forwarded-For': '181.78.8.199', // Simular IP de Colombia (ETB)
+        'X-Real-IP': '181.78.8.199',
+        'Accept-Encoding': 'identity',
         'Connection': 'keep-alive'
       },
       redirect: 'follow',
