@@ -19,3 +19,6 @@ node_modules
 *.sqlite-shm
 *.sqlite-wal
 temp_playlist_repo
+
+# Carpeta de trabajo local - no subir al repo
+scratch/
