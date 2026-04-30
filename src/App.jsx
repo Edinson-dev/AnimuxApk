@@ -118,7 +118,7 @@ export default function App() {
   const forceRefresh = () => loadData(true);
 
   const allCategories = useMemo(() => {
-    const baseCats = ['Nuevos', 'Series', 'Películas', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime'];
+    const baseCats = ['Nuevos', 'Series', 'Películas', 'Cine', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'Religioso'];
     return Array.from(new Set([...baseCats, ...cloudCategories, 'Favoritos']));
   }, [cloudCategories]);
 
@@ -138,25 +138,54 @@ export default function App() {
     return Array.from(unique.values());
   }, [localMovies, channelData, brokenChannels]);
 
+  const matchesCat = (c, target) => {
+    const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const normalizedChCat = chCat.includes('documentary') ? 'documentales' : chCat.includes('religious') ? 'religioso' : chCat;
+    
+    // Lógica invertida por petición: CINE = VOD, PELICULAS = Canales TV
+    if (target === 'cine') return c.isVOD;
+    if (target === 'peliculas') return !c.isVOD && (normalizedChCat.includes('cine') || normalizedChCat.includes('pelicula') || normalizedChCat.includes('movie'));
+    
+    if (target === 'series') return normalizedChCat.includes('serie') || normalizedChCat.includes('show');
+    if (target === 'deportes') return normalizedChCat.includes('deporte') || normalizedChCat.includes('sport');
+    return normalizedChCat === target || normalizedChCat.includes(target);
+  };
+
   const filteredChannels = useMemo(() => {
     let result = [...allUnique];
     if (searchQuery) return result.filter(c => (c.name || c.title || '').toLowerCase().includes(searchQuery.toLowerCase()));
+    
     if (activeCategory === 'Favoritos') return result.filter(c => favorites.includes(String(c.id)));
     if (activeCategory === 'Inicio') return result;
-    return result.filter(c => {
-      const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-      const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-      if (target === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || c.isVOD;
-      if (target === 'series') return chCat.includes('serie') || chCat.includes('show');
-      return chCat === target || chCat.includes(target);
-    });
+
+    const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+    // Lógica especial para la pestaña "Nuevos"
+    if (target === 'nuevos' || target === 'nuevo') {
+      return result.filter(c => c.isNew === true);
+    }
+
+    // Para el resto de categorías, excluimos los que son "Nuevos" si el usuario así lo prefiere
+    // o simplemente filtramos por categoría asegurándonos de que no se mezclen.
+    return result.filter(c => matchesCat(c, target));
   }, [searchQuery, activeCategory, favorites, allUnique]);
 
   const categoryCounts = useMemo(() => {
     const counts = {};
     allCategories.forEach(cat => {
-      if (cat === 'Favoritos') counts[cat] = favorites.length;
-      else counts[cat] = allUnique.filter(c => (c.category || '').toLowerCase().includes(cat.toLowerCase())).length;
+      const target = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      
+      if (cat === 'Favoritos') {
+        counts[cat] = favorites.length;
+      } else if (target === 'nuevos' || target === 'nuevo') {
+        counts[cat] = allUnique.filter(c => c.isNew === true).length;
+      } else if (target === 'cine') {
+        counts[cat] = allUnique.filter(c => c.isVOD).length;
+      } else if (target === 'peliculas') {
+        counts[cat] = allUnique.filter(c => !c.isVOD && ((c.category || '').toLowerCase().includes('cine') || (c.category || '').toLowerCase().includes('pelicula'))).length;
+      } else {
+        counts[cat] = allUnique.filter(c => matchesCat(c, target)).length;
+      }
     });
     return counts;
   }, [allCategories, allUnique, favorites]);
@@ -164,14 +193,6 @@ export default function App() {
   const recentChannels = useMemo(() => {
     return recentlyWatched.map(id => allUnique.find(c => String(c.id) === String(id))).filter(Boolean).slice(0, 12);
   }, [recentlyWatched, allUnique]);
-
-  const matchesCat = (c, target) => {
-    const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-    if (target === 'peliculas') return chCat.includes('pelicula') || chCat.includes('cine') || c.isVOD;
-    if (target === 'series') return chCat.includes('serie') || chCat.includes('show');
-    if (target === 'deportes') return chCat.includes('deporte') || chCat.includes('sport');
-    return chCat === target || chCat.includes(target);
-  };
 
   // ── Custom Splash Screen (Minimalist Netflix Style) ─────────────────────────
   if (isAppLoading) {
@@ -188,13 +209,20 @@ export default function App() {
           </div>
           
           {/* Titulo con Estilo Netflix */}
-          <div className="text-center space-y-1">
-            <h1 className="text-4xl md:text-5xl font-black text-rose-600 tracking-tighter uppercase">
-              ANIMUX
-            </h1>
-            <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-[0.4em]">
-              Streaming de alta fidelidad
-            </p>
+          <div className="text-center space-y-4">
+            <div className="space-y-1">
+              <h1 className="text-4xl md:text-5xl font-black text-rose-600 tracking-tighter uppercase">
+                ANIMUX
+              </h1>
+              <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-[0.4em]">
+                Streaming de alta fidelidad
+              </p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-48 h-[2px] bg-white/10 rounded-full overflow-hidden mx-auto">
+              <div className="h-full bg-rose-600 rounded-full animate-loading-bar" />
+            </div>
           </div>
         </div>
 
@@ -208,13 +236,6 @@ export default function App() {
           <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest block">
             © 2026 Desarrollo Independiente
           </p>
-        </div>
-
-        {/* Loader Minimalista */}
-        <div className="absolute bottom-24 flex gap-1.5">
-          <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-          <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
         </div>
       </div>
     );
@@ -244,7 +265,7 @@ export default function App() {
           setActiveCategory={setActiveCategory} counts={categoryCounts} version={APP_VERSION}
         />
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar pb-20 md:pb-6">
+        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-black pt-16 pb-24 md:pb-6">
           <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-4 md:py-6 space-y-6 md:space-y-10">
             
             {activeCategory === 'Inicio' && !searchQuery ? (

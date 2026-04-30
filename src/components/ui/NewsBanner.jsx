@@ -25,30 +25,30 @@ const NEWS_ID = 'news_v2_test';
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
       {/* Overlay con blur profundo */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={handleClose} />
       
       {/* Caja del Pop-up */}
-      <div className="relative w-full max-w-sm bg-[#0f0f15] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-scale-up">
+      <div className="relative w-full max-w-sm bg-[#090909] border border-rose-600/20 rounded-[2.5rem] overflow-hidden shadow-[0_0_80px_rgba(225,29,72,0.15)] animate-scale-up">
         
-        {/* Adorno superior (Gradiente) */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-600/20 to-transparent pointer-events-none" />
+        {/* Adorno superior (Gradiente Rose) */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-rose-600/10 to-transparent pointer-events-none" />
 
         <div className="relative p-8 flex flex-col items-center text-center gap-6">
           {/* Icono Flotante */}
-          <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-blue-600/40 rotate-12 animate-float">
+          <div className="w-20 h-20 bg-rose-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-rose-600/40 rotate-12 animate-float">
             <Megaphone className="w-10 h-10 text-white -rotate-12" />
           </div>
 
-          <div className="space-y-2">
-            <h3 className="text-xl font-black uppercase tracking-tighter text-white">¡Novedades en Animux!</h3>
-            <p className="text-xs font-bold text-gray-400 leading-relaxed uppercase tracking-widest px-2">
+          <div className="space-y-3">
+            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white">¡Novedades en Animux!</h3>
+            <p className="text-[11px] font-bold text-gray-300 leading-relaxed uppercase tracking-widest px-2">
               {NEWS_TEXT}
             </p>
           </div>
 
           <button 
             onClick={handleClose}
-            className="w-full py-4 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95 shadow-xl"
+            className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-500 transition-all active:scale-95 shadow-xl shadow-rose-600/20"
           >
             Entendido
           </button>

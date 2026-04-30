@@ -12,7 +12,7 @@ export default function CategoryBar({ categories = [], activeCategory, setActive
   }, [activeCategory]);
 
   return (
-    <div className="md:hidden sticky top-[52px] z-[60] bg-black/95 backdrop-blur-xl border-b border-white/[0.04]">
+    <div className="md:hidden sticky top-[52px] z-[60] bg-black/95 backdrop-blur-md border-b border-white/[0.04]">
       <div
         ref={scrollRef}
         className="flex gap-2 overflow-x-auto no-scrollbar px-4 py-2.5"

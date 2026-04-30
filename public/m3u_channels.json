@@ -87,6 +87,22 @@
       "logo": "https://static.wikia.nocookie.net/logopedia/images/8/83/TNT_Sports_%282023%29.svg/revision/latest/scale-to-width-down/78?cb=20230407001905",
       "category": "Deportes",
       "url": "https://la14hd.com/vivo/canales.php?stream=eventos13"
+    },
+    {
+      "id": "m3u-nat-geo",
+      "name": "National Geographic",
+      "displayName": "National Geographic",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/4/4e/National_Geographic_Channel_2016.svg/revision/latest/scale-to-width-down/1000?cb=20191223120610",
+      "category": "Documentales",
+      "url": "https://tv-cl.tcl-static.com/NationalGeographic/index.m3u8"
+    },
+    {
+      "id": "m3u-nat-geo-wild",
+      "name": "Nat Geo Wild",
+      "displayName": "Nat Geo Wild",
+      "logo": "https://static.wikia.nocookie.net/logopedia/images/e/ed/Nat_Geo_Wild_2016.svg/revision/latest/scale-to-width-down/1000?cb=20190306161825",
+      "category": "Documentales",
+      "url": "https://tv-cl.tcl-static.com/NatGeoWild/index.m3u8"
     }
   ]
 }

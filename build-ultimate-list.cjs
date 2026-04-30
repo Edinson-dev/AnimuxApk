@@ -27,17 +27,30 @@ function parseM3u(data, overrideCategory = null) {
       
       const logo = logoMatch ? logoMatch[1] : 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=200&h=200';
       
-      // Mapeo básico de categorías al español si vienen en inglés
-      let category = groupMatch ? groupMatch[1] : 'General';
-      if (category === 'News') category = 'Noticias';
-      else if (category === 'Movies') category = 'Cine';
-      else if (category === 'Sports') category = 'Deportes';
-      else if (category === 'Music') category = 'Música';
-      else if (category === 'Documentaries') category = 'Documentales';
-      else if (category === 'Kids') category = 'Infantil';
-      else if (category === 'Religious') category = 'Religioso';
-      
-      if (overrideCategory) category = overrideCategory;
+      const categoryMap = {
+        'news': 'Noticias', 'noticias': 'Noticias', 'informativos': 'Noticias',
+        'sports': 'Deportes', 'deportes': 'Deportes', 'sport': 'Deportes',
+        'movies': 'Cine', 'cine': 'Cine', 'películas': 'Cine', 'peliculas': 'Cine',
+        'kids': 'Infantil', 'infantil': 'Infantil', 'animation': 'Infantil', 'ninos': 'Infantil', 'niños': 'Infantil',
+        'anime': 'Anime',
+        'music': 'Música', 'musica': 'Música',
+        'documentary': 'Documentales', 'documentaries': 'Documentales', 'documentales': 'Documentales',
+        'series': 'Series',
+        'religious': 'Religioso', 'religion': 'Religioso', 'espiritual': 'Religioso',
+        'general': 'Entretenimiento', 'entertainment': 'Entretenimiento', 'entretenimiento': 'Entretenimiento'
+      };
+
+      let category = groupMatch ? groupMatch[1].toLowerCase() : 'entretenimiento';
+      let finalCategory = 'Entretenimiento';
+
+      for (let key in categoryMap) {
+        if (category.includes(key)) {
+          finalCategory = categoryMap[key];
+          break;
+        }
+      }
+
+      if (overrideCategory) finalCategory = overrideCategory;
       
       const nameMatch = line.split(',');
       const name = nameMatch.length > 1 ? nameMatch[1].trim() : 'Canal';
@@ -45,7 +58,7 @@ function parseM3u(data, overrideCategory = null) {
       currentChannel = {
         name,
         logo,
-        category
+        category: finalCategory
       };
     } else if (line.startsWith('http')) {
       // Filtrar m3u8 o similares (algunos streams válidos no acaban en m3u8, pero nos aseguramos)

@@ -19,10 +19,12 @@ const normalizeCategory = (groupTitle) => {
     'news': 'Noticias', 'noticias': 'Noticias', 'informativos': 'Noticias',
     'sports': 'Deportes', 'deportes': 'Deportes', 'sport': 'Deportes',
     'movies': 'Cine', 'cine': 'Cine', 'películas': 'Cine', 'peliculas': 'Cine',
-    'kids': 'Infantil & Anime', 'infantil': 'Infantil & Anime', 'anime': 'Infantil & Anime', 'ninos': 'Infantil & Anime', 'niños': 'Infantil & Anime',
+    'kids': 'Infantil', 'infantil': 'Infantil', 'animation': 'Infantil', 'ninos': 'Infantil', 'niños': 'Infantil',
+    'anime': 'Anime',
     'music': 'Música', 'musica': 'Música',
-    'documentary': 'Documentales', 'documentales': 'Documentales',
+    'documentary': 'Documentales', 'documentaries': 'Documentales', 'documentales': 'Documentales',
     'series': 'Series',
+    'religious': 'Religioso', 'religion': 'Religioso', 'espiritual': 'Religioso',
     'general': 'Entretenimiento', 'entertainment': 'Entretenimiento', 'entretenimiento': 'Entretenimiento'
   };
 
@@ -31,7 +33,7 @@ const normalizeCategory = (groupTitle) => {
   const tags = groupTitle.split(';').map(t => t.trim().toLowerCase());
   for (let tag of tags) {
     // Si es religión o educación, lo catalogamos como Entretenimiento o lo ignoramos (opcional)
-    if (tag.includes('religion') || tag.includes('education') || tag.includes('espiritual')) return null; 
+    if (tag.includes('education')) return null; 
 
     if (categoriesMap[tag]) return categoriesMap[tag];
     for (let key in categoriesMap) {

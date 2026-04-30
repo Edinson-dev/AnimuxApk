@@ -11,8 +11,12 @@ const updateSW = registerSW({
   immediate: true,
 
   onNeedRefresh() {
-    // Silently update — no disruptive popup for streaming app
+    // Actualización inmediata y recarga automática
+    console.log('[Animux PWA] Nueva versión detectada. Actualizando...');
     updateSW(true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   },
 
   onOfflineReady() {
