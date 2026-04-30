@@ -33,7 +33,8 @@ export async function onRequest(context) {
         'Accept': '*/*',
         'Accept-Language': 'es-ES,es;q=0.9',
         'Referer': targetOrigin + '/',
-        'X-Forwarded-For': '181.78.1.1', // IP ETB Colombia
+        'Range': request.headers.get('Range') || '',
+        'X-Forwarded-For': '181.78.1.1',
         'X-Real-IP': '181.78.1.1',
         'X-Requested-With': 'com.mxtech.videoplayer.ad',
         'Connection': 'keep-alive'
