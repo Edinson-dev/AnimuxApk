@@ -41,8 +41,12 @@ export async function onRequest(context) {
     const headers = new Headers();
     headers.set('Content-Type', contentType);
     
-    // Aplicar CORS
-    Object.keys(corsHeaders).forEach(key => headers.set(key, corsHeaders[key]));
+    // CORS TOTALMENTE ABIERTO
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+    headers.set('Access-Control-Allow-Headers', '*');
+    headers.set('Access-Control-Expose-Headers', '*');
+    headers.set('Access-Control-Allow-Credentials', 'true');
 
     // CACHE DINÁMICA: Video se cachea, Listas no.
     if (isVideoSegment) {

@@ -149,9 +149,10 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.ts', '.mp3'].some(e => urlLower.includes(e));
 
-      // Determinamos si necesitamos proxy
+      // Determinamos si necesitamos proxy (En producción, todo lo externo necesita proxy por CORS/MixedContent)
       const isProd = window.location.protocol === 'https:';
-      const needsProxy = isProd && currentUrl.startsWith('http:');
+      const isExternal = currentUrl.startsWith('http');
+      const needsProxy = isProd && isExternal;
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
