@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const videoRef = useRef(null);
     const hlsRef = useRef(null);
     const serverIndexRef = useRef(0); // ref para acceder en closures sin stale state
+    const m3uRetryCountRef = useRef(0);
     const freezeRef = useRef({ lastTime: 0, counter: 0 });
 
     const [error, setError] = useState(false);
@@ -16,6 +17,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const [serverIndex, setServerIndex] = useState(0);
     const [currentUrl, setCurrentUrl] = useState('');
     const [isPiP, setIsPiP] = useState(false);
+    const [retryTrigger, setRetryTrigger] = useState(0);
     const [minimized, setMinimized] = useState(false);
 
     // ── PiP events ────────────────────────────────────────────────────────
@@ -93,23 +95,34 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     useEffect(() => {
       if (!channel) return;
       serverIndexRef.current = 0;
+      m3uRetryCountRef.current = 0;
       freezeRef.current = { lastTime: 0, counter: 0 };
       setError(false);
       setLoading(true);
       setServerIndex(0);
+      setRetryTrigger(0);
       setMinimized(false);
       // Usar URL directa del canal (ya viene decodificada si aplica)
       const url = channel.url ? decodeCamouflage(channel.url) : '';
       setCurrentUrl(url);
     }, [channel]);
 
-    // ── Saltar al siguiente servidor ──────────────────────────────────────
+    // ── Saltar al siguiente servidor o reconectar ─────────────────────────
     const tryNextServer = () => {
-      // Canales M3U directos no tienen ID de Xtream → mostrar error directamente
+      // Canales M3U directos no tienen ID de Xtream → reconectar internamente
       if (channel.fromM3U || !channel.streamId) {
-        console.error('❌ Canal M3U sin fallback Xtream disponible.');
-        setError(true);
-        setLoading(false);
+        if (m3uRetryCountRef.current < 10) {
+          m3uRetryCountRef.current++;
+          console.warn(`🔄 Reconectando fuente M3U (Intento ${m3uRetryCountRef.current}/10)...`);
+          setLoading(true);
+          setError(false);
+          freezeRef.current = { lastTime: 0, counter: 0 };
+          setRetryTrigger(prev => prev + 1);
+        } else {
+          console.error('❌ Fuente M3U sin respuesta tras múltiples intentos.');
+          setError(true);
+          setLoading(false);
+        }
         return;
       }
 
@@ -180,13 +193,14 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         }
       }, 15000);
 
-      // 3. Monitor de congelamiento (cada 1s — actúa a los 6s de inactividad)
+      // 3. Monitor de congelamiento (cada 1s — actúa a los 6s de inactividad, 15s para M3U)
+      const maxFreezeCounter = (channel.fromM3U || !channel.streamId) ? 15 : 6;
       const monitorInterval = setInterval(() => {
         if (!video.paused && !video.ended && video.readyState >= 2) {
           if (video.currentTime === freezeRef.current.lastTime) {
             freezeRef.current.counter++;
-            if (freezeRef.current.counter >= 6) {
-              console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
+            if (freezeRef.current.counter >= maxFreezeCounter) {
+              console.warn(`❄️ Stream congelado ${maxFreezeCounter}s. Cambiando servidor o reconectando...`);
               clearInterval(monitorInterval);
               tryNextServer();
             }
@@ -235,6 +249,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         });
 
         let networkRetryCount = 0;
+        const maxNetworkRetries = (channel.fromM3U || !channel.streamId) ? 10 : 2;
         // Manejo y rotación automática de caídas
         hls.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
@@ -242,12 +257,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
             clearTimeout(loadTimeout);
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
               networkRetryCount++;
-              if (networkRetryCount <= 2) {
+              if (networkRetryCount <= maxNetworkRetries) {
                 console.warn('Network error, reintentando...', networkRetryCount);
                 hls.startLoad();
               } else {
                 console.error('Network error persistente. Cambiando servidor...');
-                tryNextServer(); // 🔥 Fallback después de 2 intentos fallidos
+                tryNextServer(); // 🔥 Fallback después de intentos fallidos
               }
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
               console.warn('Media error, recuperando...');
@@ -275,7 +290,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
           hlsRef.current = null;
         }
       };
-    }, [currentUrl, isEmbed]);
+    }, [currentUrl, isEmbed, retryTrigger]);
 
     if (!channel) return null;
 

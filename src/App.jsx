@@ -118,7 +118,7 @@ export default function App() {
     finally {
       if (!force) {
         // Aumentado a 4.5 segundos para que se aprecie bien la marca
-        setTimeout(() => setIsAppLoading(false), 4500);
+        setTimeout(() => setIsAppLoading(false), 3000);
       }
     }
   };
