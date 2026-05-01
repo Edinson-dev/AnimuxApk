@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Scale, Shield } from 'lucide-react';
+import { X, Scale, Shield, ShoppingBag } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import Header from './components/layout/Header';
 import Hero from './components/ui/Hero';
@@ -396,6 +396,9 @@ export default function App() {
                             </div>
                           ))}
                         </div>
+
+
+
                       </div>
                     )}
 
@@ -418,16 +421,14 @@ export default function App() {
 
                     {/* Fila 4: Continuar Viendo */}
                     {recentChannels.length > 0 && (
-                      <div className="space-y-5 bg-white/[0.02] p-6 rounded-3xl border border-white/5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
-                          </div>
+                      <div className="space-y-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
                         </div>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar">
+                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
                           {recentChannels.map(c => (
-                            <div key={c.id} className="w-[120px] md:w-[180px] shrink-0 opacity-80 hover:opacity-100 transition-opacity">
+                            <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
                             </div>
                           ))}

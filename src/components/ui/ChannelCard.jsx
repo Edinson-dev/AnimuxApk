@@ -13,10 +13,10 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
 
   return (
     <div 
-      className="group relative flex flex-col gap-2 cursor-pointer"
+      className="group relative flex flex-col gap-2 cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] active:scale-95"
       onClick={() => onPlay(channel)}
     >
-      <div className={`relative overflow-hidden rounded-xl bg-[#0a0a0a] border border-white/5 transition-colors duration-300 group-hover:border-rose-500/50 ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
+      <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 ease-out group-hover:border-rose-500/30 shadow-lg group-hover:shadow-[0_8px_30px_rgba(225,29,72,0.3)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
         <img 
           src={channel.logo || channel.poster} 
           alt={channel.name || channel.title} 
@@ -63,7 +63,7 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
       </div>
 
       <div className="px-1 py-1">
-        <h4 className="text-[11px] md:text-sm font-black text-white/90 truncate uppercase tracking-tight group-hover:text-rose-400 transition-colors">
+        <h4 className="text-[11px] md:text-sm font-black text-white/90 truncate uppercase tracking-tight transition-all duration-300 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-rose-400">
           {channel.displayName || channel.title || channel.name}
         </h4>
         <div className="flex items-center gap-2 mt-0.5 opacity-40">

@@ -49,7 +49,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
         <img
           src={featuredChannel.logo}
           alt={displayName}
-          className="w-full h-full object-cover opacity-35 transition-transform duration-[10000ms] group-hover:scale-105"
+          className="w-full h-full object-cover opacity-50 animate-ken-burns"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0d0d0d&color=ffffff&size=512&bold=true`;
