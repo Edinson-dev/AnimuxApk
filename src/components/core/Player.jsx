@@ -105,11 +105,11 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
     // ── Saltar al siguiente servidor ──────────────────────────────────────
     const tryNextServer = () => {
-      // Canales M3U directos no tienen ID de Xtream → solo mostramos cargando si falla
+      // Canales M3U directos no tienen ID de Xtream → mostrar error directamente
       if (channel.fromM3U || !channel.streamId) {
-        console.warn('⚠️ Señal M3U interrumpida. Esperando recuperación nativa...');
-        setLoading(true);
-        setError(false);
+        console.error('❌ Canal M3U sin fallback Xtream disponible.');
+        setError(true);
+        setLoading(false);
         return;
       }
 
@@ -185,8 +185,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         if (!video.paused && !video.ended && video.readyState >= 2) {
           if (video.currentTime === freezeRef.current.lastTime) {
             freezeRef.current.counter++;
-            // Solo actuar para Xtream (M3U se queda cargando nativamente)
-            if (freezeRef.current.counter >= 6 && (!channel.fromM3U && channel.streamId)) {
+            if (freezeRef.current.counter >= 6) {
               console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
               clearInterval(monitorInterval);
               tryNextServer();
@@ -243,13 +242,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
             clearTimeout(loadTimeout);
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
               networkRetryCount++;
-              // M3U infinitos reintentos, Xtream solo 2
-              if ((channel.fromM3U || !channel.streamId) || networkRetryCount <= 2) {
-                console.warn('Network error, reintentando nativamente...', networkRetryCount);
+              if (networkRetryCount <= 2) {
+                console.warn('Network error, reintentando...', networkRetryCount);
                 hls.startLoad();
               } else {
                 console.error('Network error persistente. Cambiando servidor...');
-                tryNextServer(); // 🔥 Fallback después de intentos fallidos
+                tryNextServer(); // 🔥 Fallback después de 2 intentos fallidos
               }
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
               console.warn('Media error, recuperando...');

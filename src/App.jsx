@@ -74,7 +74,7 @@ export default function App() {
         setLocalMovies(JSON.parse(cachedMovs));
 
         // Mantenemos el splash un ratico incluso si es caché para profesionalismo
-        setTimeout(() => setIsAppLoading(false), 4500);
+        setTimeout(() => setIsAppLoading(false), 3000);
         return;
       }
 
