@@ -172,9 +172,9 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3'].some(e => urlLower.includes(e));
 
-      // TODOS los streams externos siempre pasan por el proxy
-      // El proxy gestiona CORS — sin excepciones
-      const needsProxy = isExternal && (isProd || isLocal);
+      // TODOS los streams externos siempre pasan por el proxy, 
+      // a menos que el canal especifique "direct": true (ej. enlaces con tokens por IP)
+      const needsProxy = isExternal && (isProd || isLocal) && !channel.direct;
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
