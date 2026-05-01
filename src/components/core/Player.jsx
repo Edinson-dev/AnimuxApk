@@ -17,6 +17,10 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const [currentUrl, setCurrentUrl] = useState('');
     const [isPiP, setIsPiP] = useState(false);
     const [minimized, setMinimized] = useState(false);
+    
+    // ── HLS Quality State ─────────────────────────────────────────────────
+    const [levels, setLevels] = useState([]);
+    const [currentLevel, setCurrentLevel] = useState(-1);
 
     // ── PiP events ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -98,6 +102,8 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       setLoading(true);
       setServerIndex(0);
       setMinimized(false);
+      setLevels([]);
+      setCurrentLevel(-1);
       // Usar URL directa del canal (ya viene decodificada si aplica)
       const url = channel.url ? decodeCamouflage(channel.url) : '';
       setCurrentUrl(url);
@@ -212,15 +218,15 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: true,
-          maxBufferLength: 30, // Corto para no ahogar la memoria del Proxy
-          maxMaxBufferLength: 60,
-          liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 10,
-          manifestLoadingMaxRetry: 3,
+          lowLatencyMode: false,
+          maxBufferLength: 60, // Aumentado para mayor estabilidad en HD
+          maxMaxBufferLength: 120,
+          liveSyncDurationCount: 5,
+          liveMaxLatencyDurationCount: 15,
+          manifestLoadingMaxRetry: 5,
           manifestLoadingRetryDelay: 1000,
-          levelLoadingMaxRetry: 3,
-          fragLoadingMaxRetry: 5,     // 🚀 Alto retry automático por si un .ts falla
+          levelLoadingMaxRetry: 5,
+          fragLoadingMaxRetry: 8,     // 🚀 Alto retry automático por si un .ts falla
           fragLoadingRetryDelay: 500,
         });
 
@@ -228,9 +234,17 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         hls.loadSource(manifestUrl);
         hls.attachMedia(video);
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
           clearTimeout(loadTimeout);
           setLoading(false);
+          
+          if (data && data.levels) {
+             const availableLevels = data.levels.map((l, index) => ({ height: l.height || 'Auto', index }));
+             // Filtrar duplicados o niveles sin altura definida
+             const uniqueLevels = availableLevels.filter((l, i, self) => l.height && self.findIndex(t => t.height === l.height) === i).sort((a,b) => b.height - a.height);
+             setLevels(uniqueLevels);
+          }
+          
           video.play().catch(() => {});
         });
 
@@ -371,14 +385,42 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
               {/* Technical Badges (Hidden when minimized) */}
               {!minimized && !loading && (
-                <div className="absolute top-6 right-6 flex flex-col items-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute top-6 right-6 flex flex-col items-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-50">
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-[9px] font-black text-white uppercase tracking-widest">Señal Estable</span>
                   </div>
-                  <div className="bg-rose-600/20 backdrop-blur-md px-3 py-1 rounded-md border border-rose-600/30">
-                    <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Full HD 1080p</span>
-                  </div>
+                  
+                  {levels.length > 1 ? (
+                    <div className="flex flex-col gap-1 items-end bg-black/80 backdrop-blur-xl p-2 rounded-xl border border-white/10 shadow-2xl">
+                      <span className="text-[8px] text-gray-500 font-black uppercase px-2 mb-1 tracking-widest">Calidad</span>
+                      <button 
+                         onClick={() => {
+                            if (hlsRef.current) hlsRef.current.currentLevel = -1;
+                            setCurrentLevel(-1);
+                         }} 
+                         className={`w-full text-right px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${currentLevel === -1 ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                      >
+                         Auto
+                      </button>
+                      {levels.map(l => (
+                        <button 
+                           key={l.index} 
+                           onClick={() => {
+                              if (hlsRef.current) hlsRef.current.currentLevel = l.index;
+                              setCurrentLevel(l.index);
+                           }}
+                           className={`w-full text-right px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${currentLevel === l.index ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                        >
+                           {l.height}p
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-rose-600/20 backdrop-blur-md px-3 py-1 rounded-md border border-rose-600/30">
+                      <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">1080p HD</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
