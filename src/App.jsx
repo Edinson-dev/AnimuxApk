@@ -414,22 +414,7 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* Fila 3: Cine Premium (VOD) */}
-                    {allUnique.filter(c => c.isVOD).length > 0 && (
-                      <div className="space-y-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Cine de Taquilla</h3>
-                        </div>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                          {allUnique.filter(c => c.isVOD).slice(0, 15).map(c => (
-                            <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
-                              <ChannelCard channel={c} onPlay={setActiveChannel} isFavorite={favorites.includes(String(c.id))} />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+
 
                     {/* Fila 4: Continuar Viendo */}
                     {recentChannels.length > 0 && (
@@ -544,12 +529,12 @@ export default function App() {
       <BottomNav activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSearchOpen={() => setIsSearchOpen(true)} />
 
       {activeChannel && (
-        <Player 
-          channel={activeChannel} 
+        <Player
+          channel={activeChannel}
           playlist={filteredChannels}
           onPlayNext={(c) => setActiveChannel(c)}
           onReportBroken={handleReportBroken}
-          onClose={() => setActiveChannel(null)} 
+          onClose={() => setActiveChannel(null)}
         />
       )}
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}

@@ -24,10 +24,16 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
       }}
     >
       <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 ease-out group-hover:border-rose-500/30 shadow-lg group-hover:shadow-[0_8px_30px_rgba(225,29,72,0.3)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
+        {/* Fondo desenfocado para rellenar los bordes negros cuando la imagen es vertical */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center blur-xl opacity-40 scale-125 saturate-150 z-0"
+          style={{ backgroundImage: `url(${channel.logo || channel.poster})` }}
+        />
+        
         <img 
           src={channel.logo || channel.poster} 
           alt={channel.name || channel.title} 
-          className={`w-full h-full ${isVOD ? 'object-cover' : 'object-contain p-1'}`}
+          className={`relative z-10 w-full h-full drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] ${isVOD ? 'object-cover' : 'object-contain p-2 md:p-3'}`}
           loading="lazy"
         />
         

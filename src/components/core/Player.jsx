@@ -527,13 +527,20 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                        <div className="w-1 h-4 bg-blue-600 rounded-full" />
                        <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Tendencias Globales</h4>
                     </div>
-                    <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3">
-                       {playlist.slice(0, 5).map((item) => (
-                          <div key={`trend-${item.id}`} onClick={() => onPlayNext(item)} className="shrink-0 w-32 lg:w-full group cursor-pointer">
-                             <div className="aspect-video bg-white/5 rounded-xl lg:rounded-2xl border border-white/5 group-hover:border-blue-600/30 overflow-hidden transition-all">
-                                <img src={item.logo} className="w-full h-full object-contain p-3 grayscale group-hover:grayscale-0 transition-all" alt="" />
+                    <div className="flex flex-col gap-1">
+                       {playlist.slice(0, 5).map((item, index) => (
+                          <div key={`trend-${item.id}`} onClick={() => onPlayNext(item)} className="group flex items-center gap-4 p-2 rounded-xl hover:bg-white/[0.04] cursor-pointer transition-all border border-transparent hover:border-white/5">
+                             <div className="text-3xl font-black text-white/5 group-hover:text-blue-500/20 italic w-8 text-center transition-colors">
+                                {index + 1}
                              </div>
-                             <p className="text-[9px] font-black text-gray-500 mt-2 uppercase tracking-tighter truncate text-center lg:text-left">{item.name}</p>
+                             <div className="w-14 h-9 bg-black rounded-lg border border-white/5 overflow-hidden shrink-0 shadow-lg group-hover:shadow-blue-500/10 transition-shadow">
+                                <img src={item.logo} className="w-full h-full object-contain p-1.5" alt="" />
+                             </div>
+                             <div className="flex-1 min-w-0">
+                                <p className="text-[10px] md:text-[11px] font-black text-gray-500 group-hover:text-white uppercase tracking-wider truncate transition-colors">
+                                   {item.name || item.title}
+                                </p>
+                             </div>
                           </div>
                        ))}
                     </div>
