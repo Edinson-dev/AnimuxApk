@@ -23,17 +23,14 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
         }
       }}
     >
-      <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 ease-out group-hover:border-rose-500/30 shadow-lg group-hover:shadow-[0_8px_30px_rgba(225,29,72,0.3)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
-        {/* Fondo desenfocado para rellenar los bordes negros cuando la imagen es vertical */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center blur-xl opacity-40 scale-125 saturate-150 z-0"
-          style={{ backgroundImage: `url(${channel.logo || channel.poster})` }}
-        />
+      <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-300 ease-out group-hover:border-rose-500/30 shadow-md group-hover:shadow-[0_8px_30px_rgba(225,29,72,0.3)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
+        {/* Fondo oscuro base optimizado (reemplaza el costoso blur-xl) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-800/20 to-black/80 z-0" />
         
         <img 
           src={channel.logo || channel.poster} 
           alt={channel.name || channel.title} 
-          className={`relative z-10 w-full h-full drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] ${isVOD ? 'object-cover' : 'object-contain p-2 md:p-3'}`}
+          className={`relative z-10 w-full h-full shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] ${isVOD ? 'object-cover' : 'object-contain p-2 md:p-3'}`}
           loading="lazy"
         />
         
@@ -45,11 +42,12 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
         </div>
 
         {/* Quality/Type Badge */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+        <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
           <div className={`px-2 py-0.5 rounded-md flex items-center gap-1.5 badge-premium ${isVOD ? '' : 'bg-rose-600/80'}`}>
             {!isVOD && (
               <div className="flex items-center gap-0.5 h-2">
-                <div className="w-[1.5px] h-2 bg-white/60 rounded-full animate-pulse" />
+                {/* Glow estático para reemplazar el pesado animate-pulse */}
+                <div className="w-[2px] h-2 bg-white/90 rounded-full shadow-[0_0_6px_rgba(255,255,255,0.9)]" />
               </div>
             )}
             <span className="text-[7px] font-black text-white uppercase tracking-widest">
