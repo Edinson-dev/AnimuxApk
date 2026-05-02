@@ -14757,24 +14757,7 @@
       "url": "https://59825a54e4454.streamlock.net:8443/pastorairisn394/pastorairisn394/chunklist_w239411719.m3u8",
       "isVOD": false
     },
-    {
-      "id": 1618,
-      "tvgId": "WinSports.co@SD",
-      "name": "Win Sports (1080p)",
-      "logo": "https://i.imgur.com/DuSSrHV.png",
-      "category": "Deportes",
-      "url": "http://190.60.40.34:8001/play/a0ef",
-      "isVOD": false
-    },
-    {
-      "id": 1619,
-      "tvgId": "WinPlusFutbol.co@SD",
-      "name": "Win+ Futbol",
-      "logo": "https://i.imgur.com/0UN87vB.png",
-      "category": "Deportes",
-      "url": "http://190.60.40.34:8001/play/a02r",
-      "isVOD": false
-    },
+
     {
       "id": 1620,
       "tvgId": "WIPRTV61.pr@HD",
@@ -19320,24 +19303,7 @@
       "url": "http://192.144.113.132:1935/live/ViveTV/playlist.m3u8",
       "isVOD": false
     },
-    {
-      "id": 2125,
-      "tvgId": "WinSports.co@SD",
-      "name": "Win Sports (1080p)",
-      "logo": "https://i.imgur.com/DuSSrHV.png",
-      "category": "Deportes",
-      "url": "http://190.60.40.34:8001/play/a0ef",
-      "isVOD": false
-    },
-    {
-      "id": 2126,
-      "tvgId": "WinPlusFutbol.co@SD",
-      "name": "Win+ Futbol",
-      "logo": "https://i.imgur.com/0UN87vB.png",
-      "category": "Deportes",
-      "url": "http://190.60.40.34:8001/play/a02r",
-      "isVOD": false
-    },
+
     {
       "id": 2127,
       "tvgId": "24HourFreeMovies.us@SD",

@@ -33,22 +33,7 @@
       "url": "https://qbk4f.envivoslatam.org/winplus2/tracks-v1a1/mono.m3u8?ip=181.59.76.111&token=7679ba869eb52b1fb2113815de569186ad255329-f4-1777722172-1777668172",
       "direct": true
     },
-    {
-      "id": "m3u-dsports-1",
-      "name": "Directv Sports",
-      "displayName": "Directv Sports",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/5/5a/DSports.png/revision/latest?cb=20221114123400",
-      "category": "Deportes",
-      "url": "http://smarterstv99.dyndns.tv:25461/live/Juan823/XrrdxQgVwb2E/125646.ts"
-    },
-    {
-      "id": "m3u-dsports-2",
-      "name": "Directv Sports 2",
-      "displayName": "Directv Sports 2",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/8/83/DSports2.png/revision/latest/scale-to-width-down/1000?cb=20221114123734",
-      "category": "Deportes",
-      "url": "http://smarterstv99.dyndns.tv:25461/live/Juan823/XrrdxQgVwb2E/125648.ts"
-    },
+  
     {
       "id": "m3u-espn-1",
       "name": "Espn 1 (Col)",
@@ -64,46 +49,6 @@
       "logo": "https://static.wikia.nocookie.net/logopedia/images/2/22/ESPN2_2006.svg/revision/latest/scale-to-width-down/1000?cb=20200105155601&path-prefix=es",
       "category": "Deportes",
       "url": "http://181.78.14.26:4000/play/a02p/index.m3u8"
-    },
-    {
-      "id": "m3u-espn-3",
-      "name": "ESPN 3 (Col)",
-      "displayName": "ESPN 3 (Col)",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/6/6c/Espn3.png/revision/latest?cb=20151012185318&path-prefix=es",
-      "category": "Deportes",
-      "url": "http://190.60.49.242:4000/play/a070/index.m3u8"
-    },
-    {
-      "id": "m3u-tyc",
-      "name": "TyC Sports AR",
-      "displayName": "TyC Sports AR",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/5/5d/TyC_Sports.svg/revision/latest/scale-to-width-down/250?cb=20100625094432",
-      "category": "Deportes",
-      "url": "http://live.btv.mx:2424/stream/285432/smAVz_uhytj5REM-4pYNZbkrcB2"
-    },
-    {
-      "id": "m3u-tnt",
-      "name": "TNT Sports ARG",
-      "displayName": "TNT Sports ARG",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/8/83/TNT_Sports_%282023%29.svg/revision/latest/scale-to-width-down/78?cb=20230407001905",
-      "category": "Deportes",
-      "url": "https://la14hd.com/vivo/canales.php?stream=eventos13"
-    },
-    {
-      "id": "m3u-nat-geo",
-      "name": "National Geographic",
-      "displayName": "National Geographic",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/4/4e/National_Geographic_Channel_2016.svg/revision/latest/scale-to-width-down/1000?cb=20191223120610",
-      "category": "Documentales",
-      "url": "https://tv-cl.tcl-static.com/NationalGeographic/index.m3u8"
-    },
-    {
-      "id": "m3u-nat-geo-wild",
-      "name": "Nat Geo Wild",
-      "displayName": "Nat Geo Wild",
-      "logo": "https://static.wikia.nocookie.net/logopedia/images/e/ed/Nat_Geo_Wild_2016.svg/revision/latest/scale-to-width-down/1000?cb=20190306161825",
-      "category": "Documentales",
-      "url": "https://tv-cl.tcl-static.com/NatGeoWild/index.m3u8"
     }
   ]
 }

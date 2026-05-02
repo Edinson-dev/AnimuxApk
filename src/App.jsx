@@ -19,7 +19,7 @@ import AdminPanel from './components/core/AdminPanel';
 import LegalModal from './components/ui/LegalModal';
 import InstallGuide from './components/ui/InstallGuide';
 
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 
 export default function App() {
   const {
@@ -157,6 +157,14 @@ export default function App() {
     if (target === 'series') return normalizedChCat.includes('serie') || normalizedChCat.includes('show');
     if (target === 'deportes') return normalizedChCat.includes('deporte') || normalizedChCat.includes('sport');
     return normalizedChCat === target || normalizedChCat.includes(target);
+  };
+
+  const handleReportBroken = (channel) => {
+    const updated = [...brokenChannels, String(channel.id)];
+    setBrokenChannels(updated);
+    localStorage.setItem('animux_broken', JSON.stringify(updated));
+    toast.error('Canal reportado. Se ocultará de la lista.');
+    setActiveChannel(null);
   };
 
   const filteredChannels = useMemo(() => {
@@ -531,7 +539,15 @@ export default function App() {
 
       <BottomNav activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSearchOpen={() => setIsSearchOpen(true)} />
 
-      {activeChannel && <Player channel={activeChannel} onClose={() => setActiveChannel(null)} />}
+      {activeChannel && (
+        <Player 
+          channel={activeChannel} 
+          playlist={filteredChannels}
+          onPlayNext={(c) => setActiveChannel(c)}
+          onReportBroken={handleReportBroken}
+          onClose={() => setActiveChannel(null)} 
+        />
+      )}
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onUpdate={loadData} />}
       {showLegal && <LegalModal onClose={() => setShowLegal(false)} />}
