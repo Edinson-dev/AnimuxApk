@@ -486,7 +486,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
               </div>
 
               {/* Responsive List: Horizontal on Mobile, Vertical on Desktop */}
-              <div className="p-2 lg:p-4">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-2 lg:p-4 pb-24">
                  <div className="flex items-center justify-between mb-4 px-2 lg:px-0">
                     <div className="flex items-center gap-2">
                        <div className="w-1 h-4 bg-rose-600 rounded-full" />
@@ -495,7 +495,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                     <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest animate-pulse">En Vivo</span>
                  </div>
                  
-                 <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto custom-scrollbar gap-3 pb-6 lg:pb-0">
+                 <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3 pb-6 lg:pb-0">
                     {playlist.filter(item => String(item.id) !== String(channel.id)).map((item) => (
                       <div
                         key={item.id}
@@ -527,7 +527,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                        <div className="w-1 h-4 bg-blue-600 rounded-full" />
                        <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Tendencias Globales</h4>
                     </div>
-                    <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto custom-scrollbar gap-3">
+                    <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3">
                        {playlist.slice(0, 5).map((item) => (
                           <div key={`trend-${item.id}`} onClick={() => onPlayNext(item)} className="shrink-0 w-32 lg:w-full group cursor-pointer">
                              <div className="aspect-video bg-white/5 rounded-xl lg:rounded-2xl border border-white/5 group-hover:border-blue-600/30 overflow-hidden transition-all">

@@ -20,7 +20,7 @@ import LegalModal from './components/ui/LegalModal';
 import InstallGuide from './components/ui/InstallGuide';
 import TvGuideModal from './components/ui/TvGuideModal';
 
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 
 export default function App() {
   const {

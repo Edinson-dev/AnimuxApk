@@ -52,12 +52,18 @@ export default function Header({
   };
 
   // Manejar actualización de SW
-  const handleSWUpdate = () => {
+  const handleSWUpdate = async () => {
     setShowNotifications(false);
-    if (updateServiceWorker) {
-      updateServiceWorker(true);
-    } else {
-      window.location.reload();
+    try {
+      if (updateServiceWorker) {
+        await updateServiceWorker(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      // Limpiamos caché para forzar la carga de todo nuevo
+      localStorage.removeItem('animux_last_fetch');
+      window.location.reload(true);
     }
   };
 
