@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale } from 'lucide-react';
+import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale, Shield, Tv } from 'lucide-react';
 
 export default function Header({ 
   searchQuery, 
@@ -17,6 +17,7 @@ export default function Header({
   isSearchOpen,
   setIsSearchOpen,
   onShowLegal,
+  onShowTvGuide,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -90,9 +91,15 @@ export default function Header({
             <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white uppercase hidden sm:block leading-none">
               Animux
             </h1>
-            <span className="text-[7px] md:text-[8px] font-black text-rose-500 uppercase tracking-widest mt-0.5 opacity-80 leading-none">
-              v{appVersion}
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[7px] md:text-[8px] font-black text-rose-500 uppercase tracking-widest opacity-80 leading-none">
+                v{appVersion}
+              </span>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 rounded-sm" title="Conexión Segura Verificada">
+                <Shield className="w-2 h-2 text-green-500" />
+                <span className="text-[6px] font-black text-green-500 uppercase tracking-widest hidden md:inline">Seguro</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -139,6 +146,16 @@ export default function Header({
 
         {/* Right controls */}
         <div className="flex items-center gap-2 shrink-0">
+
+          {/* Botón TV Guide (Icono en móvil, con texto en PC) */}
+          <button
+            onClick={onShowTvGuide}
+            title="Cómo ver en Smart TV"
+            className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 sm:bg-white/5 sm:hover:bg-white/10 text-gray-400 hover:text-white rounded-full sm:border sm:border-white/10 transition-all text-[10px] font-black uppercase tracking-widest"
+          >
+            <Tv className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
+            <span className="hidden sm:inline">Ver en TV</span>
+          </button>
 
           {/* Botón Modo Kids */}
           <button

@@ -5308,15 +5308,6 @@
       "isVOD": false
     },
     {
-      "id": 568,
-      "tvgId": "DirecTVSports.us@Panregional",
-      "name": "DirecTV Sports (1080p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/DirecTV_Sports_Latin_America_%282018%29.png/960px-DirecTV_Sports_Latin_America_%282018%29.png",
-      "category": "Deportes",
-      "url": "https://latam-cache-sv2-cdn.latamlive.net/DS1_ENC_LIVE/index.mpd",
-      "isVOD": false
-    },
-    {
       "id": 569,
       "tvgId": "DismarRadioTV.py@SD",
       "name": "Dismar Radio TV (720p)",
@@ -17944,15 +17935,7 @@
       "url": "http://201.217.246.42:44310/Live/3fcb6e26785fd8d415571b26dc3cf5d3/deportv_720.m3u8",
       "isVOD": false
     },
-    {
-      "id": 1974,
-      "tvgId": "DirecTVSports.us@Panregional",
-      "name": "DirecTV Sports (1080p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/DirecTV_Sports_Latin_America_%282018%29.png/960px-DirecTV_Sports_Latin_America_%282018%29.png",
-      "category": "Deportes",
-      "url": "https://latam-cache-sv2-cdn.latamlive.net/DS1_ENC_LIVE/index.mpd",
-      "isVOD": false
-    },
+
     {
       "id": 1975,
       "tvgId": "DisneyChannelLatinAmerica.ar@Panregional",
@@ -18851,15 +18834,6 @@
       "logo": "https://i.imgur.com/GltIfWW.jpeg",
       "category": "Entretenimiento",
       "url": "https://mist01.homestream.fun/hls/ntvlive/0_1/index.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 2075,
-      "tvgId": "DirecTVSports.us@Panregional",
-      "name": "DirecTV Sports (1080p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/DirecTV_Sports_Latin_America_%282018%29.png/960px-DirecTV_Sports_Latin_America_%282018%29.png",
-      "category": "Deportes",
-      "url": "https://latam-cache-sv2-cdn.latamlive.net/DS1_ENC_LIVE/index.mpd",
       "isVOD": false
     },
     {

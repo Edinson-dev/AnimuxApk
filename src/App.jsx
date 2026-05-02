@@ -18,6 +18,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import AdminPanel from './components/core/AdminPanel';
 import LegalModal from './components/ui/LegalModal';
 import InstallGuide from './components/ui/InstallGuide';
+import TvGuideModal from './components/ui/TvGuideModal';
 
 const APP_VERSION = '3.2';
 
@@ -50,6 +51,7 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showLegal, setShowLegal] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [showTvGuide, setShowTvGuide] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -292,6 +294,7 @@ export default function App() {
         isKidsMode={isKidsMode}
         setIsKidsMode={setIsKidsMode}
         onShowLegal={() => setShowLegal(true)}
+        onShowTvGuide={() => setShowTvGuide(true)}
       />
 
       <CategoryBar
@@ -305,6 +308,7 @@ export default function App() {
           setActiveCategory={setActiveCategory} counts={categoryCounts} version={APP_VERSION}
           isKidsMode={isKidsMode} setIsKidsMode={setIsKidsMode}
           onShowLegal={() => setShowLegal(true)}
+          onShowTvGuide={() => setShowTvGuide(true)}
         />
 
         <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-black pt-4 md:pt-16 pb-24 md:pb-6">
@@ -551,6 +555,7 @@ export default function App() {
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onUpdate={loadData} />}
       {showLegal && <LegalModal onClose={() => setShowLegal(false)} />}
+      {showTvGuide && <TvGuideModal onClose={() => setShowTvGuide(false)} />}
       {showInstallGuide && (
         <InstallGuide
           onClose={() => setShowInstallGuide(false)}

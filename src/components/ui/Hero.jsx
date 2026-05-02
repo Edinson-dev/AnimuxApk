@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Info } from 'lucide-react';
+import { Play, Info, Shield } from 'lucide-react';
 
 const getDominantColor = (imgSrc, onResult) => {
   try {
@@ -67,7 +67,12 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
               <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
               {featuredChannel.isNew ? 'Estreno Exclusivo' : 'Tendencia'}
             </span>
-            <span className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] hidden xs:block">
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-green-500/10 backdrop-blur-md">
+              <Shield className="w-3 h-3" />
+              <span className="hidden md:inline">Transmisión Segura</span>
+              <span className="md:hidden">Seguro</span>
+            </span>
+            <span className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] hidden lg:block">
               Animux Original • Premium
             </span>
           </div>

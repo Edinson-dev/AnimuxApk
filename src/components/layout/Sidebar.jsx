@@ -21,7 +21,7 @@ const getCatIcon = (cat) => {
   return ICON_MAP[key] || Layers;
 };
 
-export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode, onShowLegal }) {
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode, onShowLegal, onShowTvGuide }) {
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
@@ -45,6 +45,7 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
               className={`
                 group relative flex items-center gap-3 px-3 py-3 rounded-xl
                 transition-all duration-200 w-full text-left
+                focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-rose-600/20 focus:text-white
                 ${isActive
                   ? 'bg-rose-600/15 text-white'
                   : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200'
@@ -108,6 +109,14 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
           <RefreshCw className="w-4 h-4 group-hover:animate-spin" />
           <span className="text-[10px] font-black uppercase tracking-widest">Actualizar Datos</span>
         </button>
+        <button 
+          onClick={onShowTvGuide}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 hover:border-white/20 group"
+        >
+          <Tv className="w-4 h-4 text-gray-400 group-hover:text-white" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 group-hover:text-white">Ver en Smart TV</span>
+        </button>
+
         <div className="flex flex-col items-center gap-2 px-2">
           <button
             onClick={onShowLegal}

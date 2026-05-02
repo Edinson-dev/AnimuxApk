@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Heart, Share2, X } from 'lucide-react';
+import { Play, Heart, Share2, X, Shield } from 'lucide-react';
 import Player from '../core/Player';
 import ChannelCard from './ChannelCard';
 import { toast } from './Toast';
@@ -95,6 +95,10 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
                   <span>2024</span>
                   <span className="w-1 h-1 bg-white/20 rounded-full" />
                   <span>4K UHD</span>
+                  <span className="w-1 h-1 bg-white/20 rounded-full hidden md:block" />
+                  <span className="text-green-500 hidden md:flex items-center gap-1">
+                    <Shield className="w-3 h-3" /> Transmisión Segura
+                  </span>
                 </div>
                 <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter leading-tight">
                   {displayName}

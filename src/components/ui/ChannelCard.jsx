@@ -13,8 +13,15 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
 
   return (
     <div 
-      className="group relative flex flex-col gap-2 cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] active:scale-95"
+      tabIndex={0}
+      className="group relative flex flex-col gap-2 cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-500/80 focus:scale-[1.05] rounded-2xl"
       onClick={() => onPlay(channel)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onPlay(channel);
+        }
+      }}
     >
       <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 ease-out group-hover:border-rose-500/30 shadow-lg group-hover:shadow-[0_8px_30px_rgba(225,29,72,0.3)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
         <img 
@@ -54,8 +61,15 @@ export default function ChannelCard({ channel, onPlay, isFavorite, onToggleFavor
         {/* Favorite Button */}
         {onToggleFavorite && (
           <button 
+            tabIndex={0}
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(channel.id); }}
-            className={`absolute top-3 right-3 p-2 rounded-full border transition-colors ${isFavorite ? 'bg-rose-600 border-rose-600 text-white' : 'bg-black/60 border-white/10 text-white/70'}`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.stopPropagation();
+                onToggleFavorite(channel.id);
+              }
+            }}
+            className={`absolute top-3 right-3 p-2 rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-white ${isFavorite ? 'bg-rose-600 border-rose-600 text-white' : 'bg-black/60 border-white/10 text-white/70'}`}
           >
             <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
           </button>
