@@ -362,7 +362,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
             </div>
           )}
 
-          <div className="relative flex-1 flex items-center justify-center group overflow-hidden z-10">
+          <div className="relative shrink-0 w-full aspect-video lg:aspect-auto lg:flex-1 flex items-center justify-center group overflow-hidden z-10 bg-black">
             {/* Real Video Player */}
             <div className="w-full h-full flex items-center justify-center relative">
               {isYouTube ? (
