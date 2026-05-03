@@ -12,7 +12,7 @@ const BOTTOM_TABS = [
 export default function BottomNav({ activeCategory, setActiveCategory, onSearchOpen }) {
   return (
     <nav className="md:hidden fixed bottom-4 left-4 right-4 z-[70] pb-safe pointer-events-none">
-      <div className="flex items-stretch bg-black/60 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-2xl shadow-rose-900/10 overflow-hidden pointer-events-auto">
+      <div className="flex items-stretch bg-black/80 backdrop-blur-md border border-white/10 rounded-[2rem] shadow-2xl shadow-rose-900/10 overflow-hidden pointer-events-auto">
         {BOTTOM_TABS.map(({ key, label, Icon }) => {
           const isActive = key !== '__search' && activeCategory === key;
           return (

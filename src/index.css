@@ -74,6 +74,29 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Performance: GPU-accelerated scroll containers ────────────── */
+main {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Optimize badge backdrop-filter: only on hover to save GPU during scroll */
+@media (hover: none) {
+  .badge-premium {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 /* ── Safe Area (iPhone X / notch devices) ─────────────────────────────── */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
