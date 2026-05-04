@@ -204,6 +204,25 @@ export default function App() {
     return Array.from(unique.values());
   }, [localMovies, channelData, brokenChannels]);
 
+  const groupedChannels = useMemo(() => {
+    const grouped = [];
+    const seenGroups = new Set();
+    
+    for (const item of allUnique) {
+      if (item.groupId && item.isVOD) {
+        if (!seenGroups.has(item.groupId)) {
+          seenGroups.add(item.groupId);
+          // Eliminar el sufijo " - Cap X" o similar del nombre para la portada
+          const seriesName = (item.name || item.title || '').split('-')[0].trim();
+          grouped.push({ ...item, isGroupRepresentative: true, displayName: seriesName });
+        }
+      } else {
+        grouped.push(item);
+      }
+    }
+    return grouped;
+  }, [allUnique]);
+
   const matchesCat = (c, target) => {
     const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     const normalizedChCat = chCat.includes('documentary') ? 'documentales' : chCat.includes('religious') ? 'religioso' : chCat;
@@ -226,7 +245,7 @@ export default function App() {
   };
 
   const filteredChannels = useMemo(() => {
-    let result = [...allUnique];
+    let result = [...groupedChannels];
 
     // Filtro maestro de Modo Kids
     if (isKidsMode) {
@@ -364,7 +383,22 @@ export default function App() {
     <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
       <Header
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-        onGoHome={() => { setActiveCategory('Inicio'); setSearchQuery(''); setLogoClicks(p => p + 1 === 5 ? (setShowAdmin(true), 0) : p + 1); }}
+        onGoHome={() => { 
+          setActiveCategory('Inicio'); 
+          setSearchQuery(''); 
+          setLogoClicks(p => {
+            if (p + 1 === 5) {
+              const pwd = window.prompt('🔒 Acceso Restringido. Introduce la clave de administrador:');
+              if (pwd === 'animux2024') {
+                setShowAdmin(true);
+              } else if (pwd !== null) {
+                alert('❌ Clave incorrecta. Acceso denegado.');
+              }
+              return 0;
+            }
+            return p + 1;
+          });
+        }}
         onForceRefresh={() => loadData(true)}
         onInstall={() => setShowInstallGuide(true)}
         showInstall={showInstall}
@@ -433,7 +467,7 @@ export default function App() {
                           <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Anime y Dibujos</h3>
                         </div>
                         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                          {allUnique.filter(c => (c.category || '').toLowerCase().includes('anime') || (c.category || '').toLowerCase().includes('muñeco')).slice(0, 15).map(c => (
+                          {groupedChannels.filter(c => (c.category || '').toLowerCase().includes('anime') || (c.category || '').toLowerCase().includes('muñeco')).slice(0, 15).map(c => (
                             <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                             </div>
@@ -450,7 +484,7 @@ export default function App() {
                           <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Mundo Disney & Nick</h3>
                         </div>
                         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                          {allUnique.filter(c => {
+                          {groupedChannels.filter(c => {
                             const name = (c.name || '').toLowerCase();
                             return name.includes('disney') || name.includes('nick') || name.includes('cartoon');
                           }).slice(0, 15).map(c => (
@@ -465,14 +499,14 @@ export default function App() {
                 ) : (
                   <div className="space-y-8">
                     {/* Fila 1: Añadidos Recientemente (Solo los marcados como Nuevos) */}
-                    {allUnique.filter(c => c.isNew).length > 0 && (
+                    {groupedChannels.filter(c => c.isNew).length > 0 && (
                       <div className="space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
                           <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Estrenos Exclusivos</h3>
                         </div>
                         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                          {allUnique.filter(c => c.isNew).slice(0, 10).map(c => (
+                          {groupedChannels.filter(c => c.isNew).slice(0, 10).map(c => (
                             <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                             </div>
@@ -527,7 +561,7 @@ export default function App() {
                       return baseFilter;
                     }).map(cat => {
                       const target = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-                      const items = allUnique.filter(c => matchesCat(c, target));
+                      const items = groupedChannels.filter(c => matchesCat(c, target));
                       if (!items.length) return null;
                       return (
                         <LazyRow key={cat}>
@@ -627,7 +661,7 @@ export default function App() {
       {activeChannel && (
         <Player
           channel={activeChannel}
-          playlist={filteredChannels}
+          playlist={allUnique}
           onPlayNext={(c) => setActiveChannel(c)}
           onReportBroken={handleReportBroken}
           onClose={() => setActiveChannel(null)}

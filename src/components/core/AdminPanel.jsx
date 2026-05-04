@@ -15,7 +15,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [shouldCamouflage, setShouldCamouflage] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true
+    name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: ''
   });
 
   useEffect(() => {
@@ -58,7 +58,8 @@ export default function AdminPanel({ onClose, onUpdate }) {
       name: item.name || '', title: item.title || '', url: item.url || '',
       logo: item.logo || '', category: item.category || categories[0],
       description: item.description || '', year: item.year || '',
-      featured: item.featured || false, isNew: item.isNew !== undefined ? item.isNew : true
+      featured: item.featured || false, isNew: item.isNew !== undefined ? item.isNew : true,
+      isVOD: item.isVOD || false, direct: item.direct || false, groupId: item.groupId || ''
     });
     setShowAddForm(true);
   };
@@ -194,7 +195,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
               </div>
             )}
           </div>
-          <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
+          <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '' }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
             <Plus className="w-4 h-4" /> Añadir
           </button>
         </div>
@@ -263,6 +264,26 @@ export default function AdminPanel({ onClose, onUpdate }) {
                       <div className="flex items-center gap-3">
                         <input type="checkbox" id="featured" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="w-5 h-5 accent-rose-600" />
                         <label htmlFor="featured" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer">Marcar como DESTACADO</label>
+                      </div>
+                      
+                      <div className="space-y-4 pt-4 border-t border-white/5 mt-2">
+                        <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-2">Configuración Especial (Series / VOD)</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex items-center gap-3">
+                            <input type="checkbox" id="isVOD" checked={formData.isVOD} onChange={(e) => setFormData({ ...formData, isVOD: e.target.checked })} className="w-5 h-5 accent-purple-500" />
+                            <label htmlFor="isVOD" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer">Es Contenido VOD (Película / Serie)</label>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <input type="checkbox" id="direct" checked={formData.direct} onChange={(e) => setFormData({ ...formData, direct: e.target.checked })} className="w-5 h-5 accent-green-500" />
+                            <label htmlFor="direct" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer">Directo (Bypass Proxy. Para archivos .mp4 pesados)</label>
+                          </div>
+                        </div>
+                        {formData.isVOD && (
+                          <div className="space-y-2 mt-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">ID del Grupo (Solo para juntar episodios de Series)</label>
+                            <input value={formData.groupId} onChange={(e) => setFormData({ ...formData, groupId: e.target.value })} placeholder="Ej: DBZ-Cloverway-Episodes" className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 pt-4 border-t border-white/5 mt-2">
                         <input type="checkbox" id="camouflage" checked={shouldCamouflage} onChange={(e) => setShouldCamouflage(e.target.checked)} className="w-5 h-5 accent-blue-500" />

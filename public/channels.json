@@ -1133,7 +1133,8 @@
       "name": "Fox Sports (1080p)",
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/FOX_Sports_logo.svg/960px-FOX_Sports_logo.svg.png",
       "category": "Deportes",
-      "url": "http://201.217.246.42:44310/Live/b10474c9b1ba4a0986b574d1211c065b/local-91.playlist.m3u8"
+      "url": "http://201.217.246.42:44310/Live/b10474c9b1ba4a0986b574d1211c065b/local-91.playlist.m3u8",
+      "direct": true
     },
     {
       "id": 429,
@@ -1161,7 +1162,8 @@
       "name": "FTV (720p)",
       "logo": "https://i.imgur.com/YOr1Oac.png",
       "category": "Deportes",
-      "url": "https://master.tucableip.com/ftvhd/index.m3u8"
+      "url": "https://master.tucableip.com/ftvhd/index.m3u8",
+      "direct": true
     },
     {
       "id": 436,
@@ -1464,13 +1466,7 @@
       "category": "Música",
       "url": "https://mdstrm.com/live-stream-playlist/58d191f07290fbb058025843.m3u8"
     },
-    {
-      "id": 518,
-      "name": "LaLiga TV",
-      "logo": "https://i.imgur.com/ilay5Jr.png",
-      "category": "Deportes",
-      "url": "http://162.19.255.233:8080/play/UNbAl57p9hXZClOu56FCTZID4SFOqZLZ81NguVP-JxM/m3u8"
-    },
+   
     {
       "id": 519,
       "name": "La Voz de Jesus HD (720p)",
@@ -1751,13 +1747,7 @@
       "category": "Música",
       "url": "https://movil.ejeserver.com/live/masmusica.m3u8"
     },
-    {
-      "id": 575,
-      "name": "MCI Televisión (1080p)",
-      "logo": "https://pbs.twimg.com/profile_images/1836009952420274177/FfYonU6r_400x400.jpg",
-      "category": "Family;General;Movies",
-      "url": "https://video.ejeserver.com/live/mcitelevision.m3u8"
-    },
+
     {
       "id": 576,
       "name": "Maestrat TV (1080p)",
@@ -2100,13 +2090,6 @@
       "logo": "https://i.imgur.com/ES6xFAv.png",
       "category": "General",
       "url": "https://sistemastr.tropicalmoonmedia.com/live/2C7CA6CECC9B8F8C3A07315FDA110936/21.m3u8"
-    },
-    {
-      "id": 660,
-      "name": "Next HD (480p)",
-      "logo": "https://i.imgur.com/c2rF3SS.png",
-      "category": "Peliculas",
-      "url": "https://live.enhdtv.com:19360/nexthd/nexthd.m3u8"
     },
     {
       "id": 661,
@@ -2792,7 +2775,8 @@
       "name": "Tigo Sports+",
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Tigo_Sports_2025.png/960px-Tigo_Sports_2025.png",
       "category": "Deportes",
-      "url": "http://45.170.130.224:8000/play/a04i/index.m3u8"
+      "url": "http://45.170.130.224:8000/play/a04i/index.m3u8",
+      "direct": true
     },
     {
       "id": 965,
@@ -3011,22 +2995,7 @@
       "category": "General",
       "url": "http://201.217.246.42:44310/Live/3fcb6e26785fd8d415571b26dc3cf5d3/tvpublica_720.m3u8"
     },
-    {
-      "id": 1054,
-      "name": "TyC Sports Latin America (1080p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/TyC_Sports_logo.svg/960px-TyC_Sports_logo.svg.png",
-      "category": "Deportes",
-      "url": "http://201.217.246.42:44310/Live/d93a7c495cb5f5d236b25a3ffea95003/local-90.playlist.m3u8",
-      "direct": true
-    },
-    {
-      "id": 1055,
-      "name": "TyC Sports USA",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/TyC_Sports_logo.svg/960px-TyC_Sports_logo.svg.png",
-      "category": "Deportes",
-      "url": "http://45.170.130.224:8000/play/a020/index.m3u8",
-      "direct": true
-    },
+  
     {
       "id": 1063,
       "name": "TVS Retro (720p)",
@@ -3273,6 +3242,36 @@
       "logo": "https://i.imgur.com/BGwQdQW.jpeg",
       "category": "Música",
       "url": "https://tuvideoonline.com.ar:3332/live/xlevelmedialive.m3u8"
+    },
+{
+      "id": 10001,
+      "name": "Dragon Ball Z - Cap 1",
+      "logo": "https://i.postimg.cc/qqB1vsbT/Gemini-Generated-Image-yfly70yfly70yfly.png",
+      "url": "https://archive.org/download/DBZ-Cloverway-Episodes/Dragon%20Ball%20Z%20(Cloverway%20LATAM%20dub)%20-%20Episode%20001.mp4",
+      "category": "Series",
+      "isVOD": true,
+      "direct": true,
+      "groupId": "DBZ-Cloverway-Episodes"
+    },
+    {
+      "id": 10002,
+      "name": "Dragon Ball Z - Cap 2",
+      "logo": "https://i.postimg.cc/qqB1vsbT/Gemini-Generated-Image-yfly70yfly70yfly.png",
+      "url": "https://archive.org/download/DBZ-Cloverway-Episodes/Dragon%20Ball%20Z%20(Cloverway%20LATAM%20dub)%20-%20Episode%20146.mp4",
+      "category": "Series",
+      "isVOD": true,
+      "direct": true,
+      "groupId": "DBZ-Cloverway-Episodes"
+    },
+    {
+      "id": 10003,
+      "name": "Dragon Ball Z - Cap 3",
+      "logo": "https://i.postimg.cc/qqB1vsbT/Gemini-Generated-Image-yfly70yfly70yfly.png",
+      "url": "https://archive.org/download/DBZ-Cloverway-Episodes/Dragon%20Ball%20Z%20(Cloverway%20LATAM%20dub)%20-%20Episode%20148.mp4",
+      "category": "Series",
+      "isVOD": true,
+      "direct": true,
+      "groupId": "DBZ-Cloverway-Episodes"
     }
 
   ]
