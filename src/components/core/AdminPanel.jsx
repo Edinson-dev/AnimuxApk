@@ -10,6 +10,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [shouldCamouflage, setShouldCamouflage] = useState(false);
@@ -178,9 +179,20 @@ export default function AdminPanel({ onClose, onUpdate }) {
               </button>
             ))}
           </div>
-          <div className="flex-1 relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold text-white uppercase tracking-widest outline-none" />
+          <div className="flex-1 w-full flex flex-col md:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold text-white uppercase tracking-widest outline-none" />
+            </div>
+            {activeTab !== 'categories' && (
+              <div className="relative md:w-64">
+                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-4 pr-10 text-[10px] font-bold text-white uppercase tracking-widest appearance-none outline-none cursor-pointer">
+                  <option value="">Todas las Categorías</option>
+                  {categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat}</option>)}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              </div>
+            )}
           </div>
           <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
             <Plus className="w-4 h-4" /> Añadir
@@ -193,7 +205,10 @@ export default function AdminPanel({ onClose, onUpdate }) {
             <div className="flex flex-col items-center justify-center h-full gap-4"><div className="w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full animate-spin" /><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Cargando...</p></div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
-              {items.filter(i => (i.name || i.title || '').toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
+              {items
+                .filter(i => (i.name || i.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
+                .filter(i => filterCategory === '' || i.category === filterCategory)
+                .map(item => (
                 <div key={item.id} className="group bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-2xl p-4 flex items-center justify-between transition-all">
                   <div className="flex items-center gap-4">
                     {activeTab !== 'categories' ? <img src={item.logo} className="w-12 h-12 rounded-xl object-cover border border-white/10" alt="" /> : <div className="w-12 h-12 rounded-xl bg-rose-600/20 flex items-center justify-center"><LayoutGrid className="w-6 h-6 text-rose-500" /></div>}

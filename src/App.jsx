@@ -181,7 +181,7 @@ export default function App() {
   };
 
   const allCategories = useMemo(() => {
-    const baseCats = ['Nuevos', 'Series', 'Películas', 'Cine', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
+    const baseCats = ['Cine', 'Series', 'Películas', 'Educación', 'Deportes', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
     const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
     return Array.from(new Set([...baseCats, ...translatedCloud, 'Favoritos']));
   }, [cloudCategories]);

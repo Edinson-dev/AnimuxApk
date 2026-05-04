@@ -384,7 +384,6 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                    autoPlay 
                    playsInline
                    controlsList="nodownload"
-                   disablePictureInPicture
                    onContextMenu={(e) => e.preventDefault()}
                    onPlay={() => setLoading(false)}
                    onPlaying={() => setLoading(false)}

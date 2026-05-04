@@ -5352,33 +5352,7 @@
       "url": "http://201.217.246.42:44310/Live/3fcb6e26785fd8d415571b26dc3cf5d3/local-35.playlist.m3u8",
       "isVOD": false
     },
-    {
-      "id": 574,
-      "tvgId": "DisneyJunior.es@SD",
-      "name": "Disney Junior (576p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/3/36/2019_Disney_Junior_logo.svg",
-      "category": "Infantil & Anime",
-      "url": "https://bbb.exoadash.com/TVD1561/index.mpd",
-      "isVOD": false
-    },
-    {
-      "id": 575,
-      "tvgId": "DisneyJunior.us@East",
-      "name": "Disney Junior (1080i)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/e/e3/2024_Disney_Jr._Logo.svg",
-      "category": "Infantil & Anime",
-      "url": "http://23.237.104.106:8080/USA_DISNEY_JUNIOR/index.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 576,
-      "tvgId": "DisneyXD.us@East",
-      "name": "Disney XD East (720p) [Not 24/7]",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/a/a8/2015_Disney_XD_logo.svg",
-      "category": "Infantil & Anime",
-      "url": "https://tvpass.org/live/DisneyXDEast/hd",
-      "isVOD": false
-    },
+
     {
       "id": 577,
       "tvgId": "DistritoTV.es@SD",
@@ -15838,15 +15812,7 @@
       "url": "https://streaming.cloud.innovasur.es/mmj/index.m3u8",
       "isVOD": false
     },
-    {
-      "id": 1741,
-      "tvgId": "DisneyJunior.es@SD",
-      "name": "Disney Junior (576p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/3/36/2019_Disney_Junior_logo.svg",
-      "category": "Infantil & Anime",
-      "url": "https://bbb.exoadash.com/TVD1561/index.mpd",
-      "isVOD": false
-    },
+
     {
       "id": 1742,
       "tvgId": "DistritoTV.es@SD",
@@ -17936,15 +17902,6 @@
       "isVOD": false
     },
 
-    {
-      "id": 1975,
-      "tvgId": "DisneyChannelLatinAmerica.ar@Panregional",
-      "name": "Disney Channel Latin America (1080p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/f/ff/2024_Disney_Channel_text_logo.svg",
-      "category": "Infantil & Anime",
-      "url": "http://201.217.246.42:44310/Live/3fcb6e26785fd8d415571b26dc3cf5d3/local-32.playlist.m3u8",
-      "isVOD": false
-    },
     {
       "id": 1976,
       "tvgId": "DisneyJrLatinAmerica.ar@South",
@@ -23011,69 +22968,6 @@
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Nickelodeon_2023_logo_%28outline%29.svg/960px-Nickelodeon_2023_logo_%28outline%29.svg.png",
       "category": "Infantil & Anime",
       "url": "http://195.64.140.147:10121/121",
-      "isVOD": false
-    },
-    {
-      "id": 2542,
-      "tvgId": "NickOnline.br@HD",
-      "name": "NickOnline (720p)",
-      "logo": "https://x1co.com.br:8443/logo.png",
-      "category": "Infantil & Anime",
-      "url": "https://x1co.com.br/hls/stream.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 2543,
-      "tvgId": "NickOnline.br@SD",
-      "name": "NickOnline SD (320p)",
-      "logo": "https://x1co.com.br:8443/logo.png",
-      "category": "Infantil & Anime",
-      "url": "https://sd.x1co.com.br",
-      "isVOD": false
-    },
-    {
-      "id": 2544,
-      "tvgId": "NickOnlineSpongebob.br@HD",
-      "name": "NickOnline Spongebob (720p) [Not 24/7]",
-      "logo": "https://x1co.com.br/logobob.png",
-      "category": "Infantil & Anime",
-      "url": "https://x1co.com.br:2083/hls/stream.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 2545,
-      "tvgId": "NickToonsBrasil.br@SD",
-      "name": "NickToons Brasil (480p)",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Nicktoons_logo_%282023%29.svg/330px-Nicktoons_logo_%282023%29.svg.png",
-      "category": "Infantil & Anime",
-      "url": "https://stmv2.srvif.com/nicktoons/nicktoons/playlist.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 2546,
-      "tvgId": "OnePiece.us@BR",
-      "name": "One Piece",
-      "logo": "https://i.imgur.com/XsvbAWR.png",
-      "category": "Entretenimiento",
-      "url": "https://jmp2.uk/plu-624b1c8d4321e200073ee421.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 2547,
-      "tvgId": "OnePiece.us@CA",
-      "name": "One Piece",
-      "logo": "https://i.imgur.com/XsvbAWR.png",
-      "category": "Entretenimiento",
-      "url": "https://jmp2.uk/plu-62e94ec74823db0007277a8f.m3u8",
-      "isVOD": false
-    },
-    {
-      "id": 2548,
-      "tvgId": "OnePiece.us@FR",
-      "name": "One Piece",
-      "logo": "https://i.imgur.com/XsvbAWR.png",
-      "category": "Entretenimiento",
-      "url": "https://jmp2.uk/plu-6380c94947c72b0007ee9a13.m3u8",
       "isVOD": false
     },
     {
