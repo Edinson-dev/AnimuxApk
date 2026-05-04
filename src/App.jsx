@@ -632,7 +632,7 @@ export default function App() {
           onReportBroken={handleReportBroken}
           onClose={() => setActiveChannel(null)}
           isFavorite={favorites.includes(String(activeChannel.id))}
-          onToggleFavorite={() => handleToggleFavorite(activeChannel)}
+          onToggleFavorite={() => handleToggleFavorite(activeChannel.id)}
         />
       )}
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}
