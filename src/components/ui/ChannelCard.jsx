@@ -30,12 +30,12 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
   return (
     <div 
       tabIndex={0}
-      className="group relative flex flex-col gap-2 cursor-pointer transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-500/80 focus:scale-[1.05] rounded-2xl will-change-transform"
+      className="group relative flex flex-col gap-2 cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-500/80 rounded-2xl will-change-transform"
       onClick={handlePlay}
       onKeyDown={handleKeyDown}
       style={{ contain: 'layout style paint' }}
     >
-      <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-colors duration-300 ease-out group-hover:border-rose-500/30 shadow-md group-hover:shadow-[0_8px_30px_rgba(225,29,72,0.3)] ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
+      <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-colors duration-200 group-hover:border-rose-500/30 ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
         {/* Fondo oscuro base optimizado */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-800/20 to-black/80 z-0" />
         

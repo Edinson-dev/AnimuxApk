@@ -22,7 +22,7 @@ import InstallGuide from './components/ui/InstallGuide';
 import TvGuideModal from './components/ui/TvGuideModal';
 import DonateModal from './components/ui/DonateModal';
 
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 
 export default function App() {
   const {
@@ -631,6 +631,8 @@ export default function App() {
           onPlayNext={(c) => setActiveChannel(c)}
           onReportBroken={handleReportBroken}
           onClose={() => setActiveChannel(null)}
+          isFavorite={favorites.includes(String(activeChannel.id))}
+          onToggleFavorite={() => handleToggleFavorite(activeChannel)}
         />
       )}
       {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}

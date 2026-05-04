@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
   import Hls from 'hls.js';
-  import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock } from 'lucide-react';
+  import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock, Heart } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
 
 
 
-  export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false }) {
+  export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false, isFavorite, onToggleFavorite }) {
     const videoRef = useRef(null);
     const hlsRef = useRef(null);
     const serverIndexRef = useRef(0); // ref para acceder en closures sin stale state
@@ -164,43 +164,47 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       const isExternal = currentUrl.startsWith('http');
 
       // Detección de tipo de stream
-      // .ts directo se trata como HLS: el proxy lo sirve con Content-Type correcto
       const isM3U8 = urlLower.includes('.m3u8') ||
                      urlLower.includes('jmp2.uk') ||
                      urlLower.includes('.ts') ||
                      (currentUrl.includes('/play/') && !urlLower.includes('.mp4') && !urlLower.includes('.mkv'));
 
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3'].some(e => urlLower.includes(e));
-
-      // TODOS los streams externos siempre pasan por el proxy, 
-      // a menos que el canal especifique "direct": true (ej. enlaces con tokens por IP)
       const needsProxy = isExternal && (isProd || isLocal) && !channel.direct;
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
-      // 2. Timeout de conexión inicial (15s — servidores IPTV colombianos pueden ser lentos)
-      const loadTimeout = setTimeout(() => {
-        if (video.currentTime === 0) {
-          console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
-          tryNextServer();
-        }
-      }, 15000);
+      let loadTimeout;
+      let monitorInterval;
 
-      // 3. Monitor de congelamiento (cada 1s — actúa a los 6s de inactividad)
-      const monitorInterval = setInterval(() => {
-        if (!video.paused && !video.ended && video.readyState >= 2) {
-          if (video.currentTime === freezeRef.current.lastTime) {
-            freezeRef.current.counter++;
-            if (freezeRef.current.counter >= 6) {
-              console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
-              clearInterval(monitorInterval);
-              tryNextServer();
-            }
-          } else {
-            freezeRef.current = { lastTime: video.currentTime, counter: 0 };
+      // SOLO aplicar timeouts y monitoreo si NO es un embed.
+      // Los embeds (Archive.org, Drive, YouTube) no deben lanzar "Enlace Caído" por timeout de video
+      if (!isEmbed) {
+        // 2. Timeout de conexión inicial (15s)
+        loadTimeout = setTimeout(() => {
+          if (video && video.currentTime === 0) {
+            console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
+            tryNextServer();
           }
-        }
-      }, 1000);
+        }, 15000);
+
+        // 3. Monitor de congelamiento
+        monitorInterval = setInterval(() => {
+          if (video && !video.paused && !video.ended && video.readyState >= 2) {
+            if (video.currentTime === freezeRef.current.lastTime) {
+              freezeRef.current.counter++;
+              if (freezeRef.current.counter >= 6) {
+                console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
+                clearInterval(monitorInterval);
+                tryNextServer();
+              }
+            } else {
+              freezeRef.current = { lastTime: video.currentTime, counter: 0 };
+            }
+          }
+        }, 1000);
+      }
+
 
       // 4. Reproducción de video directo (mp4, ts, etc.)
       if (isDirectVideo) {
@@ -218,15 +222,16 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: false,
-          maxBufferLength: 60, // Aumentado para mayor estabilidad en HD
-          maxMaxBufferLength: 120,
-          liveSyncDurationCount: 5,
-          liveMaxLatencyDurationCount: 15,
+          lowLatencyMode: true, // Activado para arranque rápido
+          startLevel: -1,       // Empieza en auto (baja resolución) para cargar al instante
+          maxBufferLength: 30,  // Reducido de 60 a 30
+          maxMaxBufferLength: 60, // Reducido de 120 a 60
+          liveSyncDurationCount: 3, // Reducido de 5 a 3
+          liveMaxLatencyDurationCount: 10,
           manifestLoadingMaxRetry: 5,
           manifestLoadingRetryDelay: 1000,
           levelLoadingMaxRetry: 5,
-          fragLoadingMaxRetry: 8,     // 🚀 Alto retry automático por si un .ts falla
+          fragLoadingMaxRetry: 8,
           fragLoadingRetryDelay: 500,
         });
 
@@ -393,6 +398,17 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-[9px] font-black text-white uppercase tracking-widest">Señal Estable</span>
                   </div>
+
+                  {/* Botón de Favorito en el Player */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onToggleFavorite) onToggleFavorite();
+                    }}
+                    className="p-2.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-white/10 transition-colors shadow-2xl group/fav"
+                  >
+                    <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500 group-hover/fav:scale-110' : 'text-white/70 group-hover/fav:text-white group-hover/fav:scale-110'}`} />
+                  </button>
                   
                   {levels.length > 1 ? (
                     <div className="flex flex-col gap-1 items-end bg-black/80 backdrop-blur-xl p-2 rounded-xl border border-white/10 shadow-2xl">
