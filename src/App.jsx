@@ -130,9 +130,60 @@ export default function App() {
 
   const forceRefresh = () => loadData(true);
 
+  // ── Traductor de categorías (inglés → español) ───────────────
+  const CATEGORY_TRANSLATIONS = {
+    'sports': 'Deportes',
+    'sport': 'Deportes',
+    'news': 'Noticias',
+    'entertainment': 'Entretenimiento',
+    'movies': 'Películas',
+    'movie': 'Películas',
+    'music': 'Música',
+    'kids': 'Infantil',
+    'children': 'Infantil',
+    'documentary': 'Documentales',
+    'documentaries': 'Documentales',
+    'religious': 'Religioso',
+    'religion': 'Religioso',
+    'education': 'Educación',
+    'educational': 'Educación',
+    'comedy': 'Comedia',
+    'drama': 'Drama',
+    'classic': 'Clásicos',
+    'classics': 'Clásicos',
+    'lifestyle': 'Estilo de Vida',
+    'food': 'Cocina',
+    'cooking': 'Cocina',
+    'travel': 'Viajes',
+    'nature': 'Naturaleza',
+    'science': 'Ciencia',
+    'business': 'Negocios',
+    'weather': 'Clima',
+    'animation': 'Animación',
+    'family': 'Familia',
+    'general': 'General',
+    'culture': 'Cultura',
+    'outdoor': 'Naturaleza',
+    'shop': 'Tienda',
+    'shopping': 'Tienda',
+    'series': 'Series',
+    'auto': 'Autos',
+    'undefined': 'Otros',
+    'xxx': null, // Ocultar esta categoría
+    'adult': null,
+  };
+
+  const translateCat = (cat) => {
+    if (!cat) return 'Otros';
+    const key = cat.toLowerCase().trim();
+    if (CATEGORY_TRANSLATIONS[key] === null) return null; // Ocultar
+    return CATEGORY_TRANSLATIONS[key] || cat; // Traducir o dejar original
+  };
+
   const allCategories = useMemo(() => {
-    const baseCats = ['Nuevos', 'Series', 'Películas', 'Cine', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'Religioso'];
-    return Array.from(new Set([...baseCats, ...cloudCategories, 'Favoritos']));
+    const baseCats = ['Nuevos', 'Series', 'Películas', 'Cine', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
+    const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
+    return Array.from(new Set([...baseCats, ...translatedCloud, 'Favoritos']));
   }, [cloudCategories]);
 
   const allUnique = useMemo(() => {
@@ -144,7 +195,9 @@ export default function App() {
     base.forEach(item => {
       const name = (item.name || item.title || '').toLowerCase().trim();
       if (!deleted.includes(name) && !unique.has(name)) {
-        unique.set(name, item);
+        // Traducir categoría al español
+        const translated = translateCat(item.category);
+        unique.set(name, translated ? { ...item, category: translated } : item);
       }
     });
 

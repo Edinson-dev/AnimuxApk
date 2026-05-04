@@ -80,12 +80,10 @@ main {
   transform: translateZ(0);
 }
 
-/* Reduce motion for users who prefer it */
+/* Reduce DECORATIVE motion only — keep spinners and loaders alive */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  .animate-pulse, .animate-bounce, .animate-float {
+    animation: none !important;
   }
 }
 

@@ -377,7 +377,10 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                    className="w-full h-full object-contain shadow-2xl" 
                    controls 
                    autoPlay 
-                   playsInline 
+                   playsInline
+                   controlsList="nodownload"
+                   disablePictureInPicture
+                   onContextMenu={(e) => e.preventDefault()}
                    onPlay={() => setLoading(false)}
                    onPlaying={() => setLoading(false)}
                  />
