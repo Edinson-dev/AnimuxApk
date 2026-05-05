@@ -524,7 +524,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                     {(channel.groupId && channel.isVOD 
                       ? playlist.filter(item => item.groupId === channel.groupId).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
                       : playlist.filter(item => String(item.id) !== String(channel.id))
-                    ).map((item) => (
+                    ).map((item, idx) => (
                       <div
                         key={item.id}
                         onClick={() => onPlayNext(item)}
@@ -536,9 +536,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                         {channel.groupId && channel.isVOD ? (
                           <>
                              {/* Vista Móvil: Solo el número centrado en el cuadrado */}
-                             <span className="lg:hidden font-black text-xl">
-                               {(item.name || '').match(/\d+/)?.[0] || '▶'}
-                             </span>
+                             <div className="lg:hidden flex flex-col items-center justify-center leading-none">
+                               <span className="text-[8px] font-black uppercase opacity-60 mb-0.5">EP</span>
+                               <span className="font-black text-lg">
+                                 {idx + 1}
+                               </span>
+                             </div>
                              
                              {/* Vista PC: Tarjeta completa */}
                              <div className="hidden lg:flex rounded-xl lg:rounded-2xl overflow-hidden shrink-0 bg-black w-full lg:w-24 aspect-video relative group-hover:scale-105 transition-transform duration-500">
