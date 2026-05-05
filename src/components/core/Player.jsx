@@ -180,13 +180,16 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       // SOLO aplicar timeouts y monitoreo si NO es un embed.
       // Los embeds (Archive.org, Drive, YouTube) no deben lanzar "Enlace Caído" por timeout de video
       if (!isEmbed) {
-        // 2. Timeout de conexión inicial (15s)
-        loadTimeout = setTimeout(() => {
-          if (video && video.currentTime === 0) {
-            console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
-            tryNextServer();
-          }
-        }, 15000);
+        // 2. Timeout de conexión inicial (Solo para Live TV con servidores Xtream)
+        // Para VOD (Archive.org, Drive, etc) permitimos que el navegador cargue sin límite de tiempo
+        if (!channel.isVOD && !isDirectVideo && channel.streamId) {
+          loadTimeout = setTimeout(() => {
+            if (video && video.currentTime === 0) {
+              console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
+              tryNextServer();
+            }
+          }, 15000);
+        }
 
         // 3. Monitor de congelamiento (Solo para Live TV con servidores Xtream)
         if (!channel.isVOD && !isDirectVideo && channel.streamId) {
