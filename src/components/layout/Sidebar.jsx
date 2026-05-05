@@ -109,6 +109,14 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
           <RefreshCw className="w-4 h-4 group-hover:animate-spin" />
           <span className="text-[10px] font-black uppercase tracking-widest">Actualizar Datos</span>
         </button>
+        {/* Telegram Community */}
+        <button
+          onClick={() => window.open('https://t.me/AnimuxOficial', '_blank')}
+          className="w-full py-2 bg-[#0088cc] hover:bg-[#0099e6] text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
+        > <Zap className="w-4 h-4 fill-current group-hover:animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Únete al Telegram</span>
+        </button>
+
         <button 
           onClick={onShowTvGuide}
           className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 hover:border-white/20 group"

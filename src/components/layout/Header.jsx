@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale, Shield, Tv } from 'lucide-react';
+import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale, Shield, Tv, Zap } from 'lucide-react';
 
 export default function Header({ 
   searchQuery, 
@@ -259,6 +259,21 @@ export default function Header({
                       </button>
                     </div>
                   )}
+
+                  {/* Card: Telegram Community */}
+                  <div className="bg-[#0088cc]/10 border border-[#0088cc]/20 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-4 h-4 text-[#0088cc] fill-current" />
+                      <p className="text-[11px] font-black text-[#0088cc] uppercase tracking-widest">Comunidad Telegram</p>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mb-3">Únete para recibir noticias, pedir contenido y reportar fallos.</p>
+                    <button
+                      onClick={() => window.open('https://t.me/AnimuxOficial', '_blank')}
+                      className="w-full py-2 bg-[#0088cc] hover:bg-[#0099e6] text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      Unirme al Grupo
+                    </button>
+                  </div>
 
                   {/* Botón actualizar datos */}
                   <button

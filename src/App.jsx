@@ -13,6 +13,7 @@ import DetailsModal from './components/ui/DetailsModal';
 import Skeleton from './components/ui/Skeleton';
 import Toast, { toast } from './components/ui/Toast';
 import NewsBanner from './components/ui/NewsBanner';
+import CommunityCard from './components/ui/CommunityCard';
 
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -463,6 +464,8 @@ export default function App() {
                   onPlay={handlePlay}
                   onDetails={setSelectedDetail}
                 />
+
+                <CommunityCard />
 
                 {isKidsMode ? (
                   <div className="space-y-8">
