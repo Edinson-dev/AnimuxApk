@@ -35,6 +35,19 @@ export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
   const [localMovies, setLocalMovies] = useState([]);
   const [cloudCategories, setCloudCategories] = useState([]);
+  // Auto-Actualización Inteligente (PWA)
+  useEffect(() => {
+    if (needRefresh) {
+      if (activeChannel) {
+        // Si están viendo una película, no se la cortamos.
+        toast.success('Nueva actualización descargada en segundo plano.');
+      } else {
+        // Si están en el menú, recargamos automáticamente para aplicar la nueva versión.
+        toast.success('Versión más reciente detectada. Recargando...', { duration: 3000 });
+        setTimeout(() => updateServiceWorker(true), 3000);
+      }
+    }
+  }, [needRefresh, activeChannel, updateServiceWorker]);
   const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('animux_favs') || '[]'));
   const [recentlyWatched, setRecentlyWatched] = useState(() => JSON.parse(localStorage.getItem('animux_recent') || '[]'));
   const [activeCategory, setActiveCategory] = useState('Inicio');
