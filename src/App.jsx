@@ -35,6 +35,18 @@ export default function App() {
   const [channelData, setChannelData] = useState({ channels: [] });
   const [localMovies, setLocalMovies] = useState([]);
   const [cloudCategories, setCloudCategories] = useState([]);
+
+  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('animux_favs') || '[]'));
+  const [recentlyWatched, setRecentlyWatched] = useState(() => JSON.parse(localStorage.getItem('animux_recent') || '[]'));
+  const [activeCategory, setActiveCategory] = useState('Inicio');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeChannel, setActiveChannel] = useState(null);
+  const [selectedDetail, setSelectedDetail] = useState(null);
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   // Auto-Actualización Inteligente (PWA)
   useEffect(() => {
     if (needRefresh) {
@@ -48,16 +60,6 @@ export default function App() {
       }
     }
   }, [needRefresh, activeChannel, updateServiceWorker]);
-  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('animux_favs') || '[]'));
-  const [recentlyWatched, setRecentlyWatched] = useState(() => JSON.parse(localStorage.getItem('animux_recent') || '[]'));
-  const [activeCategory, setActiveCategory] = useState('Inicio');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeChannel, setActiveChannel] = useState(null);
-  const [selectedDetail, setSelectedDetail] = useState(null);
-  const [isAppLoading, setIsAppLoading] = useState(true);
-  const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isKidsMode, setIsKidsMode] = useState(false);
   const [logoClicks, setLogoClicks] = useState(0);
   const [visibleCount, setVisibleCount] = useState(48);
