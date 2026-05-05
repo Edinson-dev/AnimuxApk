@@ -177,7 +177,11 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                      (currentUrl.includes('/play/') && !urlLower.includes('.mp4') && !urlLower.includes('.mkv'));
 
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3'].some(e => urlLower.includes(e));
-      const needsProxy = isExternal && (isProd || isLocal) && !channel.direct;
+      
+      // Lógica de Proxy Protegida:
+      // 1. Canales de TV (HLS/M3U8): Usan proxy si no están marcados como directos (Necesario para Caracol/ESPN)
+      // 2. Películas/Series (VOD/Direct): NUNCA usan proxy para no saturar Render/Cloudflare
+      const needsProxy = isExternal && (isProd || isLocal) && !channel.direct && !isDirectVideo && !channel.isVOD;
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
