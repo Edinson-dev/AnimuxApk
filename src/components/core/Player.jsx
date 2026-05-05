@@ -104,8 +104,15 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       setMinimized(false);
       setLevels([]);
       setCurrentLevel(-1);
-      // Usar URL directa del canal (ya viene decodificada si aplica)
-      const url = channel.url ? decodeCamouflage(channel.url) : '';
+      // Decodificar si es necesario
+      let url = channel.url ? decodeCamouflage(channel.url) : '';
+      
+      // AUTO-FIX para Archive.org: Convertir links de 'details' a 'download' (directos)
+      if (url.includes('archive.org/details/')) {
+        url = url.replace('archive.org/details/', 'archive.org/download/');
+        console.log('🔄 Archive.org Fix: Convertido link de detalles a descarga directa');
+      }
+
       setCurrentUrl(url);
     }, [channel]);
 
