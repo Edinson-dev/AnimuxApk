@@ -10,7 +10,7 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
 
   // Obtenemos un nombre corto para la etiqueta (badge)
   const badgeText = isVOD 
-    ? (channel.category || 'FILM').toUpperCase() 
+    ? (channel.isGroupRepresentative ? 'SERIE VOD' : (channel.category || 'FILM').toUpperCase()) 
     : 'LIVE';
 
   const displayName = channel.displayName || channel.title || channel.name;

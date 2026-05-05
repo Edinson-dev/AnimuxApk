@@ -3242,36 +3242,6 @@
       "logo": "https://i.imgur.com/BGwQdQW.jpeg",
       "category": "Música",
       "url": "https://tuvideoonline.com.ar:3332/live/xlevelmedialive.m3u8"
-    },
-{
-      "id": 10001,
-      "name": "Dragon Ball Z - Cap 1",
-      "logo": "https://i.postimg.cc/qqB1vsbT/Gemini-Generated-Image-yfly70yfly70yfly.png",
-      "url": "https://archive.org/download/DBZ-Cloverway-Episodes/Dragon%20Ball%20Z%20(Cloverway%20LATAM%20dub)%20-%20Episode%20001.mp4",
-      "category": "Series",
-      "isVOD": true,
-      "direct": true,
-      "groupId": "DBZ-Cloverway-Episodes"
-    },
-    {
-      "id": 10002,
-      "name": "Dragon Ball Z - Cap 2",
-      "logo": "https://i.postimg.cc/qqB1vsbT/Gemini-Generated-Image-yfly70yfly70yfly.png",
-      "url": "https://archive.org/download/DBZ-Cloverway-Episodes/Dragon%20Ball%20Z%20(Cloverway%20LATAM%20dub)%20-%20Episode%20146.mp4",
-      "category": "Series",
-      "isVOD": true,
-      "direct": true,
-      "groupId": "DBZ-Cloverway-Episodes"
-    },
-    {
-      "id": 10003,
-      "name": "Dragon Ball Z - Cap 3",
-      "logo": "https://i.postimg.cc/qqB1vsbT/Gemini-Generated-Image-yfly70yfly70yfly.png",
-      "url": "https://archive.org/download/DBZ-Cloverway-Episodes/Dragon%20Ball%20Z%20(Cloverway%20LATAM%20dub)%20-%20Episode%20148.mp4",
-      "category": "Series",
-      "isVOD": true,
-      "direct": true,
-      "groupId": "DBZ-Cloverway-Episodes"
     }
 
   ]

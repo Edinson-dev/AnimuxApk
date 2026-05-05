@@ -22,7 +22,7 @@ import InstallGuide from './components/ui/InstallGuide';
 import TvGuideModal from './components/ui/TvGuideModal';
 import DonateModal from './components/ui/DonateModal';
 
-const APP_VERSION = '3.4';
+const APP_VERSION = '1.1';
 
 export default function App() {
   const {
@@ -181,9 +181,18 @@ export default function App() {
   };
 
   const allCategories = useMemo(() => {
-    const baseCats = ['Cine', 'Series', 'Películas', 'Educación', 'Deportes', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
+    const baseCats = ['Cine (VOD)', 'Series (VOD)', 'Maratones 24/7', 'TV Abierta', 'Deportes', 'Documentales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
     const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
-    return Array.from(new Set([...baseCats, ...translatedCloud, 'Favoritos']));
+    
+    // Solo agregar categorías de la nube que no estén ya en nuestras baseCats lógicas
+    const finalCats = new Set([...baseCats, 'Favoritos']);
+    translatedCloud.forEach(cat => {
+       const normalized = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+       if (!normalized.includes('cine') && !normalized.includes('pelicula') && !normalized.includes('serie')) {
+         finalCats.add(cat);
+       }
+    });
+    return Array.from(finalCats);
   }, [cloudCategories]);
 
   const allUnique = useMemo(() => {
@@ -227,12 +236,13 @@ export default function App() {
     const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     const normalizedChCat = chCat.includes('documentary') ? 'documentales' : chCat.includes('religious') ? 'religioso' : chCat;
 
-    // Lógica invertida por petición: CINE = VOD, PELICULAS = Canales TV
-    if (target === 'cine') return c.isVOD;
-    if (target === 'peliculas') return !c.isVOD && (normalizedChCat.includes('cine') || normalizedChCat.includes('pelicula') || normalizedChCat.includes('movie'));
+    if (target === 'cine (vod)') return c.isVOD && !c.groupId; // Películas VOD
+    if (target === 'series (vod)') return c.isVOD && !!c.groupId; // Series VOD
+    if (target === 'maratones 24/7' || target === 'maratones') return !c.isVOD && (normalizedChCat.includes('serie') || normalizedChCat.includes('pelicula') || normalizedChCat.includes('cine'));
+    if (target === 'tv abierta') return !c.isVOD && (normalizedChCat.includes('nacional') || normalizedChCat.includes('noticia') || normalizedChCat.includes('general'));
 
-    if (target === 'series') return normalizedChCat.includes('serie') || normalizedChCat.includes('show');
     if (target === 'deportes') return normalizedChCat.includes('deporte') || normalizedChCat.includes('sport');
+    
     return normalizedChCat === target || normalizedChCat.includes(target);
   };
 
@@ -281,10 +291,6 @@ export default function App() {
         counts[cat] = favorites.length;
       } else if (target === 'nuevos' || target === 'nuevo') {
         counts[cat] = allUnique.filter(c => c.isNew === true).length;
-      } else if (target === 'cine') {
-        counts[cat] = allUnique.filter(c => c.isVOD).length;
-      } else if (target === 'peliculas') {
-        counts[cat] = allUnique.filter(c => !c.isVOD && ((c.category || '').toLowerCase().includes('cine') || (c.category || '').toLowerCase().includes('pelicula'))).length;
       } else {
         counts[cat] = allUnique.filter(c => matchesCat(c, target)).length;
       }
@@ -498,21 +504,42 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-8">
-                    {/* Fila 1: Añadidos Recientemente (Solo los marcados como Nuevos) */}
-                    {groupedChannels.filter(c => c.isNew).length > 0 && (
-                      <div className="space-y-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Estrenos Exclusivos</h3>
+                    {/* Fila: Películas (VOD) */}
+                    {allUnique.filter(c => matchesCat(c, 'cine (vod)')).length > 0 && (
+                      <LazyRow>
+                        <div className="space-y-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Cine (VOD)</h3>
+                          </div>
+                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                            {allUnique.filter(c => matchesCat(c, 'cine (vod)')).slice(0, 15).map(c => (
+                              <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                                <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                          {groupedChannels.filter(c => c.isNew).slice(0, 10).map(c => (
-                            <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
-                              <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
-                            </div>
-                          ))}
+                      </LazyRow>
+                    )}
+
+                    {/* Fila: Series (VOD) */}
+                    {groupedChannels.filter(c => matchesCat(c, 'series (vod)')).length > 0 && (
+                      <LazyRow>
+                        <div className="space-y-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
+                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Series (VOD)</h3>
+                          </div>
+                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                            {groupedChannels.filter(c => matchesCat(c, 'series (vod)')).slice(0, 15).map(c => (
+                              <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                                <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      </LazyRow>
                     )}
 
                     {/* Fila 2: Deportes en Vivo */}
@@ -553,7 +580,7 @@ export default function App() {
 
                     {/* Resto de Categorías dinámicas */}
                     {allCategories.filter(c => {
-                      const baseFilter = !['Favoritos', 'Nuevos', 'Inicio', 'Deportes', 'Cine', 'Películas'].includes(c);
+                      const baseFilter = !['Favoritos', 'Nuevos', 'Inicio', 'Deportes', 'Cine (VOD)', 'Series (VOD)'].includes(c);
                       if (isKidsMode) {
                         const lowCat = c.toLowerCase();
                         return baseFilter && (lowCat.includes('infantil') || lowCat.includes('kids') || lowCat.includes('muñeco') || lowCat.includes('anime') || lowCat.includes('dibujo'));

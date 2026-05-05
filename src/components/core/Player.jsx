@@ -188,21 +188,23 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
           }
         }, 15000);
 
-        // 3. Monitor de congelamiento
-        monitorInterval = setInterval(() => {
-          if (video && !video.paused && !video.ended && video.readyState >= 2) {
-            if (video.currentTime === freezeRef.current.lastTime) {
-              freezeRef.current.counter++;
-              if (freezeRef.current.counter >= 6) {
-                console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
-                clearInterval(monitorInterval);
-                tryNextServer();
+        // 3. Monitor de congelamiento (Solo para Live TV con servidores Xtream)
+        if (!channel.isVOD && !isDirectVideo && channel.streamId) {
+          monitorInterval = setInterval(() => {
+            if (video && !video.paused && !video.ended && video.readyState >= 2) {
+              if (video.currentTime === freezeRef.current.lastTime) {
+                freezeRef.current.counter++;
+                if (freezeRef.current.counter >= 6) {
+                  console.warn('❄️ Stream congelado 6s. Cambiando servidor...');
+                  clearInterval(monitorInterval);
+                  tryNextServer();
+                }
+              } else {
+                freezeRef.current = { lastTime: video.currentTime, counter: 0 };
               }
-            } else {
-              freezeRef.current = { lastTime: video.currentTime, counter: 0 };
             }
-          }
-        }, 1000);
+          }, 1000);
+        }
       }
 
 

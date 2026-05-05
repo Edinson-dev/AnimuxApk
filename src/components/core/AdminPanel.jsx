@@ -79,7 +79,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
         : { 
             ...formData, 
             url: shouldCamouflage ? camouflageURL(formData.url) : formData.url,
-            isVOD: activeTab === 'movies', 
+            isVOD: formData.isVOD, 
             updatedAt: Date.now() 
           };
 
