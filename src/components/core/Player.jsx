@@ -531,7 +531,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                     {(!channel.groupId || !channel.isVOD) && <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest animate-pulse">En Vivo</span>}
                  </div>
                  
-                 <div className={`${channel.groupId && channel.isVOD ? 'grid grid-cols-4 md:grid-cols-6 lg:flex lg:flex-col lg:overflow-visible gap-3' : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'} pb-6 lg:pb-0 px-2 lg:px-0`}>
+                 <div className={`${channel.groupId && channel.isVOD ? 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-2 gap-3 lg:gap-4' : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'} pb-6 lg:pb-0 px-2 lg:px-0`}>
                     {(channel.groupId && channel.isVOD 
                       ? playlist.filter(item => item.groupId === channel.groupId).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
                       : playlist.filter(item => String(item.id) !== String(channel.id))
@@ -540,58 +540,63 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                         key={item.id}
                         onClick={() => onPlayNext(item)}
                         className={channel.groupId && channel.isVOD 
-                          ? `group flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0 lg:gap-4 p-0 lg:p-4 rounded-xl lg:rounded-3xl cursor-pointer transition-all border shrink-0 aspect-square lg:aspect-auto w-full ${String(item.id) === String(channel.id) ? 'bg-rose-600 text-white border-rose-600 shadow-[0_0_15px_rgba(225,29,72,0.4)] lg:bg-rose-600/10 lg:border-rose-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border-transparent hover:border-white/20 lg:bg-white/[0.02] lg:hover:bg-rose-600/5'}`
+                          ? `group relative flex flex-col items-center justify-center gap-2 p-0 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border overflow-hidden aspect-square lg:aspect-video w-full ${String(item.id) === String(channel.id) ? 'bg-rose-600/20 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)]' : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-white/20'}`
                           : `group flex flex-col lg:flex-row gap-3 lg:gap-4 p-3 lg:p-4 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border shrink-0 w-40 lg:w-full ${String(item.id) === String(channel.id) ? 'bg-rose-600/10 border-rose-600/30' : 'bg-white/[0.02] hover:bg-rose-600/5 border-transparent hover:border-rose-600/20'}`
                         }
                       >
                         {channel.groupId && channel.isVOD ? (
                           <>
-                             {/* Vista Móvil: Solo el número centrado en el cuadrado */}
-                             <div className="lg:hidden flex flex-col items-center justify-center leading-none">
-                               <span className="text-[8px] font-black uppercase opacity-60 mb-0.5">EP</span>
-                               <span className="font-black text-lg">
-                                 {idx + 1}
+                             {/* Imagen de fondo con degradado */}
+                             <div className="absolute inset-0 z-0">
+                               <img src={item.logo} className="w-full h-full object-cover opacity-30 group-hover:opacity-50 group-hover:scale-110 transition-all duration-700" alt="" />
+                               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                             </div>
+
+                             {/* Contenido Visual */}
+                             <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center w-full h-full">
+                               <div className="flex flex-col items-center gap-0.5">
+                                 <span className={`text-[8px] font-black uppercase tracking-widest ${String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white/40'}`}>EPISODIO</span>
+                                 <span className="text-xl lg:text-2xl font-black text-white leading-none">
+                                   {idx + 1}
+                                 </span>
+                               </div>
+                               
+                               {/* Titulo pequeño solo en PC si cabe */}
+                               <span className="hidden lg:block mt-2 text-[8px] font-bold text-white/60 truncate w-full px-2 uppercase tracking-tighter">
+                                 {item.name?.split('-').pop() || 'Reproducir'}
                                </span>
                              </div>
-                             
-                             {/* Vista PC: Tarjeta completa */}
-                             <div className="hidden lg:flex rounded-xl lg:rounded-2xl overflow-hidden shrink-0 bg-black w-full lg:w-24 aspect-video relative group-hover:scale-105 transition-transform duration-500">
-                               <img src={item.logo} className="w-full h-full object-contain p-2 lg:p-3" alt="" />
-                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                  <Play className="w-4 h-4 text-white fill-current" />
+
+                             {/* Icono Play flotante en hover */}
+                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <div className="p-1.5 bg-rose-600 rounded-full shadow-lg">
+                                  <Play className="w-2 h-2 text-white fill-current" />
                                </div>
                              </div>
-                             <div className="hidden lg:flex flex-1 min-w-0 flex-col justify-center">
-                               <h4 className={`text-[11px] lg:text-[12px] font-black truncate tracking-tight uppercase group-hover:text-rose-500 transition-colors ${String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white'}`}>
-                                 {item.name || item.title}
-                               </h4>
-                               <div className="flex items-center gap-2 mt-1">
-                                  <span className={`text-[8px] lg:text-[9px] uppercase font-black tracking-widest ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-gray-500'}`}>
-                                    {String(item.id) === String(channel.id) ? 'Reproduciendo' : 'Episodio'}
-                                  </span>
-                                  <div className={`w-1 h-1 rounded-full ${String(item.id) === String(channel.id) ? 'bg-rose-500 animate-pulse' : 'bg-rose-600'}`} />
-                               </div>
-                             </div>
+
+                             {String(item.id) === String(channel.id) && (
+                               <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-600 animate-pulse" />
+                             )}
                           </>
                         ) : (
                           <>
-                             <div className="rounded-xl lg:rounded-2xl overflow-hidden shrink-0 bg-black w-full lg:w-24 aspect-video relative group-hover:scale-105 transition-transform duration-500">
-                               <img src={item.logo} className="w-full h-full object-contain p-2 lg:p-3" alt="" />
-                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                  <Play className="w-4 h-4 text-white fill-current" />
-                               </div>
-                             </div>
-                             <div className="flex-1 min-w-0 flex flex-col justify-center">
-                               <h4 className={`text-[11px] lg:text-[12px] font-black truncate tracking-tight uppercase group-hover:text-rose-500 transition-colors ${String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white'}`}>
-                                 {item.name || item.title}
-                               </h4>
-                               <div className="flex items-center gap-2 mt-1">
-                                  <span className={`text-[8px] lg:text-[9px] uppercase font-black tracking-widest ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-gray-500'}`}>
-                                    Sugerido
-                                  </span>
-                                  <div className={`w-1 h-1 rounded-full ${String(item.id) === String(channel.id) ? 'bg-rose-500 animate-pulse' : 'bg-rose-600'}`} />
-                               </div>
-                             </div>
+                            <div className="rounded-xl lg:rounded-2xl overflow-hidden shrink-0 bg-black w-full lg:w-24 aspect-video relative group-hover:scale-105 transition-transform duration-500">
+                              <img src={item.logo} className="w-full h-full object-contain p-2 lg:p-3" alt="" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                                <Play className="w-4 h-4 text-white fill-current" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <h4 className={`text-[11px] lg:text-[12px] font-black truncate tracking-tight uppercase group-hover:text-rose-500 transition-colors ${String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white'}`}>
+                                {item.name || item.title}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={`text-[8px] lg:text-[9px] uppercase font-black tracking-widest ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-gray-500'}`}>
+                                  {String(item.id) === String(channel.id) ? 'En Vivo' : 'Canal'}
+                                </span>
+                                <div className={`w-1 h-1 rounded-full ${String(item.id) === String(channel.id) ? 'bg-rose-500 animate-pulse' : 'bg-rose-600'}`} />
+                              </div>
+                            </div>
                           </>
                         )}
                       </div>
