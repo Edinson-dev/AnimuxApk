@@ -19,9 +19,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const [isPiP, setIsPiP] = useState(false);
     const [minimized, setMinimized] = useState(false);
     
-    // ── HLS Quality State ─────────────────────────────────────────────────
     const [levels, setLevels] = useState([]);
     const [currentLevel, setCurrentLevel] = useState(-1);
+
+    // ── Playback Progress State ──────────────────────────────────────────
+    const [showResumePrompt, setShowResumePrompt] = useState(false);
+    const [savedTime, setSavedTime] = useState(0);
 
     // ── Season Management ──────────────────────────────────────────────────
     const [selectedSeason, setSelectedSeason] = useState(1);
@@ -147,6 +150,32 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       }
 
       setCurrentUrl(url);
+
+      // Check for saved progress (only for VOD)
+      if (channel.isVOD) {
+        const saved = localStorage.getItem(`animux_progress_${channel.id}`);
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            const time = data.time || 0;
+            // Only offer to resume if it's more than 10 seconds
+            if (time > 10) {
+              setSavedTime(time);
+              setShowResumePrompt(true);
+              // Auto-hide prompt after 10 seconds
+              setTimeout(() => setShowResumePrompt(false), 10000);
+            }
+          } catch (e) {
+            // Fallback for old simple string format
+            const time = parseFloat(saved);
+            if (!isNaN(time) && time > 10) {
+              setSavedTime(time);
+              setShowResumePrompt(true);
+              setTimeout(() => setShowResumePrompt(false), 10000);
+            }
+          }
+        }
+      }
     }, [channel]);
 
     // ── Saltar al siguiente servidor ──────────────────────────────────────
@@ -350,6 +379,47 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       };
     }, [currentUrl, isEmbed]);
 
+    // ── Progress Saving Effect ────────────────────────────────────────────
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video || !channel || !channel.isVOD || isEmbed) return;
+
+      const saveProgress = () => {
+        if (video.currentTime > 0 && !video.ended && video.duration > 0) {
+          const percent = (video.currentTime / video.duration) * 100;
+          // Si está cerca del final (95%), borramos el progreso para que empiece de cero la próxima vez
+          if (percent > 95) {
+            localStorage.removeItem(`animux_progress_${channel.id}`);
+          } else {
+            localStorage.setItem(`animux_progress_${channel.id}`, JSON.stringify({
+              time: video.currentTime,
+              duration: video.duration,
+              percent: percent
+            }));
+            
+            // Si es parte de una serie, guardamos este episodio como el último visto de la serie
+            if (channel.groupId) {
+              localStorage.setItem(`animux_last_episode_${channel.groupId}`, channel.id);
+            }
+          }
+        }
+      };
+
+      const interval = setInterval(saveProgress, 5000); // Guardar cada 5 segundos
+      return () => {
+        saveProgress(); // Guardar al cerrar
+        clearInterval(interval);
+      };
+    }, [channel, isEmbed]);
+
+    const handleResume = () => {
+      if (videoRef.current && savedTime > 0) {
+        videoRef.current.currentTime = savedTime;
+        setShowResumePrompt(false);
+        setSavedTime(0);
+      }
+    };
+
     if (!channel) return null;
 
     const playerContainerClasses = minimized 
@@ -442,6 +512,32 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                    onPlay={() => setLoading(false)}
                    onPlaying={() => setLoading(false)}
                  />
+              )}
+
+              {/* Resume Prompt Overlay */}
+              {showResumePrompt && !loading && !error && !minimized && (
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[60] animate-slide-up">
+                  <div className="bg-black/80 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl shadow-2xl flex items-center gap-6">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">¿Continuar Viendo?</span>
+                      <span className="text-white text-[11px] font-bold uppercase tracking-tight">Quedaste en {new Date(savedTime * 1000).toISOString().substr(11, 8)}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setShowResumePrompt(false)}
+                        className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase transition-all"
+                      >
+                        Ignorar
+                      </button>
+                      <button 
+                        onClick={handleResume}
+                        className="px-6 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black uppercase shadow-lg shadow-rose-600/20 transition-all active:scale-95"
+                      >
+                        Reanudar
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Technical Badges (Hidden when minimized) */}

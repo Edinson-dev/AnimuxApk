@@ -330,7 +330,21 @@ export default function App() {
   }, [recentlyWatched, allUnique]);
 
   // ── Memoized callbacks for ChannelCard (prevents re-renders) ──
-  const handlePlay = useCallback((ch) => setActiveChannel(ch), []);
+  const handlePlay = useCallback((ch) => {
+    // Si es una serie (representante de grupo), buscamos el último episodio visto
+    if (ch.isGroupRepresentative && ch.groupId) {
+      const lastEpisodeId = localStorage.getItem(`animux_last_episode_${ch.groupId}`);
+      if (lastEpisodeId) {
+        // Buscamos el episodio real en nuestra lista de canales
+        const lastEpisode = allUnique.find(item => String(item.id) === String(lastEpisodeId));
+        if (lastEpisode) {
+          setActiveChannel(lastEpisode);
+          return;
+        }
+      }
+    }
+    setActiveChannel(ch);
+  }, [allUnique]);
   const handleToggleFavorite = useCallback((id) => {
     setFavorites(prev => {
       const next = prev.includes(String(id)) ? prev.filter(f => f !== String(id)) : [...prev, String(id)];
