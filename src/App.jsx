@@ -22,6 +22,7 @@ import LegalModal from './components/ui/LegalModal';
 import InstallGuide from './components/ui/InstallGuide';
 import TvGuideModal from './components/ui/TvGuideModal';
 import DonateModal from './components/ui/DonateModal';
+import { sendTelegramMessage } from './config/telegram';
 
 const APP_VERSION = '1.1';
 
@@ -267,6 +268,16 @@ export default function App() {
     setBrokenChannels(updated);
     localStorage.setItem('animux_broken', JSON.stringify(updated));
     toast.error('Canal reportado. Se ocultará de la lista.');
+    
+    // Notificar al administrador vía Telegram
+    const message = `🚨 <b>REPORTE DE FALLO</b>\n\n` +
+                    `📺 <b>Canal:</b> ${channel.name || channel.title}\n` +
+                    `📂 <b>Categoría:</b> ${channel.category}\n` +
+                    `🔗 <b>URL:</b> ${channel.url}\n` +
+                    `🆔 <b>ID:</b> ${channel.id}\n\n` +
+                    `<i>El usuario ha reportado que este enlace no funciona.</i>`;
+    
+    sendTelegramMessage(message);
     setActiveChannel(null);
   };
 

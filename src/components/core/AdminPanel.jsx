@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Search, Film, Tv, Save, LayoutGrid, ChevronDown, Edit3
 import { db } from '../../config/firebase';
 import { collection, addDoc, setDoc, doc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import { camouflageURL } from '../../config/servers';
+import { sendTelegramMessage, saveTelegramConfig, getTelegramConfig, escapeHTML } from '../../config/telegram';
 
 export default function AdminPanel({ onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('channels');
@@ -14,6 +15,8 @@ export default function AdminPanel({ onClose, onUpdate }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [shouldCamouflage, setShouldCamouflage] = useState(false);
+  const [shouldAnnounce, setShouldAnnounce] = useState(true);
+  const [tgConfig, setTgConfig] = useState(getTelegramConfig());
   const [formData, setFormData] = useState({
     name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1
   });
@@ -99,6 +102,37 @@ export default function AdminPanel({ onClose, onUpdate }) {
       localStorage.removeItem('animux_cache_cats');
       localStorage.removeItem('animux_last_fetch');
 
+      // Anuncio en Telegram
+      if (shouldAnnounce && activeTab !== 'categories') {
+        const isSerie = formData.isVOD && formData.groupId;
+        const status = editingId ? 'ACTUALIZADO' : 'NUEVO';
+        const type = isSerie ? `🎬 ${status} EPISODIO` : (activeTab === 'channels' ? `📺 ${status} CANAL` : `🎬 ${status} PELÍCULA`);
+        const title = escapeHTML(formData.name || formData.title);
+        const category = escapeHTML(formData.category);
+        const year = escapeHTML(formData.year);
+        const season = escapeHTML(formData.season);
+        const rating = formData.rating || '9.0';
+        const description = escapeHTML(formData.description);
+        
+        const msg = `✨ <b>${type}</b> ✨\n\n` +
+                    `🍿 <b>Título:</b> ${title}\n` +
+                    `📂 <b>Categoría:</b> ${category}\n` +
+                    (year ? `📅 <b>Año:</b> ${year}\n` : '') +
+                    (isSerie && season ? `📁 <b>Temporada:</b> ${season}\n` : '') +
+                    `⭐ <b>Puntuación:</b> ${rating}/10\n` +
+                    (description ? `\n📝 <b>Sinopsis:</b>\n<i>${description}</i>\n` : '') +
+                    `\n¡Disponible ahora en <b>Animux</b>! 🚀`;
+        
+        // Telegram no permite URLs de localhost en botones
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const button = isLocal ? null : {
+          text: '🚀 VER AHORA',
+          url: window.location.origin
+        };
+
+        sendTelegramMessage(msg, formData.logo, button);
+      }
+
       setShowAddForm(false);
       setEditingId(null);
       setShouldCamouflage(false);
@@ -106,6 +140,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       fetchItems();
       fetchCategories();
       if (onUpdate) onUpdate();
+
     } catch (err) { alert("Error: " + err.message); }
   };
 
@@ -174,9 +209,9 @@ export default function AdminPanel({ onClose, onUpdate }) {
         {/* Tabs & Search */}
         <div className="p-6 flex flex-col md:flex-row items-center gap-6 border-b border-white/5">
           <div className="flex bg-white/5 p-1 rounded-2xl w-full md:w-auto overflow-x-auto no-scrollbar">
-            {['channels', 'movies', 'categories'].map(tab => (
+            {['channels', 'movies', 'categories', 'config'].map(tab => (
               <button key={tab} onClick={() => { setActiveTab(tab); setEditingId(null); }} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
-                {tab === 'channels' ? 'Canales TV' : tab === 'movies' ? 'Películas' : 'Categorías'}
+                {tab === 'channels' ? 'Canales TV' : tab === 'movies' ? 'Películas' : tab === 'categories' ? 'Categorías' : 'Configuración'}
               </button>
             ))}
           </div>
@@ -206,7 +241,74 @@ export default function AdminPanel({ onClose, onUpdate }) {
             <div className="flex flex-col items-center justify-center h-full gap-4"><div className="w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full animate-spin" /><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Cargando...</p></div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
-              {items
+              {activeTab === 'config' ? (
+                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 space-y-8 animate-fade-in">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">Configuración de Telegram Bot</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                      Conecta un Bot de Telegram para recibir alertas de fallos y anunciar nuevos contenidos automáticamente en tu grupo.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Bot Token (@BotFather)</label>
+                      <input 
+                        type="password" 
+                        value={tgConfig.botToken} 
+                        onChange={(e) => setTgConfig({...tgConfig, botToken: e.target.value})}
+                        placeholder="Ej: 123456789:ABCDefgh..."
+                        className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Chat ID (Grupo o Admin)</label>
+                      <input 
+                        type="text" 
+                        value={tgConfig.chatId} 
+                        onChange={(e) => setTgConfig({...tgConfig, chatId: e.target.value})}
+                        placeholder="Ej: -100123456789"
+                        className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                      />
+                    </div>
+                    
+                    <div className="pt-4 flex gap-4">
+                      <button 
+                        onClick={() => {
+                          saveTelegramConfig(tgConfig.botToken, tgConfig.chatId);
+                          alert("✅ Configuración de Telegram guardada correctamente.");
+                        }}
+                        className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20"
+                      >
+                        Guardar Configuración
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const ok = await sendTelegramMessage("🔔 <b>PRUEBA DE CONEXIÓN</b>\n\nTu bot de Animux está configurado correctamente. ¡Listo para enviar notificaciones! 🚀");
+                          if (ok) alert("✅ Mensaje de prueba enviado con éxito.");
+                          else alert("❌ Error al enviar mensaje. Revisa el Token y ChatID.");
+                        }}
+                        className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all"
+                      >
+                        Probar
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-5 bg-rose-600/5 rounded-2xl border border-rose-600/10 space-y-3">
+                    <div className="flex items-center gap-2 text-rose-500">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">¿Cómo obtener estos datos?</span>
+                    </div>
+                    <ul className="text-[9px] text-gray-500 font-bold uppercase tracking-wider space-y-2 list-disc pl-4">
+                      <li>Crea un bot hablando con <b>@BotFather</b> en Telegram.</li>
+                      <li>Agrégalo como Administrador a tu grupo.</li>
+                      <li>Obtén el ID de tu grupo enviando un mensaje al bot y revisando <code>https://api.telegram.org/bot[TOKEN]/getUpdates</code>.</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : items
                 .filter(i => (i.name || i.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
                 .filter(i => filterCategory === '' || i.category === filterCategory)
                 .map(item => (
@@ -294,6 +396,12 @@ export default function AdminPanel({ onClose, onUpdate }) {
                       <div className="flex items-center gap-3 pt-4 border-t border-white/5 mt-2">
                         <input type="checkbox" id="camouflage" checked={shouldCamouflage} onChange={(e) => setShouldCamouflage(e.target.checked)} className="w-5 h-5 accent-blue-500" />
                         <label htmlFor="camouflage" className="text-[10px] font-black text-blue-400 uppercase tracking-widest cursor-pointer">Proteger Enlace (Camuflaje de seguridad)</label>
+                      </div>
+                      <div className="flex items-center gap-3 pt-4 border-t border-white/5 mt-2">
+                        <input type="checkbox" id="announce" checked={shouldAnnounce} onChange={(e) => setShouldAnnounce(e.target.checked)} className="w-5 h-5 accent-orange-500" />
+                        <label htmlFor="announce" className="text-[10px] font-black text-orange-400 uppercase tracking-widest cursor-pointer">
+                          {editingId ? 'Volver a anunciar en Telegram' : 'Anunciar en Telegram (Grupo Comunidad)'}
+                        </label>
                       </div>
                     </div>
                   </>

@@ -579,7 +579,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                  
                  <div className={`${channel.groupId && channel.isVOD ? 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-2 gap-3 lg:gap-4' : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'} pb-6 lg:pb-0 px-2 lg:px-0`}>
                     {(channel.groupId && channel.isVOD 
-                      ? playlist.filter(item => item.groupId === channel.groupId && (item.season || 1) === selectedSeason).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
+                      ? playlist.filter(item => item.groupId === channel.groupId && (item.season || 1) === selectedSeason && String(item.id) !== String(channel.id)).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
                       : playlist.filter(item => String(item.id) !== String(channel.id))
                     ).map((item, idx) => (
                       <div
