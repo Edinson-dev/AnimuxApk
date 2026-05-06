@@ -22,6 +22,27 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const [levels, setLevels] = useState([]);
     const [currentLevel, setCurrentLevel] = useState(-1);
 
+    // ── Season Management ──────────────────────────────────────────────────
+    const [selectedSeason, setSelectedSeason] = useState(1);
+
+    const availableSeasons = useMemo(() => {
+      if (!channel || !channel.groupId || !channel.isVOD) return [];
+      const seasons = new Set();
+      playlist
+        .filter(item => item.groupId === channel.groupId)
+        .forEach(item => {
+          seasons.add(item.season || 1);
+        });
+      return Array.from(seasons).sort((a, b) => a - b);
+    }, [channel, playlist]);
+
+    // Update selectedSeason when channel changes
+    useEffect(() => {
+      if (channel && channel.season) {
+        setSelectedSeason(channel.season);
+      }
+    }, [channel]);
+
     // ── PiP events ────────────────────────────────────────────────────────
     useEffect(() => {
       const onEnter = () => setIsPiP(true);
@@ -83,15 +104,19 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
     const isYouTube = !!getYouTubeId(currentUrl);
     const isDrive = !!getDriveId(currentUrl);
+    const isArchive = currentUrl.includes('archive.org');
 
     const isEmbed = useMemo(() => {
       const url = String(currentUrl || '').toLowerCase();
-      if (isYouTube || isDrive) return true;
+      // YouTube, Drive y Archive.org son fuentes de EMBED prioritarias
+      if (isYouTube || isDrive || isArchive) return true;
+      
       const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'cuevana', '/nu/', '/lat/'];
       const hasKeyword = embedKeywords.some(kw => url.includes(kw));
       const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
+      
       return hasKeyword && !isDirectFile;
-    }, [currentUrl, isYouTube, isDrive]);
+    }, [currentUrl, isYouTube, isDrive, isArchive]);
 
     // ── Inicialización al cambiar canal ───────────────────────────────────
     useEffect(() => {
@@ -104,13 +129,20 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       setMinimized(false);
       setLevels([]);
       setCurrentLevel(-1);
+      
       // Decodificar si es necesario
       let url = channel.url ? decodeCamouflage(channel.url) : '';
       
-      // AUTO-FIX para Archive.org: Convertir links de 'details' a 'download' (directos)
-      if (url.includes('archive.org/details/')) {
-        url = url.replace('archive.org/details/', 'archive.org/download/');
-        console.log('🔄 Archive.org Fix: Convertido link de detalles a descarga directa');
+      // AUTO-FIX para Archive.org: Convertir a 'embed' para MÁXIMA ESTABILIDAD
+      // Los links de 'download' (.mp4 directo) en Archive.org suelen caerse o ser inestables.
+      // El reproductor embebido de Archive maneja internamente HLS y reconexión.
+      if (url.includes('archive.org/')) {
+        if (url.includes('archive.org/details/')) {
+          url = url.replace('archive.org/details/', 'archive.org/embed/');
+        } else if (url.includes('archive.org/download/')) {
+          url = url.replace('archive.org/download/', 'archive.org/embed/');
+        }
+        console.log('🛡️ Archive.org Stability Fix: Forzando reproductor embebido');
       }
 
       setCurrentUrl(url);
@@ -531,9 +563,23 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                     {(!channel.groupId || !channel.isVOD) && <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest animate-pulse">En Vivo</span>}
                  </div>
                  
+                 {channel.groupId && channel.isVOD && availableSeasons.length > 1 && (
+                    <div className="flex gap-2 mb-6 px-2 lg:px-0 overflow-x-auto no-scrollbar pb-1">
+                      {availableSeasons.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setSelectedSeason(s)}
+                          className={`shrink-0 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${selectedSeason === s ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-600/20' : 'bg-white/5 border-white/5 text-gray-500 hover:text-white hover:bg-white/10'}`}
+                        >
+                          Temporada {s}
+                        </button>
+                      ))}
+                    </div>
+                 )}
+                 
                  <div className={`${channel.groupId && channel.isVOD ? 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-2 gap-3 lg:gap-4' : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'} pb-6 lg:pb-0 px-2 lg:px-0`}>
                     {(channel.groupId && channel.isVOD 
-                      ? playlist.filter(item => item.groupId === channel.groupId).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
+                      ? playlist.filter(item => item.groupId === channel.groupId && (item.season || 1) === selectedSeason).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
                       : playlist.filter(item => String(item.id) !== String(channel.id))
                     ).map((item, idx) => (
                       <div

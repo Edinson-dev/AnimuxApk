@@ -15,7 +15,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [shouldCamouflage, setShouldCamouflage] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: ''
+    name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1
   });
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       logo: item.logo || '', category: item.category || categories[0],
       description: item.description || '', year: item.year || '',
       featured: item.featured || false, isNew: item.isNew !== undefined ? item.isNew : true,
-      isVOD: item.isVOD || false, direct: item.direct || false, groupId: item.groupId || ''
+      isVOD: item.isVOD || false, direct: item.direct || false, groupId: item.groupId || '', season: item.season || 1
     });
     setShowAddForm(true);
   };
@@ -102,7 +102,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       setShowAddForm(false);
       setEditingId(null);
       setShouldCamouflage(false);
-      setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true });
+      setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1 });
       fetchItems();
       fetchCategories();
       if (onUpdate) onUpdate();
@@ -195,7 +195,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
               </div>
             )}
           </div>
-          <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '' }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
+          <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1 }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
             <Plus className="w-4 h-4" /> Añadir
           </button>
         </div>
@@ -279,9 +279,15 @@ export default function AdminPanel({ onClose, onUpdate }) {
                           </div>
                         </div>
                         {formData.isVOD && (
-                          <div className="space-y-2 mt-2">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">ID del Grupo (Solo para juntar episodios de Series)</label>
-                            <input value={formData.groupId} onChange={(e) => setFormData({ ...formData, groupId: e.target.value })} placeholder="Ej: DBZ-Cloverway-Episodes" className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">ID del Grupo (Serie)</label>
+                              <input value={formData.groupId} onChange={(e) => setFormData({ ...formData, groupId: e.target.value })} placeholder="Ej: DBZ-Cloverway-Episodes" className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Temporada (Número)</label>
+                              <input type="number" min="1" value={formData.season} onChange={(e) => setFormData({ ...formData, season: parseInt(e.target.value) || 1 })} className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                            </div>
                           </div>
                         )}
                       </div>
