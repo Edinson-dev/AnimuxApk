@@ -16,9 +16,33 @@ export const escapeHTML = (str) => {
 };
 
 const TELEGRAM_CONFIG = {
-    // El usuario debe obtener estos datos de @BotFather y @userinfobot (o similares)
-    botToken: localStorage.getItem('animux_tg_token') || '8608823641:AAHyTI_O3ffmzSoIdPS8XZPCc8245eP67p4',
-    chatId: localStorage.getItem('animux_tg_chatid') || '-1003830198834',
+    // Los datos deben configurarse desde el Panel de Administración (Configuración)
+    botToken: localStorage.getItem('animux_tg_token') || '',
+    chatId: localStorage.getItem('animux_tg_chatid') || '',
+    adminChatId: localStorage.getItem('animux_admin_chatid') || '',
+};
+
+/**
+ * Envía una alerta silenciosa al perfil del administrador (no al grupo).
+ */
+export const sendAdminAlert = async (message) => {
+    const { botToken, adminChatId } = TELEGRAM_CONFIG;
+    if (!botToken || !adminChatId) return false;
+
+    try {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: adminChatId,
+                text: `🚨 <b>ALERTA DE MANTENIMIENTO</b>\n\n${message}`,
+                parse_mode: 'HTML'
+            })
+        });
+        return true;
+    } catch (e) {
+        return false;
+    }
 };
 
 /**
@@ -91,17 +115,20 @@ export const sendTelegramMessage = async (text, imageUrl = null, button = null) 
 /**
  * Guarda la configuración de Telegram en localStorage para persistencia.
  */
-export const saveTelegramConfig = (token, id) => {
+export const saveTelegramConfig = (token, id, adminId = '') => {
     localStorage.setItem('animux_tg_token', token);
     localStorage.setItem('animux_tg_chatid', id);
+    localStorage.setItem('animux_admin_chatid', adminId);
     TELEGRAM_CONFIG.botToken = token;
     TELEGRAM_CONFIG.chatId = id;
+    TELEGRAM_CONFIG.adminChatId = adminId;
 };
 
 /**
  * Obtiene la configuración actual.
  */
 export const getTelegramConfig = () => ({
-    botToken: localStorage.getItem('animux_tg_token') || '8608823641:AAHyTI_O3ffmzSoIdPS8XZPCc8245eP67p4',
-    chatId: localStorage.getItem('animux_tg_chatid') || '1987813368',
+    botToken: localStorage.getItem('animux_tg_token') || '',
+    chatId: localStorage.getItem('animux_tg_chatid') || '',
+    adminChatId: localStorage.getItem('animux_admin_chatid') || '',
 });

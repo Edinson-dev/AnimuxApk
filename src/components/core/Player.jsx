@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
   import Hls from 'hls.js';
   import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock, Heart } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
+  import { sendAdminAlert } from '../../config/telegram';
 
 
 
@@ -155,6 +156,9 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         console.error('❌ Canal M3U sin fallback Xtream disponible.');
         setError(true);
         setLoading(false);
+        
+        // Reportar al administrador
+        sendAdminAlert(`⚠️ <b>ENLACE CAÍDO</b>\n\n📺 Canal: ${channel.displayName || channel.name}\n🔗 URL: <code>${currentUrl}</code>`);
         return;
       }
 
@@ -164,7 +168,6 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         serverIndexRef.current = nextIdx;
         setServerIndex(nextIdx);
         freezeRef.current = { lastTime: 0, counter: 0 };
-        // CORRECCIÓN: buildStreamURL(server, channelId) — orden correcto
         const nextUrl = buildStreamURL(XTREAM_SERVERS[nextIdx], channel.streamId);
         setCurrentUrl(nextUrl);
         setLoading(true);
@@ -173,6 +176,9 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         console.error('❌ Todos los servidores fallaron.');
         setError(true);
         setLoading(false);
+        
+        // Reportar al administrador que todo falló
+        sendAdminAlert(`❌ <b>CAÍDA TOTAL</b>\n\n📺 Canal: ${channel.displayName || channel.name}\n⚠️ Fallaron todos los servidores de respaldo.`);
       }
     };
 

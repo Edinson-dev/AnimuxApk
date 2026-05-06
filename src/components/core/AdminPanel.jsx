@@ -273,7 +273,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
                     </div>
                     
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Chat ID (Grupo o Admin)</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Chat ID (Grupo Público)</label>
                       <input 
                         type="text" 
                         value={tgConfig.chatId} 
@@ -282,11 +282,25 @@ export default function AdminPanel({ onClose, onUpdate }) {
                         className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
                       />
                     </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-rose-400/70 uppercase tracking-widest px-1 flex items-center gap-2">
+                        <AlertCircle className="w-3 h-3" /> ID Personal (Alertas de Fallos)
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tgConfig.adminChatId || ''} 
+                        onChange={(e) => setTgConfig({...tgConfig, adminChatId: e.target.value})}
+                        placeholder="Tu ID personal para recibir reportes de links caídos"
+                        className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                      />
+                      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest px-1">Si dejas esto en blanco, los reportes se enviarán al grupo.</p>
+                    </div>
                     
                     <div className="pt-4 flex gap-4">
                       <button 
                         onClick={() => {
-                          saveTelegramConfig(tgConfig.botToken, tgConfig.chatId);
+                          saveTelegramConfig(tgConfig.botToken, tgConfig.chatId, tgConfig.adminChatId);
                           alert("✅ Configuración de Telegram guardada correctamente.");
                         }}
                         className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20"
