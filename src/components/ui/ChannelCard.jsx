@@ -9,28 +9,39 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
 
   const isVOD = channel.isVOD === true;
 
-  // Cargar progreso si es VOD
+  // Cargar progreso y escuchar actualizaciones
   React.useEffect(() => {
-    if (isVOD) {
-      let targetId = channel.id;
-      
-      // Si es la portada de una serie, buscamos si hay un "último episodio" guardado
-      if (channel.isGroupRepresentative && channel.groupId) {
-        const lastEpisodeId = localStorage.getItem(`animux_last_episode_${channel.groupId}`);
-        if (lastEpisodeId) {
-          targetId = lastEpisodeId;
+    const checkProgress = () => {
+      if (isVOD) {
+        let targetId = channel.id;
+        if (channel.isGroupRepresentative && channel.groupId) {
+          const lastEpisodeId = localStorage.getItem(`animux_last_episode_${channel.groupId}`);
+          if (lastEpisodeId) targetId = lastEpisodeId;
         }
-      }
 
-      const saved = localStorage.getItem(`animux_progress_${targetId}`);
-      if (saved) {
-        try {
-          setProgress(JSON.parse(saved));
-        } catch (e) {
-          // Ignorar si no es JSON válido
+        const saved = localStorage.getItem(`animux_progress_${targetId}`);
+        if (saved) {
+          try {
+            setProgress(JSON.parse(saved));
+          } catch (e) {}
+        } else {
+          setProgress(null);
         }
       }
-    }
+    };
+
+    checkProgress();
+
+    // Escuchar actualizaciones globales de progreso
+    const handleUpdate = (e) => {
+      const { channelId } = e.detail;
+      // Si el ID coincide o si es una serie y el ID podría ser de un episodio de esta serie
+      // (Para simplificar, re-comprobamos siempre que sea VOD y ocurra un evento)
+      if (isVOD) checkProgress();
+    };
+
+    window.addEventListener('animux_progress_updated', handleUpdate);
+    return () => window.removeEventListener('animux_progress_updated', handleUpdate);
   }, [channel.id, channel.groupId, channel.isGroupRepresentative, isVOD]);
 
   // Obtenemos un nombre corto para la etiqueta (badge)
@@ -88,9 +99,9 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
 
         {/* Progress Bar (Solo VOD) */}
         {isVOD && progress && progress.percent > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40 z-20">
+          <div className="absolute bottom-0 left-0 right-0 h-[4px] bg-black/60 z-20 overflow-hidden">
             <div 
-              className="h-full bg-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.8)] transition-all duration-300" 
+              className="h-full bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_12px_rgba(225,29,72,1)] transition-all duration-300" 
               style={{ width: `${progress.percent}%` }} 
             />
           </div>

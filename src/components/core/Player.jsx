@@ -112,8 +112,14 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 
     const isEmbed = useMemo(() => {
       const url = String(currentUrl || '').toLowerCase();
-      // YouTube, Drive y Archive.org son fuentes de EMBED prioritarias
-      if (isYouTube || isDrive || isArchive) return true;
+      // YouTube y Drive siempre son embeds
+      if (isYouTube || isDrive) return true;
+      
+      // Archive.org solo es embed si NO es un archivo directo de video
+      if (isArchive) {
+        const isDirect = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
+        if (!isDirect) return true;
+      }
       
       const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'cuevana', '/nu/', '/lat/'];
       const hasKeyword = embedKeywords.some(kw => url.includes(kw));
@@ -137,16 +143,22 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       // Decodificar si es necesario
       let url = channel.url ? decodeCamouflage(channel.url) : '';
       
-      // AUTO-FIX para Archive.org: Convertir a 'embed' para MÁXIMA ESTABILIDAD
-      // Los links de 'download' (.mp4 directo) en Archive.org suelen caerse o ser inestables.
-      // El reproductor embebido de Archive maneja internamente HLS y reconexión.
+      // Lógica para Archive.org:
+      // Si es un archivo directo (.mp4, .mkv, etc.), NO lo convertimos a embed 
+      // para que funcione la función de REANUDAR y la barra de progreso.
       if (url.includes('archive.org/')) {
-        if (url.includes('archive.org/details/')) {
-          url = url.replace('archive.org/details/', 'archive.org/embed/');
-        } else if (url.includes('archive.org/download/')) {
-          url = url.replace('archive.org/download/', 'archive.org/embed/');
+        const isDirectArchiveFile = ['.mp4', '.mkv', '.m3u8', '.ts'].some(ext => url.toLowerCase().includes(ext));
+        
+        if (!isDirectArchiveFile) {
+          if (url.includes('archive.org/details/')) {
+            url = url.replace('archive.org/details/', 'archive.org/embed/');
+          } else if (url.includes('archive.org/download/') && !isDirectArchiveFile) {
+            url = url.replace('archive.org/download/', 'archive.org/embed/');
+          }
+          console.log('🛡️ Archive.org: Usando reproductor embebido (No permite reanudar)');
+        } else {
+          console.log('🎬 Archive.org: Enlace directo detectado. ¡Función REANUDAR activada!');
         }
-        console.log('🛡️ Archive.org Stability Fix: Forzando reproductor embebido');
       }
 
       setCurrentUrl(url);
@@ -387,17 +399,21 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       const saveProgress = () => {
         if (video.currentTime > 0 && !video.ended && video.duration > 0) {
           const percent = (video.currentTime / video.duration) * 100;
-          // Si está cerca del final (95%), borramos el progreso para que empiece de cero la próxima vez
           if (percent > 95) {
             localStorage.removeItem(`animux_progress_${channel.id}`);
           } else {
-            localStorage.setItem(`animux_progress_${channel.id}`, JSON.stringify({
+            const progressData = {
               time: video.currentTime,
               duration: video.duration,
               percent: percent
-            }));
+            };
+            localStorage.setItem(`animux_progress_${channel.id}`, JSON.stringify(progressData));
             
-            // Si es parte de una serie, guardamos este episodio como el último visto de la serie
+            // Notificar a otros componentes (tarjetas) que el progreso cambió
+            window.dispatchEvent(new CustomEvent('animux_progress_updated', { 
+              detail: { channelId: channel.id, progress: progressData } 
+            }));
+
             if (channel.groupId) {
               localStorage.setItem(`animux_last_episode_${channel.groupId}`, channel.id);
             }
@@ -405,18 +421,31 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         }
       };
 
-      const interval = setInterval(saveProgress, 5000); // Guardar cada 5 segundos
+      const interval = setInterval(saveProgress, 5000);
       return () => {
-        saveProgress(); // Guardar al cerrar
+        saveProgress();
         clearInterval(interval);
       };
     }, [channel, isEmbed]);
 
     const handleResume = () => {
       if (videoRef.current && savedTime > 0) {
-        videoRef.current.currentTime = savedTime;
-        setShowResumePrompt(false);
-        setSavedTime(0);
+        const video = videoRef.current;
+        
+        const applyTime = () => {
+          video.currentTime = savedTime;
+          setShowResumePrompt(false);
+          setSavedTime(0);
+          video.play().catch(() => {});
+        };
+
+        if (video.readyState >= 1) {
+          applyTime();
+        } else {
+          video.addEventListener('loadedmetadata', applyTime, { once: true });
+          // Fallback por si ya cargó pero el readyState miente
+          setTimeout(applyTime, 1000);
+        }
       }
     };
 

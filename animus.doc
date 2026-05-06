@@ -1,0 +1,87 @@
+================================================================================
+                    ANIMUX - DOCUMENTACIÓN TÉCNICA OFICIAL
+================================================================================
+
+Este documento detalla la estructura, funcionamiento y procedimientos de 
+modificación del proyecto Animux.
+
+--------------------------------------------------------------------------------
+1. ARQUITECTURA DEL SISTEMA
+--------------------------------------------------------------------------------
+Animux utiliza una arquitectura híbrida para garantizar velocidad y evasión de 
+bloqueos geográficos:
+
+- FRONTEND (React + Vite): La interfaz de usuario, desplegada en Cloudflare Pages.
+- DATABASE (Firebase): Almacena canales, películas, categorías y reportes.
+- PROXY PRINCIPAL (Cloudflare Functions): Procesa todas las peticiones de video
+  para ocultar las fuentes originales y añadir seguridad.
+- RELAY EXTERNO (Render/VPS): Un servidor secundario con IP limpia que se usa 
+  exclusivamente para canales que bloquean a Cloudflare (ej. Caracol, ESPN).
+
+--------------------------------------------------------------------------------
+2. ESTRUCTURA DE CARPETAS Y ARCHIVOS CLAVE
+--------------------------------------------------------------------------------
+
+A) /functions/api/proxy.js (EL CONTROLADOR)
+   Es el archivo más importante. Decide si una petición de video debe ir directo
+   al origen o si debe pasar por el Relay para evitar bloqueos.
+   - Modificar aquí: Si quieres añadir nuevas IPs bloqueadas o cambiar la URL
+     de tu servidor de Relay.
+
+B) /backend/server.js (EL RELAY EN RENDER/VPS)
+   Es un servidor Express sencillo que actúa como puente. Recibe una URL, la
+   solicita con una IP limpia y devuelve el contenido al usuario.
+   - Nota: Este es el código que debes subir a tu nueva VPS de Hostinger cuando migres.
+
+C) /src/config/ (CONFIGURACIÓN)
+   - telegram.js: Lógica para enviar mensajes al bot y alertas de fallos.
+   - firebase.js: Conexión con la base de datos de canales y películas.
+   - servers.js: Contiene la lógica de "camuflaje" de URLs para mayor seguridad.
+
+D) /src/components/core/ (INTERFAZ)
+   - AdminPanel.jsx: El centro de mando. Ahora con Sidebar. Aquí se gestiona
+     todo el contenido y se envían los anuncios a Telegram.
+   - Player.jsx: El reproductor de video. Maneja la lógica de HLS (.m3u8) y 
+     detecta automáticamente si un canal falla para avisar al bot.
+
+--------------------------------------------------------------------------------
+3. LÓGICA DEL PROXY Y RELAY (SISTEMA ANTIBLOQUEO)
+--------------------------------------------------------------------------------
+Para canales como Caracol HD o ESPN, el sistema funciona así:
+1. El usuario pide el canal.
+2. Cloudflare detecta que la IP del origen está en la lista de 'BLOCKED_IPS'.
+3. Cloudflare redirige la petición a tu RELAY_URL (Render/VPS).
+4. El Relay descarga el contenido y lo entrega.
+5. Se usa el parámetro '&raw=true' para que el Relay no intente procesar el 
+   archivo dos veces, ahorrando memoria y CPU.
+
+--------------------------------------------------------------------------------
+4. ¿CÓMO HACER MODIFICACIONES?
+--------------------------------------------------------------------------------
+
+- CAMBIAR EL SERVIDOR DE RELAY:
+  Edita `functions/api/proxy.js` y actualiza la constante `RELAY_URL`.
+
+- AGREGAR NUEVOS CANALES:
+  No necesitas tocar el código. Usa el Panel de Administración de la App. 
+  Automáticamente se guardarán en Firebase y aparecerán en la App de todos.
+
+- AJUSTAR EL BOT DE TELEGRAM:
+  Usa la pestaña de "Configuración" dentro del Panel de Administración. No 
+  necesitas editar el archivo `telegram.js` manualmente.
+
+- PERSONALIZAR EL DISEÑO (COLORES/CSS):
+  Todo el diseño visual está en `src/index.css`. Se usan variables de CSS 
+  para que cambiar un color sea fácil en todo el sitio.
+
+--------------------------------------------------------------------------------
+5. SINCRONIZACIÓN Y CACHÉ
+--------------------------------------------------------------------------------
+La App usa un sistema de "Caché Inteligente":
+- Los canales se guardan localmente para que la App abra rápido.
+- Si haces un cambio en el Admin Panel, se limpia la caché automáticamente
+  para que todos los usuarios vean el nuevo contenido de inmediato.
+
+================================================================================
+                        FIN DEL DOCUMENTO - ANIMUX
+================================================================================

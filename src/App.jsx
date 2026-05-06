@@ -317,9 +317,9 @@ export default function App() {
       if (cat === 'Favoritos') {
         counts[cat] = favorites.length;
       } else if (target === 'nuevos' || target === 'nuevo') {
-        counts[cat] = allUnique.filter(c => c.isNew === true).length;
+        counts[cat] = groupedChannels.filter(c => c.isNew === true).length;
       } else {
-        counts[cat] = allUnique.filter(c => matchesCat(c, target)).length;
+        counts[cat] = groupedChannels.filter(c => matchesCat(c, target)).length;
       }
     });
     return counts;
