@@ -215,18 +215,28 @@ export default function AdminPanel({ onClose, onUpdate }) {
               </button>
             ))}
           </div>
-          <div className="flex-1 w-full flex flex-col md:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold text-white uppercase tracking-widest outline-none" />
+          <div className="flex-1 w-full flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-rose-500 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="BUSCAR CONTENIDO..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 focus:border-rose-600/50 focus:ring-4 focus:ring-rose-600/10 rounded-2xl py-3.5 pl-12 pr-4 text-[11px] font-bold text-white uppercase tracking-[0.1em] outline-none transition-all duration-300 placeholder:text-gray-600" 
+              />
             </div>
-            {activeTab !== 'categories' && (
-              <div className="relative md:w-64">
-                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-4 pr-10 text-[10px] font-bold text-white uppercase tracking-widest appearance-none outline-none cursor-pointer">
-                  <option value="">Todas las Categorías</option>
-                  {categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat}</option>)}
+            {activeTab !== 'categories' && activeTab !== 'config' && (
+              <div className="relative md:w-72 group">
+                <select 
+                  value={filterCategory} 
+                  onChange={(e) => setFilterCategory(e.target.value)} 
+                  className="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 focus:border-rose-600/50 rounded-2xl py-3.5 pl-4 pr-10 text-[11px] font-bold text-white uppercase tracking-[0.1em] appearance-none outline-none cursor-pointer transition-all duration-300"
+                >
+                  <option value="">TODAS LAS CATEGORÍAS</option>
+                  {categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat.toUpperCase()}</option>)}
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-rose-500 transition-colors pointer-events-none" />
               </div>
             )}
           </div>

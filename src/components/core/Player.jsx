@@ -579,15 +579,21 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                  
                  <div className={`${channel.groupId && channel.isVOD ? 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-2 gap-3 lg:gap-4' : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'} pb-6 lg:pb-0 px-2 lg:px-0`}>
                     {(channel.groupId && channel.isVOD 
-                      ? playlist.filter(item => item.groupId === channel.groupId && (item.season || 1) === selectedSeason && String(item.id) !== String(channel.id)).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
-                      : playlist.filter(item => String(item.id) !== String(channel.id))
-                    ).map((item, idx) => (
+                      ? playlist.filter(item => 
+                          item.groupId === channel.groupId && 
+                          (item.season || 1) === selectedSeason
+                        ).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
+                      : playlist.filter(item => true)
+                    ).map((item, idx) => {
+                      const isCurrentlyPlaying = String(item.id) === String(channel.id) || item.url === channel.url;
+                      
+                      return (
                       <div
                         key={item.id}
                         onClick={() => onPlayNext(item)}
                         className={channel.groupId && channel.isVOD 
-                          ? `group relative flex flex-col items-center justify-center gap-2 p-0 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border overflow-hidden aspect-square lg:aspect-video w-full ${String(item.id) === String(channel.id) ? 'bg-rose-600/20 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)]' : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-white/20'}`
-                          : `group flex flex-col lg:flex-row gap-3 lg:gap-4 p-3 lg:p-4 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border shrink-0 w-40 lg:w-full ${String(item.id) === String(channel.id) ? 'bg-rose-600/10 border-rose-600/30' : 'bg-white/[0.02] hover:bg-rose-600/5 border-transparent hover:border-rose-600/20'}`
+                          ? `group relative flex flex-col items-center justify-center gap-2 p-0 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border overflow-hidden aspect-square lg:aspect-video w-full ${isCurrentlyPlaying ? 'bg-rose-600/20 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)]' : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-white/20'}`
+                          : `group flex flex-col lg:flex-row gap-3 lg:gap-4 p-3 lg:p-4 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border shrink-0 w-40 lg:w-full ${isCurrentlyPlaying ? 'bg-rose-600/10 border-rose-600/30' : 'bg-white/[0.02] hover:bg-rose-600/5 border-transparent hover:border-rose-600/20'}`
                         }
                       >
                         {channel.groupId && channel.isVOD ? (
@@ -601,9 +607,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                              {/* Contenido Visual */}
                              <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center w-full h-full">
                                <div className="flex flex-col items-center gap-0.5">
-                                 <span className={`text-[8px] font-black uppercase tracking-widest ${String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white/40'}`}>EPISODIO</span>
+                                 <span className={`text-[8px] font-black uppercase tracking-widest ${isCurrentlyPlaying ? 'text-rose-400' : 'text-white/40'}`}>EPISODIO</span>
                                  <span className="text-xl lg:text-2xl font-black text-white leading-none">
-                                   {idx + 1}
+                                   {item.name.match(/\d+$/) ? item.name.match(/\d+$/)[0] : (idx + 1)}
+                                 </span>
+                                 <span className={`text-[6px] lg:text-[7px] font-black uppercase tracking-widest mt-1 ${isCurrentlyPlaying ? 'text-rose-500 animate-pulse' : 'text-white/40'}`}>
+                                   {isCurrentlyPlaying ? 'Viendo Ahora' : 'Reproducir'}
                                  </span>
                                </div>
                                
@@ -646,7 +655,8 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                           </>
                         )}
                       </div>
-                    ))}
+                      )
+                    })}
                  </div>
 
                  {/* Second Section: Global Trends */}
