@@ -29,15 +29,11 @@ export async function onRequest(context) {
     // ── Relay colombiano: IPs 181.78.x.x bloquean Cloudflare ──
     // Fly.io BOG (Bogotá) tiene IPs colombianas que los servidores IPTV aceptan.
     // Pon aquí la URL de tu app en Fly.io cuando esté deployada.
-    const RELAY_URL = 'https://animux-relay-by67.onrender.com'; // URL de tu proyecto en Vercel
+    const RELAY_URL = 'https://animux-relay-by67.onrender.com'; // Relay Render.com (AWS) para IPs colombianas
     const BLOCKED_IPS = ['181.78.', '181.114.'];
-    
-    // Volvemos al comportamiento original: TODO el tráfico de estas IPs pasa por el Relay
-    // para asegurar que los canales bloqueados funcionen al 100%.
     const needsRelay = RELAY_URL && BLOCKED_IPS.some(ip => target.includes(ip));
-    
     const fetchTarget = needsRelay
-      ? `${RELAY_URL}/api/proxy?url=${encodeURIComponent(target)}${isM3U8 ? '&raw=true' : ''}`
+      ? `${RELAY_URL}/proxy?url=${encodeURIComponent(target)}`
       : target;
 
     // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
