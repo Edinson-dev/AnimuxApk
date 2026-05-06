@@ -5,6 +5,7 @@ export const config = {
 export default async function handler(req, res) {
   const urlParams = new URL(req.url, `http://${req.headers.host}`);
   const target = req.query?.url || urlParams.searchParams.get('url');
+  const isRaw = req.query?.raw === 'true' || urlParams.searchParams.get('raw') === 'true';
 
   // Headers CORS obligatorios
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,8 +32,8 @@ export default async function handler(req, res) {
     const contentType = response.headers.get('content-type') || '';
     res.setHeader('Content-Type', contentType);
 
-    // ── REESCRIBIR M3U8 (Forzar proxy en todos los fragmentos) ──
-    if (contentType.includes('mpegurl') || contentType.includes('m3u8') || target.toLowerCase().includes('.m3u8')) {
+    // ── REESCRIBIR M3U8 (Solo si no es modo RAW) ──
+    if (!isRaw && (contentType.includes('mpegurl') || contentType.includes('m3u8') || target.toLowerCase().includes('.m3u8'))) {
       const text = await response.text();
       const finalUrl = response.url; 
       const baseUrlObj = new URL(finalUrl);
