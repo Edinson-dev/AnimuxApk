@@ -7,6 +7,12 @@ import { sendTelegramMessage, saveTelegramConfig, getTelegramConfig, escapeHTML 
 
 export default function AdminPanel({ onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('channels');
+  const [announcement, setAnnouncement] = useState({
+    text: `🚀 <b>MANTENIMIENTO FINALIZADO: MÁS RENDIMIENTO</b>\n\nHola a todos. Hemos completado la actualización de nuestros <b>servidores proxy</b> para garantizarles la mejor fluidez en canales premium.\n\n✅ <b>Mejoras aplicadas:</b>\n• Estabilidad total en Caracol HD y ESPN.\n• Carga de video mucho más rápida.\n• Menor consumo de datos móviles.\n\n¡Gracias por ser parte de Animux! 🎬✨`,
+    image: '',
+    btnText: '🚀 ABRIR ANIMUX',
+    btnUrl: window.location.origin
+  });
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -178,80 +184,180 @@ export default function AdminPanel({ onClose, onUpdate }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-5xl h-[85vh] bg-[#121212] border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-scale-up">
-
-        {/* Header */}
-        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-rose-600 rounded-2xl"><Tv className="w-6 h-6 text-white" /></div>
+      <div className="relative w-full max-w-6xl h-[90vh] bg-[#0a0a0a] border border-white/5 rounded-[40px] overflow-hidden flex flex-row shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-scale-up">
+        
+        {/* Sidebar */}
+        <div className="w-72 bg-black/40 border-r border-white/5 flex flex-col p-6 gap-8">
+          <div className="flex items-center gap-4 px-2">
+            <div className="p-3 bg-rose-600 rounded-2xl shadow-lg shadow-rose-600/20"><Tv className="w-6 h-6 text-white" /></div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-widest text-white">Administración</h2>
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Gestiona tu contenido en tiempo real</p>
+              <h2 className="text-lg font-black uppercase tracking-tighter text-white">Animux</h2>
+              <p className="text-[8px] text-gray-500 uppercase tracking-widest font-black">Admin Panel</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => {
-                if (window.confirm('¿Deseas restaurar todos los canales reportados como caídos?')) {
-                  localStorage.removeItem('animux_broken');
-                  window.location.reload();
-                }
-              }}
-              title="Restaurar canales caídos"
-              className="p-2 hover:bg-rose-600/20 text-gray-500 hover:text-rose-500 rounded-full transition-all flex items-center gap-2 text-[8px] font-black uppercase tracking-tighter"
-            >
-              <AlertCircle className="w-4 h-4" /> Reset Broken
-            </button>
-            <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-all"><X className="w-6 h-6 text-gray-400" /></button>
-          </div>
-        </div>
 
-        {/* Tabs & Search */}
-        <div className="p-6 flex flex-col md:flex-row items-center gap-6 border-b border-white/5">
-          <div className="flex bg-white/5 p-1 rounded-2xl w-full md:w-auto overflow-x-auto no-scrollbar">
-            {['channels', 'movies', 'categories', 'config'].map(tab => (
-              <button key={tab} onClick={() => { setActiveTab(tab); setEditingId(null); }} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
-                {tab === 'channels' ? 'Canales TV' : tab === 'movies' ? 'Películas' : tab === 'categories' ? 'Categorías' : 'Configuración'}
+          <div className="flex-1 flex flex-col gap-1">
+            {[
+              { id: 'channels', label: 'Canales TV', icon: Tv },
+              { id: 'movies', label: 'Películas', icon: Film },
+              { id: 'categories', label: 'Categorías', icon: LayoutGrid },
+              { id: 'announcements', label: 'Anuncios', icon: AlertCircle },
+              { id: 'config', label: 'Configuración', icon: Save },
+            ].map(tab => (
+              <button 
+                key={tab.id} 
+                onClick={() => { setActiveTab(tab.id); setEditingId(null); }} 
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all group ${activeTab === tab.id ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'text-gray-500 hover:bg-white/5 hover:text-white'}`}
+              >
+                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-white' : 'text-gray-600 group-hover:text-rose-500'} transition-colors`} />
+                {tab.label}
               </button>
             ))}
           </div>
-          <div className="flex-1 w-full flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-rose-500 transition-colors" />
-              <input 
-                type="text" 
-                placeholder="BUSCAR CONTENIDO..." 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                className="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 focus:border-rose-600/50 focus:ring-4 focus:ring-rose-600/10 rounded-2xl py-3.5 pl-12 pr-4 text-[11px] font-bold text-white uppercase tracking-[0.1em] outline-none transition-all duration-300 placeholder:text-gray-600" 
-              />
-            </div>
-            {activeTab !== 'categories' && activeTab !== 'config' && (
-              <div className="relative md:w-72 group">
-                <select 
-                  value={filterCategory} 
-                  onChange={(e) => setFilterCategory(e.target.value)} 
-                  className="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 focus:border-rose-600/50 rounded-2xl py-3.5 pl-4 pr-10 text-[11px] font-bold text-white uppercase tracking-[0.1em] appearance-none outline-none cursor-pointer transition-all duration-300"
-                >
-                  <option value="">TODAS LAS CATEGORÍAS</option>
-                  {categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat.toUpperCase()}</option>)}
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-rose-500 transition-colors pointer-events-none" />
-              </div>
-            )}
-          </div>
-          <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1 }); setShowAddForm(true); }} className="w-full md:w-auto px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
-            <Plus className="w-4 h-4" /> Añadir
+
+          <button onClick={onClose} className="mt-auto flex items-center gap-4 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-white/5 hover:text-white transition-all">
+            <X className="w-4 h-4" /> Salir del Panel
           </button>
         </div>
 
-        {/* List */}
-        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white/[0.01]">
+          
+          {/* Header Bar */}
+          <div className="p-8 pb-4 flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">
+                  {activeTab === 'channels' ? 'Gestión de Canales' : 
+                   activeTab === 'movies' ? 'Películas y Series' : 
+                   activeTab === 'categories' ? 'Categorías del Sistema' : 
+                   activeTab === 'announcements' ? 'Anuncios Globales' : 'Ajustes del Bot'}
+                </h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
+                  {items.length} elementos registrados actualmente
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    if (window.confirm('¿Deseas restaurar todos los canales reportados como caídos?')) {
+                      localStorage.removeItem('animux_broken');
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all flex items-center gap-2 text-[8px] font-black uppercase tracking-widest border border-white/5"
+                >
+                  <AlertCircle className="w-3 h-3" /> Reset Broken
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-rose-500 transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="FILTRAR POR NOMBRE..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="w-full bg-white/[0.03] border border-white/5 focus:border-rose-600/50 rounded-2xl py-3.5 pl-12 pr-4 text-[10px] font-bold text-white uppercase tracking-widest outline-none transition-all placeholder:text-gray-700" 
+                />
+              </div>
+              {activeTab !== 'categories' && activeTab !== 'config' && activeTab !== 'announcements' && (
+                <div className="relative w-64 group">
+                  <select 
+                    value={filterCategory} 
+                    onChange={(e) => setFilterCategory(e.target.value)} 
+                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl py-3.5 pl-4 pr-10 text-[10px] font-bold text-white uppercase tracking-widest appearance-none outline-none cursor-pointer"
+                  >
+                    <option value="">TODAS LAS CATEGORÍAS</option>
+                    {categories.map(cat => <option key={cat} value={cat} className="bg-[#0a0a0a]">{cat.toUpperCase()}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
+              )}
+              {activeTab !== 'config' && activeTab !== 'announcements' && (
+                <button onClick={() => { setEditingId(null); setShouldCamouflage(false); setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1 }); setShowAddForm(true); }} className="px-8 py-3.5 bg-white text-black hover:bg-rose-600 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95">
+                  <Plus className="w-4 h-4" /> Nuevo
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Dynamic Content */}
+          <div className="flex-1 overflow-y-auto p-8 pt-2 no-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full gap-4"><div className="w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full animate-spin" /><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Cargando...</p></div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
-              {activeTab === 'config' ? (
+              {activeTab === 'announcements' ? (
+                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 space-y-8 animate-fade-in max-w-3xl mx-auto w-full">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">Enviar Anuncio Global</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                      Este mensaje se enviará a través de tu Bot a todos los miembros de tu grupo de Telegram.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mensaje (Soporta HTML)</label>
+                      <textarea 
+                        rows="8"
+                        value={announcement.text} 
+                        onChange={(e) => setAnnouncement({...announcement, text: e.target.value})}
+                        className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Imagen URL (Opcional)</label>
+                        <input 
+                          type="text" 
+                          value={announcement.image} 
+                          onChange={(e) => setAnnouncement({...announcement, image: e.target.value})}
+                          placeholder="https://..."
+                          className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Texto del Botón</label>
+                        <input 
+                          type="text" 
+                          value={announcement.btnText} 
+                          onChange={(e) => setAnnouncement({...announcement, btnText: e.target.value})}
+                          className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <button 
+                        onClick={async () => {
+                          if (!announcement.text.trim()) return alert("Escribe un mensaje");
+                          
+                          // Telegram no permite URLs de localhost
+                          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                          const button = (announcement.btnText && !isLocal) 
+                            ? { text: announcement.btnText, url: announcement.btnUrl } 
+                            : null;
+
+                          const ok = await sendTelegramMessage(
+                            announcement.text, 
+                            announcement.image || null, 
+                            button
+                          );
+                          if (ok) alert("✅ Anuncio enviado correctamente.");
+                        }}
+                        className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-600/20"
+                      >
+                        Enviar Anuncio Ahora
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === 'config' ? (
                 <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 space-y-8 animate-fade-in">
                   <div className="space-y-2">
                     <h3 className="text-xl font-black text-white uppercase tracking-tighter">Configuración de Telegram Bot</h3>
@@ -435,6 +541,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
