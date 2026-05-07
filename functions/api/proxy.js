@@ -26,15 +26,13 @@ export async function onRequest(context) {
     const isVideoSegment = targetLower.includes('.ts') || targetLower.includes('.mp4') || targetLower.includes('.m4s') || targetLower.includes('.aac');
     const isM3U8 = targetLower.includes('.m3u8') || targetLower.includes('/play/');
 
-    // ── Relay colombiano: IPs 181.78.x.x bloquean Cloudflare ──
-    // Fly.io BOG (Bogotá) tiene IPs colombianas que los servidores IPTV aceptan.
-    // Pon aquí la URL de tu app en Fly.io cuando esté deployada.
-    const RELAY_URL = 'https://animux-relay-by67.onrender.com'; // Relay Render.com (AWS) para IPs colombianas
+    // ── Servidores de Relevo (Render con IP Colombiana) ──
+    const RELAY_SERVERS = [
+      'https://animux-relay-by67.onrender.com',
+      'https://animux-relay-rkms.onrender.com'
+    ];
     const BLOCKED_IPS = ['181.78.', '181.114.'];
-    const needsRelay = RELAY_URL && BLOCKED_IPS.some(ip => target.includes(ip));
-    const fetchTarget = needsRelay
-      ? `${RELAY_URL}/proxy?url=${encodeURIComponent(target)}`
-      : target;
+    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip));
 
     // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
     const controller = new AbortController();
@@ -51,12 +49,36 @@ export async function onRequest(context) {
       const rangeHeader = request.headers.get('Range');
       if (rangeHeader) fetchHeaders['Range'] = rangeHeader;
 
-      response = await fetch(fetchTarget, {
-        method: 'GET',
-        headers: fetchHeaders,
-        redirect: 'follow',
-        signal: controller.signal,
-      });
+      if (needsRelay) {
+        // Intenta con los servidores de la lista uno por uno (SALTO AUTOMÁTICO)
+        for (let i = 0; i < RELAY_SERVERS.length; i++) {
+          const relay = RELAY_SERVERS[i];
+          try {
+            const fetchUrl = `${relay}/proxy?url=${encodeURIComponent(target)}`;
+            response = await fetch(fetchUrl, {
+              headers: fetchHeaders,
+              redirect: 'follow',
+              signal: controller.signal
+            });
+            
+            // Si la respuesta es exitosa (200-299), salimos del bucle
+            if (response.ok) break;
+            
+            // Si es el último servidor y falló, nos quedamos con esta respuesta aunque sea error
+            if (i === RELAY_SERVERS.length - 1) break;
+          } catch (e) {
+            if (i === RELAY_SERVERS.length - 1) throw e;
+            // Si no es el último, ignoramos el error e intentamos el siguiente
+          }
+        }
+      } else {
+        // Petición directa si no necesita Relay
+        response = await fetch(target, {
+          headers: fetchHeaders,
+          redirect: 'follow',
+          signal: controller.signal
+        });
+      }
     } finally {
       clearTimeout(timeoutId);
     }

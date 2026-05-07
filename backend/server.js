@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const cron = require('node-cron');
 const { fetchAndValidateChannels } = require('./services/updater.js');
 const fs = require('fs');
@@ -55,25 +56,44 @@ app.get('/api/proxy', async (req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('URL requerida');
 
+    let streamRequest;
     try {
-        const response = await axios({
+        const urlObj = new URL(targetUrl);
+        streamRequest = await axios({
             method: 'get',
             url: targetUrl,
             responseType: 'stream',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': new URL(targetUrl).origin
-            }
+                'Referer': urlObj.origin
+            },
+            timeout: 15000
         });
 
         // Pasar los headers de contenido originales
-        res.set('Content-Type', response.headers['content-type']);
-        if (response.headers['content-length']) res.set('Content-Length', response.headers['content-length']);
+        res.set('Content-Type', streamRequest.headers['content-type'] || 'video/mp2t');
+        if (streamRequest.headers['content-length']) {
+            res.set('Content-Length', streamRequest.headers['content-length']);
+        }
         
-        response.data.pipe(res);
+        // Pipe the stream
+        streamRequest.data.pipe(res);
+
+        // Limpieza si el cliente cierra la conexión
+        req.on('close', () => {
+            if (streamRequest.data) streamRequest.data.destroy();
+        });
+
+        streamRequest.data.on('error', (err) => {
+            console.error('[Proxy Stream Error]:', err.message);
+            if (!res.headersSent) res.status(500).send('Error en el flujo de datos');
+            streamRequest.data.destroy();
+        });
+
     } catch (err) {
-        console.error('[Proxy Error]:', err.message);
-        res.status(500).send('Error al conectar con el stream');
+        console.error('[Proxy Fatal Error]:', err.message);
+        if (!res.headersSent) res.status(500).send('Error al conectar con el stream');
+        if (streamRequest && streamRequest.data) streamRequest.data.destroy();
     }
 });
 
