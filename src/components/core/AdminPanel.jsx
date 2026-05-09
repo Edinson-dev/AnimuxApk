@@ -28,8 +28,8 @@ export default function AdminPanel({ onClose, onUpdate }) {
     tgBtnText: '🚀 VER AHORA', tgBtnUrl: window.location.origin
   });
 
-  // TMDB Integration
-  const TMDB_API_KEY = '8b79252f3cf2970ec001895a21ef9db8';
+  // TMDB Integration (Usa variable de entorno para seguridad)
+  const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || '8b79252f3cf2970ec001895a21ef9db8';
   const [tmdbSearch, setTmdbSearch] = useState('');
   const [tmdbResults, setTmdbResults] = useState([]);
   const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
