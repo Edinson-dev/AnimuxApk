@@ -24,8 +24,52 @@ export default function AdminPanel({ onClose, onUpdate }) {
   const [shouldAnnounce, setShouldAnnounce] = useState(true);
   const [tgConfig, setTgConfig] = useState(getTelegramConfig());
   const [formData, setFormData] = useState({
-    name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1
+    name: '', title: '', url: '', logo: '', category: '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1,
+    tgBtnText: '🚀 VER AHORA', tgBtnUrl: window.location.origin
   });
+
+  // TMDB Integration
+  const TMDB_API_KEY = '8b79252f3cf2970ec001895a21ef9db8';
+  const [tmdbSearch, setTmdbSearch] = useState('');
+  const [tmdbResults, setTmdbResults] = useState([]);
+  const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
+
+  const fetchTMDB = async () => {
+    const queryTerm = activeTab === 'channels' ? formData.name : formData.title;
+    if (!queryTerm || queryTerm.length < 2) return;
+    
+    setIsSearchingTMDB(true);
+    try {
+      // Buscamos tanto en películas como en series dependiendo del contexto o ambos
+      const type = formData.isVOD ? (formData.groupId ? 'tv' : 'movie') : 'movie';
+      const response = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&language=es-ES&query=${encodeURIComponent(queryTerm)}`);
+      const data = await response.json();
+      setTmdbResults(data.results || []);
+    } catch (err) {
+      console.error("Error TMDB:", err);
+    } finally {
+      setIsSearchingTMDB(false);
+    }
+  };
+
+  const selectTMDBResult = (result) => {
+    const title = result.title || result.name;
+    const year = (result.release_date || result.first_air_date || '').substring(0, 4);
+    const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : formData.logo;
+    const rating = result.vote_average ? result.vote_average.toFixed(1) : formData.rating;
+    
+    setFormData(prev => ({
+      ...prev,
+      [activeTab === 'channels' ? 'name' : 'title']: title,
+      description: result.overview || prev.description,
+      year: year || prev.year,
+      logo: poster,
+      rating: rating,
+      isVOD: result.media_type === 'tv' || result.media_type === 'movie' ? true : prev.isVOD,
+      groupId: result.media_type === 'tv' ? title.replace(/\s+/g, '-') : prev.groupId
+    }));
+    setTmdbResults([]);
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -68,7 +112,8 @@ export default function AdminPanel({ onClose, onUpdate }) {
       logo: item.logo || '', category: item.category || categories[0],
       description: item.description || '', year: item.year || '',
       featured: item.featured || false, isNew: item.isNew !== undefined ? item.isNew : true,
-      isVOD: item.isVOD || false, direct: item.direct || false, groupId: item.groupId || '', season: item.season || 1
+      isVOD: item.isVOD || false, direct: item.direct || false, groupId: item.groupId || '', season: item.season || 1,
+      tgBtnText: item.tgBtnText || '🚀 VER AHORA', tgBtnUrl: item.tgBtnUrl || window.location.origin
     });
     setShowAddForm(true);
   };
@@ -140,11 +185,13 @@ export default function AdminPanel({ onClose, onUpdate }) {
                     `\n──────────────────\n` +
                     `📲 <b>¡Disfrútala ahora en Animux!</b> 🚀`;
         
-        // Telegram no permite URLs de localhost en botones
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const button = isLocal ? null : {
-          text: '🚀 VER AHORA',
-          url: window.location.origin
+        // Solo deshabilitar el botón si la URL de destino es localhost (Telegram lo rechazaría)
+        const targetUrl = formData.tgBtnUrl || window.location.origin;
+        const isLocalUrl = targetUrl.includes('localhost') || targetUrl.includes('127.0.0.1');
+        
+        const button = isLocalUrl ? null : {
+          text: formData.tgBtnText || '🚀 VER AHORA',
+          url: targetUrl
         };
 
         sendTelegramMessage(msg, formData.logo, button);
@@ -153,7 +200,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       setShowAddForm(false);
       setEditingId(null);
       setShouldCamouflage(false);
-      setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1 });
+      setFormData({ name: '', title: '', url: '', logo: '', category: categories[0] || '', description: '', year: '', rating: 9.0, featured: false, isNew: true, isVOD: false, direct: false, groupId: '', season: 1, tgBtnText: '🚀 VER AHORA', tgBtnUrl: window.location.origin });
       fetchItems();
       fetchCategories();
       if (onUpdate) onUpdate();
@@ -344,7 +391,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Imagen URL (Opcional)</label>
                         <input 
@@ -361,6 +408,15 @@ export default function AdminPanel({ onClose, onUpdate }) {
                           type="text" 
                           value={announcement.btnText} 
                           onChange={(e) => setAnnouncement({...announcement, btnText: e.target.value})}
+                          className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">URL del Botón</label>
+                        <input 
+                          type="text" 
+                          value={announcement.btnUrl} 
+                          onChange={(e) => setAnnouncement({...announcement, btnUrl: e.target.value})}
                           className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
                         />
                       </div>
@@ -517,11 +573,51 @@ export default function AdminPanel({ onClose, onUpdate }) {
                   <>
                     <div className="space-y-2 col-span-full">
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nombre / Título</label>
-                      <input required value={activeTab === 'channels' ? formData.name : formData.title} onChange={(e) => setFormData({ ...formData, [activeTab === 'channels' ? 'name' : 'title']: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                      <div className="flex gap-2">
+                        <input 
+                          required 
+                          value={activeTab === 'channels' ? formData.name : formData.title} 
+                          onChange={(e) => setFormData({ ...formData, [activeTab === 'channels' ? 'name' : 'title']: e.target.value })} 
+                          className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" 
+                        />
+                        <button 
+                          type="button"
+                          onClick={fetchTMDB}
+                          disabled={isSearchingTMDB}
+                          className="px-6 bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-rose-600/30"
+                        >
+                          {isSearchingTMDB ? '...' : '🔍 Buscar Info'}
+                        </button>
+                      </div>
+                      
+                      {/* Resultados de búsqueda TMDB */}
+                      {tmdbResults.length > 0 && (
+                        <div className="mt-2 bg-[#0d0d0d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-fade-in max-h-60 overflow-y-auto no-scrollbar">
+                          {tmdbResults.map(res => (
+                            <div 
+                              key={res.id} 
+                              onClick={() => selectTMDBResult(res)}
+                              className="p-3 flex items-center gap-4 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors"
+                            >
+                              <img src={res.poster_path ? `https://image.tmdb.org/t/p/w92${res.poster_path}` : 'https://via.placeholder.com/92x138'} className="w-10 h-14 rounded-lg object-cover" alt="" />
+                              <div className="flex-1 min-w-0">
+                                <h5 className="text-[10px] font-black text-white uppercase truncate">{res.title || res.name}</h5>
+                                <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                                  {res.media_type === 'tv' ? '📺 Serie' : '🎬 Película'} • {(res.release_date || res.first_air_date || '').substring(0, 4)}
+                                </p>
+                              </div>
+                              <Plus className="w-4 h-4 text-rose-500" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Stream</label><input required value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
                     <div className="space-y-2 relative"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Categoría</label><div className="relative"><select required value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold appearance-none outline-none cursor-pointer focus:border-rose-600">{categories.map(cat => <option key={cat} value={cat} className="bg-[#121212]">{cat}</option>)}</select><ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" /></div></div>
-                    <div className="space-y-2 col-span-full"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Logo</label><input required value={formData.logo} onChange={(e) => setFormData({ ...formData, logo: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
+                    <div className="space-y-2 col-span-full"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">URL Logo / Poster</label><input required value={formData.logo} onChange={(e) => setFormData({ ...formData, logo: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
+                    <div className="space-y-2 col-span-full"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Descripción / Sinopsis</label><textarea rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 resize-none" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Año</label><input value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Puntuación (TMDB)</label><input type="number" step="0.1" value={formData.rating} onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" /></div>
 
                     <div className="flex flex-col gap-4 col-span-full bg-white/5 p-6 rounded-3xl border border-white/10">
                       <div className="flex items-center gap-3">
@@ -562,6 +658,21 @@ export default function AdminPanel({ onClose, onUpdate }) {
                         <input type="checkbox" id="camouflage" checked={shouldCamouflage} onChange={(e) => setShouldCamouflage(e.target.checked)} className="w-5 h-5 accent-blue-500" />
                         <label htmlFor="camouflage" className="text-[10px] font-black text-blue-400 uppercase tracking-widest cursor-pointer">Proteger Enlace (Camuflaje de seguridad)</label>
                       </div>
+
+                      <div className="space-y-4 pt-4 border-t border-white/5 mt-2">
+                        <h4 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-2">Personalizar Botón Telegram</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Texto del Botón</label>
+                            <input value={formData.tgBtnText} onChange={(e) => setFormData({ ...formData, tgBtnText: e.target.value })} placeholder="Ej: 🚀 VER AHORA" className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Enlace del Botón</label>
+                            <input value={formData.tgBtnUrl} onChange={(e) => setFormData({ ...formData, tgBtnUrl: e.target.value })} placeholder="https://..." className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600" />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="flex items-center gap-3 pt-4 border-t border-white/5 mt-2">
                         <input type="checkbox" id="announce" checked={shouldAnnounce} onChange={(e) => setShouldAnnounce(e.target.checked)} className="w-5 h-5 accent-orange-500" />
                         <label htmlFor="announce" className="text-[10px] font-black text-orange-400 uppercase tracking-widest cursor-pointer">

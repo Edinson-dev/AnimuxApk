@@ -60,13 +60,15 @@ export const sendTelegramMessage = async (text, imageUrl = null, button = null) 
     }
 
     try {
-        const endpoint = imageUrl ? 'sendPhoto' : 'sendMessage';
         const body = {
             chat_id: chatId,
             parse_mode: 'HTML',
         };
 
-        if (imageUrl) {
+        // Validar que la imagen sea una URL absoluta válida para Telegram
+        const isValidUrl = imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
+
+        if (isValidUrl) {
             body.photo = imageUrl;
             // Telegram limita los captions de fotos a 1024 caracteres
             body.caption = text.length > 1024 ? text.substring(0, 1021) + '...' : text;
@@ -83,7 +85,7 @@ export const sendTelegramMessage = async (text, imageUrl = null, button = null) 
             };
         }
 
-        const response = await fetch(`https://api.telegram.org/bot${botToken}/${endpoint}`, {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/${isValidUrl ? 'sendPhoto' : 'sendMessage'}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -92,15 +94,20 @@ export const sendTelegramMessage = async (text, imageUrl = null, button = null) 
         const data = await response.json();
         
         if (!data.ok) {
-            console.error('❌ Error de Telegram:', data.description);
-            // Mostrar el error exacto para diagnóstico
-            alert(`❌ Error de Telegram: ${data.description}`);
-            
-            // Si falló por la foto, intentar enviar solo el texto como respaldo
-            if (imageUrl && (data.description.includes('wrong file identifier') || data.description.includes('failed to get HTTP'))) {
-                console.log('⚠️ Reintentando sin imagen...');
+            // Si falló por la foto, intentar enviar solo el texto como respaldo de forma silenciosa
+            if (imageUrl && (
+                data.description.includes('wrong remote file identifier') || 
+                data.description.includes('wrong file identifier') || 
+                data.description.includes('failed to get HTTP') ||
+                data.description.includes('Wrong string length')
+            )) {
+                console.warn('⚠️ Fallo en imagen de Telegram, reintentando solo con texto...');
                 return sendTelegramMessage(text, null, button);
             }
+
+            console.error('❌ Error de Telegram:', data.description);
+            // Solo mostrar alerta si el fallo es crítico (token, chatid, o fallo en el reintento)
+            alert(`❌ Error de Telegram: ${data.description}`);
             throw new Error(data.description);
         }
         
