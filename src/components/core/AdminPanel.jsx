@@ -111,8 +111,17 @@ export default function AdminPanel({ onClose, onUpdate }) {
       // Anuncio en Telegram
       if (shouldAnnounce && activeTab !== 'categories') {
         const isSerie = formData.isVOD && formData.groupId;
-        const status = editingId ? 'ACTUALIZADO' : 'NUEVO';
-        const type = isSerie ? `🎬 ${status} EPISODIO` : (activeTab === 'channels' ? `📺 ${status} CANAL` : `🎬 ${status} PELÍCULA`);
+        
+        // Determinar el género gramatical y el tipo de contenido para profesionalismo
+        let typeLabel = '';
+        if (isSerie) {
+          typeLabel = `EPISODIO ${editingId ? 'ACTUALIZADO' : 'NUEVO'}`;
+        } else if (activeTab === 'channels') {
+          typeLabel = `CANAL ${editingId ? 'ACTUALIZADO' : 'NUEVO'}`;
+        } else {
+          typeLabel = `PELÍCULA ${editingId ? 'ACTUALIZADA' : 'NUEVA'}`;
+        }
+
         const title = escapeHTML(formData.name || formData.title);
         const category = escapeHTML(formData.category);
         const year = escapeHTML(formData.year);
@@ -120,14 +129,16 @@ export default function AdminPanel({ onClose, onUpdate }) {
         const rating = formData.rating || '9.0';
         const description = escapeHTML(formData.description);
         
-        const msg = `✨ <b>${type}</b> ✨\n\n` +
+        const msg = `🌟 <b>¡${typeLabel} DISPONIBLE!</b> 🌟\n` +
+                    `──────────────────\n\n` +
                     `🍿 <b>Título:</b> ${title}\n` +
                     `📂 <b>Categoría:</b> ${category}\n` +
                     (year ? `📅 <b>Año:</b> ${year}\n` : '') +
                     (isSerie && season ? `📁 <b>Temporada:</b> ${season}\n` : '') +
                     `⭐ <b>Puntuación:</b> ${rating}/10\n` +
                     (description ? `\n📝 <b>Sinopsis:</b>\n<i>${description}</i>\n` : '') +
-                    `\n¡Disponible ahora en <b>Animux</b>! 🚀`;
+                    `\n──────────────────\n` +
+                    `📲 <b>¡Disfrútala ahora en Animux!</b> 🚀`;
         
         // Telegram no permite URLs de localhost en botones
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
