@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { X, Scale, Shield, ShoppingBag } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import Header from './components/layout/Header';
@@ -370,6 +371,40 @@ export default function App() {
   // Reset visible count when category changes
   useEffect(() => { setVisibleCount(48); }, [activeCategory]);
 
+  // ── Lógica de SEO Dinámico (Debe ir antes de cualquier return condicional) ────
+  const seoData = useMemo(() => {
+    const defaultTitle = "Animux - Streaming Premium de Películas, Series y TV en Vivo";
+    const defaultDesc = "Disfruta de las mejores películas, series y canales de TV en vivo totalmente gratis en Animux. Calidad premium, sin anuncios intrusivos y actualizaciones diarias.";
+    
+    const active = activeChannel || selectedDetail;
+    if (active) {
+      const name = active.name || active.title;
+      const type = active.isVOD ? (active.groupId ? 'Serie' : 'Película') : 'Canal';
+      return {
+        title: `Ver ${name} Online Gratis (${active.year || '2024'}) - Animux`,
+        description: active.description || `Mira ${name} en calidad premium. ${type} disponible ahora en Animux Streaming.`,
+        image: active.logo,
+        url: window.location.href
+      };
+    }
+
+    if (activeCategory !== 'Inicio') {
+      return {
+        title: `${activeCategory} Online - Catálogo Completo Animux`,
+        description: `Explora nuestra sección de ${activeCategory}. Los mejores títulos de ${activeCategory} seleccionados para ti.`,
+        image: "/icon-512.png",
+        url: window.location.href
+      };
+    }
+
+    return {
+      title: defaultTitle,
+      description: defaultDesc,
+      image: "/icon-512.png",
+      url: window.location.origin
+    };
+  }, [activeChannel, selectedDetail, activeCategory]);
+
   if (isAppLoading) {
     return (
       <div className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center font-sans overflow-hidden">
@@ -427,7 +462,25 @@ export default function App() {
 
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
+      <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
+        <Helmet defaultTitle="Animux - Streaming Premium" titleTemplate="%s">
+          <title>{seoData.title}</title>
+          <meta name="description" content={seoData.description} />
+          
+          {/* Open Graph / Facebook / WhatsApp */}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content={seoData.title} />
+          <meta property="og:description" content={seoData.description} />
+          <meta property="og:image" content={seoData.image} />
+          <meta property="og:url" content={seoData.url} />
+
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={seoData.title} />
+          <meta name="twitter:description" content={seoData.description} />
+          <meta name="twitter:image" content={seoData.image} />
+        </Helmet>
+
       <Header
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         onGoHome={() => { 
