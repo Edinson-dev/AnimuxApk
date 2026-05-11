@@ -90,6 +90,12 @@ app.get('/api/proxy', async (req, res) => {
             streamRequest.data.destroy();
         });
 
+        streamRequest.data.on('error', (err) => {
+            console.error('[Proxy Stream Error]:', err.message);
+            if (!res.headersSent) res.status(500).send('Error en el flujo de datos');
+            streamRequest.data.destroy();
+        });
+
     } catch (err) {
         console.error('[Proxy Fatal Error]:', err.message);
         if (!res.headersSent) res.status(500).send('Error al conectar con el stream');

@@ -489,7 +489,8 @@ export default function App() {
           setLogoClicks(p => {
             if (p + 1 === 5) {
               const pwd = window.prompt('🔒 Acceso Restringido. Introduce la clave de administrador:');
-              if (pwd === 'animux2024') {
+              const correctPwd = import.meta.env.VITE_ADMIN_PASSWORD || 'animux2024';
+              if (pwd === correctPwd) {
                 setShowAdmin(true);
               } else if (pwd !== null) {
                 alert('❌ Clave incorrecta. Acceso denegado.');
