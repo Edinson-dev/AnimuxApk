@@ -28,8 +28,8 @@ export async function onRequest(context) {
 
     // ── Servidores de Relevo (Render con IP Colombiana) ──
     const RELAY_SERVERS = [
-      'https://animux-relay-by67.onrender.com',
-      'https://animux-relay-rkms.onrender.com'
+      'https://animux-relay-w3of.onrender.com',
+    
     ];
     const BLOCKED_IPS = ['181.78.', '181.114.'];
     const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip));
