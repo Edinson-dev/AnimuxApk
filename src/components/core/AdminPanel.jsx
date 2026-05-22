@@ -28,6 +28,283 @@ export default function AdminPanel({ onClose, onUpdate }) {
     tgBtnText: '🚀 VER AHORA', tgBtnUrl: window.location.origin
   });
 
+  // RSS Importer States
+  const [rssUrl, setRssUrl] = useState('');
+  const [parsingRss, setParsingRss] = useState(false);
+  const [parsedPodcast, setParsedPodcast] = useState(null);
+  const [selectedEpisodes, setSelectedEpisodes] = useState([]);
+  const [importingEpisodes, setImportingEpisodes] = useState(false);
+  const [rssError, setRssError] = useState('');
+  const [rssEpisodeFilter, setRssEpisodeFilter] = useState('');
+
+  const handleParseRss = async () => {
+    let cleanUrl = rssUrl.trim();
+    if (!cleanUrl) return alert("Por favor, introduce una URL de RSS válida.");
+
+    setParsingRss(true);
+    setRssError('');
+    setParsedPodcast(null);
+    setSelectedEpisodes([]);
+    setRssEpisodeFilter('');
+
+    try {
+      // 1. Auto-corregir URLs de Anchor sin "/s/" (muy común y crítico para que retorne XML en vez de HTML)
+      const anchorRegex = /^https?:\/\/(?:www\.)?anchor\.fm\/(?![sS]\/)([a-zA-Z0-9_-]+)\/podcast\/rss\/?$/i;
+      if (anchorRegex.test(cleanUrl)) {
+        const correctedUrl = cleanUrl.replace(anchorRegex, 'https://anchor.fm/s/$1/podcast/rss');
+        console.log(`[RSS Importer] Auto-corrigiendo URL de Anchor: ${cleanUrl} -> ${correctedUrl}`);
+        cleanUrl = correctedUrl;
+        setRssUrl(correctedUrl);
+      }
+
+      // 2. Detectar URLs de Spotify no aptas como RSS
+      if (
+        cleanUrl.includes('spotify.com/playlist') || 
+        cleanUrl.includes('spotify.com/show') || 
+        cleanUrl.includes('spotify.com/episode') || 
+        (cleanUrl.includes('spotify.com') && !cleanUrl.includes('/podcast/rss') && !cleanUrl.includes('/feed'))
+      ) {
+        throw new Error(
+          "Las URLs directas de Spotify (como playlists, shows o episodios) no son feeds RSS. " +
+          "Spotify protege su plataforma y no ofrece el formato XML necesario para la extracción de episodios. " +
+          "Para importar un podcast de Spotify, debes copiar la URL de distribución de tu feed RSS público en la sección 'Configuración > Disponibilidad' de tu panel de Spotify for Creators (ex-Anchor), o buscar su feed RSS público directo."
+        );
+      }
+
+      let xmlText = '';
+      let fetchSuccess = false;
+      let lastError = '';
+
+      // Intento 1: Proxy interno (/api/proxy)
+      try {
+        const proxyUrl = `/api/proxy?url=${encodeURIComponent(cleanUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          const text = await response.text();
+          if (text.trim().startsWith('<') || text.includes('<?xml')) {
+            xmlText = text;
+            fetchSuccess = true;
+          } else {
+            lastError = "El servidor no devolvió una estructura XML válida.";
+          }
+        } else {
+          lastError = `Código HTTP ${response.status} (el servidor de desarrollo local o proxy no responde)`;
+        }
+      } catch (err) {
+        lastError = err.message || err;
+        console.warn("Intento 1 (Proxy interno) falló:", err);
+      }
+
+      // Intento 2: Fetch directo (si la cabecera CORS lo permite)
+      if (!fetchSuccess) {
+        try {
+          console.log("Intentando fetch directo...");
+          const response = await fetch(cleanUrl);
+          if (response.ok) {
+            const text = await response.text();
+            if (text.trim().startsWith('<') || text.includes('<?xml')) {
+              xmlText = text;
+              fetchSuccess = true;
+            } else {
+              lastError = "La respuesta directa no tiene formato XML.";
+            }
+          } else {
+            lastError = `Status ${response.status}`;
+          }
+        } catch (err) {
+          lastError = err.message || err;
+          console.warn("Intento 2 (Fetch directo) falló:", err);
+        }
+      }
+
+      // Intento 3: Proxy público (AllOrigins) para desarrollo local / fallbacks
+      if (!fetchSuccess) {
+        try {
+          console.log("Intentando proxy público (AllOrigins)...");
+          const publicProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
+          const response = await fetch(publicProxyUrl);
+          if (response.ok) {
+            const text = await response.text();
+            if (text.trim().startsWith('<') || text.includes('<?xml')) {
+              xmlText = text;
+              fetchSuccess = true;
+            } else {
+              lastError = "El proxy público no obtuvo contenido estructurado en XML.";
+            }
+          } else {
+            lastError = `Status ${response.status}`;
+          }
+        } catch (err) {
+          lastError = err.message || err;
+          console.warn("Intento 3 (AllOrigins) falló:", err);
+        }
+      }
+
+      if (!fetchSuccess) {
+        throw new Error(
+          `No se pudo leer el feed (Error: ${lastError}). Asegúrate de que la URL sea un feed XML de podcast válido, de que el podcast sea público y de que no esté protegido.`
+        );
+      }
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      
+      const parserError = xmlDoc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error("El archivo XML obtenido tiene errores de estructura y no es un XML de RSS válido.");
+      }
+
+      const getVal = (parent, tag) => {
+        try {
+          const el = tag.includes(':') 
+            ? (parent.getElementsByTagName(tag)[0] || parent.querySelector(tag.replace(':', '\\:')))
+            : parent.querySelector(tag);
+          return el ? el.textContent.trim() : '';
+        } catch (e) {
+          const els = parent.getElementsByTagName(tag);
+          return els.length > 0 ? els[0].textContent.trim() : '';
+        }
+      };
+
+      const getAttr = (parent, tag, attr) => {
+        try {
+          const el = tag.includes(':') 
+            ? (parent.getElementsByTagName(tag)[0] || parent.querySelector(tag.replace(':', '\\:')))
+            : parent.querySelector(tag);
+          return el ? el.getAttribute(attr) || '' : '';
+        } catch (e) {
+          const els = parent.getElementsByTagName(tag);
+          return els.length > 0 ? els[0].getAttribute(attr) || '' : '';
+        }
+      };
+
+      const channel = xmlDoc.querySelector('channel');
+      if (!channel) throw new Error("Estructura RSS incorrecta: no se encontró la etiqueta <channel> principal.");
+
+      const title = getVal(channel, 'title');
+      const description = getVal(channel, 'description');
+      const author = getVal(channel, 'itunes:author') || getVal(channel, 'author') || 'Creador Desconocido';
+      
+      let image = getAttr(channel, 'itunes:image', 'href') || getVal(channel, 'image > url');
+      if (!image) {
+        const imgEl = channel.querySelector('image');
+        if (imgEl) image = getVal(imgEl, 'url');
+      }
+
+      const itemsNodeList = xmlDoc.querySelectorAll('item');
+      const episodes = [];
+
+      itemsNodeList.forEach((item, index) => {
+        const epTitle = getVal(item, 'title');
+        const epDesc = getVal(item, 'description') || getVal(item, 'itunes:summary') || '';
+        const epPubDate = getVal(item, 'pubDate');
+        const epUrl = getAttr(item, 'enclosure', 'url');
+        let epImage = getAttr(item, 'itunes:image', 'href') || image;
+        
+        let epYear = new Date().getFullYear().toString();
+        if (epPubDate) {
+          const parsedDate = new Date(epPubDate);
+          if (!isNaN(parsedDate.getTime())) {
+            epYear = parsedDate.getFullYear().toString();
+          }
+        }
+
+        if (epUrl) {
+          const cleanDesc = epDesc.replace(/<[^>]*>/g, '').substring(0, 300) + (epDesc.length > 300 ? '...' : '');
+
+          episodes.push({
+            id: `${title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-ep-${index + 1}`,
+            title: epTitle,
+            url: epUrl,
+            logo: epImage,
+            description: cleanDesc,
+            year: epYear,
+            author: author,
+            pubDate: epPubDate
+          });
+        }
+      });
+
+      if (episodes.length === 0) {
+        throw new Error("El feed XML fue leído correctamente, pero no se encontraron episodios de audio (.mp3, .m4a, etc.) disponibles en él.");
+      }
+
+      setParsedPodcast({
+        title,
+        description: description.replace(/<[^>]*>/g, ''),
+        author,
+        logo: image || 'https://via.placeholder.com/300?text=Podcast',
+        originalLogo: image || 'https://via.placeholder.com/300?text=Podcast',
+        episodes
+      });
+      setSelectedEpisodes(episodes.map(ep => ep.id));
+
+    } catch (err) {
+      console.error(err);
+      setRssError(err.message || "Error inesperado al procesar el feed RSS.");
+    } finally {
+      setParsingRss(false);
+    }
+  };
+
+  const handleImportEpisodes = async () => {
+    if (!parsedPodcast || selectedEpisodes.length === 0) return;
+    setImportingEpisodes(true);
+    try {
+      const episodesToImport = parsedPodcast.episodes.filter(ep => selectedEpisodes.includes(ep.id));
+      const groupId = parsedPodcast.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase().trim();
+
+      let successCount = 0;
+      for (let i = 0; i < episodesToImport.length; i++) {
+        const ep = episodesToImport[i];
+        const docId = `${groupId}-ep-${episodesToImport.length - i}`;
+        
+        // Usar la carátula editada del podcast global si el episodio usa la original o no tiene una específica
+        const epLogo = (!ep.logo || ep.logo === parsedPodcast.originalLogo)
+          ? parsedPodcast.logo
+          : ep.logo;
+
+        const dataToSave = {
+          name: `${parsedPodcast.title} - ${ep.title}`,
+          title: ep.title,
+          url: ep.url,
+          logo: epLogo,
+          category: 'Podcasts',
+          description: ep.description || parsedPodcast.description,
+          year: ep.year,
+          rating: 9.5,
+          featured: false,
+          isNew: true,
+          isVOD: true,
+          isPodcast: true, // Asegurar compatibilidad nativa a nivel del reproductor y categorización
+          direct: true,
+          groupId: groupId,
+          season: 1,
+          tgBtnText: '🚀 ESCUCHAR AHORA',
+          tgBtnUrl: window.location.origin,
+          updatedAt: Date.now()
+        };
+
+        await setDoc(doc(db, 'movies', docId), dataToSave);
+        successCount++;
+      }
+
+      localStorage.removeItem('animux_cache_movs');
+      localStorage.removeItem('animux_last_fetch');
+
+      alert(`🎉 Se importaron con éxito ${successCount} episodios del podcast "${parsedPodcast.title}"`);
+      setParsedPodcast(null);
+      setRssUrl('');
+      setRssEpisodeFilter('');
+      if (onUpdate) onUpdate();
+    } catch (err) {
+      console.error(err);
+      alert("Error al importar: " + err.message);
+    } finally {
+      setImportingEpisodes(false);
+    }
+  };
+
   // TMDB Integration (Usa variable de entorno para seguridad)
   const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || '8b79252f3cf2970ec001895a21ef9db8';
   const [tmdbSearch, setTmdbSearch] = useState('');
@@ -81,7 +358,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
       const catSnapshot = await getDocs(collection(db, 'categories'));
       const manualCats = catSnapshot.docs.map(doc => doc.data().name);
       // Las categorías base son fijas, pero permitimos que las de la nube se sumen
-      const baseCats = ['Series', 'Películas', 'Cine', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'General'];
+      const baseCats = ['Series', 'Películas', 'Cine', 'Podcasts', 'Deportes', 'Noticias', 'Documentales', 'Nacionales', 'Infantil', 'Música', 'Anime', 'General'];
       const finalCats = Array.from(new Set([...baseCats, ...manualCats]));
       setCategories(finalCats.sort());
       if (!formData.category && finalCats.length > 0) setFormData(prev => ({ ...prev, category: finalCats[0] }));
@@ -239,6 +516,42 @@ export default function AdminPanel({ onClose, onUpdate }) {
     }
   };
 
+  const handleDeleteGroup = async (groupId, podcastTitle) => {
+    if (window.confirm(`⚠️ ADVERTENCIA CRÍTICA: ¿Estás completamente seguro de eliminar TODOS los episodios asociados al grupo "${podcastTitle}"? (Esta acción es irreversible y eliminará todos los episodios de una sola vez)`)) {
+      setLoading(true);
+      try {
+        const collectionName = activeTab;
+        const episodesToDelete = items.filter(item => item.groupId === groupId);
+        
+        let successCount = 0;
+        for (const ep of episodesToDelete) {
+          await deleteDoc(doc(db, collectionName, ep.id));
+          successCount++;
+        }
+
+        // Limpiar todas las cachés locales
+        localStorage.removeItem('animux_cache_chans');
+        localStorage.removeItem('animux_cache_movs');
+        localStorage.removeItem('animux_cache_cats');
+        localStorage.removeItem('animux_last_fetch');
+
+        alert(`🎉 Se eliminaron con éxito ${successCount} episodios del grupo "${podcastTitle}"`);
+        fetchItems();
+        if (onUpdate) onUpdate();
+      } catch (err) {
+        console.error(err);
+        alert("Error al eliminar el grupo: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const filteredEpisodes = parsedPodcast ? parsedPodcast.episodes.filter(ep => 
+    (ep.title || '').toLowerCase().includes(rssEpisodeFilter.toLowerCase()) || 
+    (ep.description || '').toLowerCase().includes(rssEpisodeFilter.toLowerCase())
+  ) : [];
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -277,6 +590,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
             {[
               { id: 'channels', label: 'Canales TV', icon: Tv },
               { id: 'movies', label: 'Películas', icon: Film },
+              { id: 'rss_importer', label: 'Importador RSS', icon: Plus },
               { id: 'categories', label: 'Categorías', icon: LayoutGrid },
               { id: 'announcements', label: 'Anuncios', icon: AlertCircle },
               { id: 'config', label: 'Configuración', icon: Save },
@@ -308,6 +622,7 @@ export default function AdminPanel({ onClose, onUpdate }) {
                 <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter">
                   {activeTab === 'channels' ? 'Gestión de Canales' : 
                    activeTab === 'movies' ? 'Películas y Series' : 
+                   activeTab === 'rss_importer' ? 'Importador de Podcasts RSS' : 
                    activeTab === 'categories' ? 'Categorías del Sistema' : 
                    activeTab === 'announcements' ? 'Anuncios Globales' : 'Ajustes del Bot'}
                 </h3>
@@ -528,6 +843,226 @@ export default function AdminPanel({ onClose, onUpdate }) {
                     </ul>
                   </div>
                 </div>
+              ) : activeTab === 'rss_importer' ? (
+                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 md:p-8 space-y-8 animate-fade-in max-w-4xl mx-auto w-full">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">Importar Podcasts desde Feed RSS</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                      Introduce la URL de cualquier Podcast (Spotify, Apple Podcasts, Ivoox, Anchor, etc.). Animux parseará los episodios automáticamente y te permitirá importarlos en lote.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="URL DEL FEED RSS (Ej: https://anchor.fm/s/12345/podcast/rss)" 
+                      value={rssUrl} 
+                      onChange={(e) => setRssUrl(e.target.value)} 
+                      className="flex-1 bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all placeholder:text-gray-700"
+                    />
+                    <button 
+                      onClick={handleParseRss}
+                      disabled={parsingRss}
+                      className="px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20 disabled:opacity-50 disabled:scale-100 active:scale-95"
+                    >
+                      {parsingRss ? 'Analizando Feed...' : 'Analizar RSS'}
+                    </button>
+                  </div>
+
+                  {rssError && (
+                    <div className="p-4 bg-red-600/10 border border-red-600/20 text-red-500 rounded-2xl text-xs font-bold flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 shrink-0" />
+                      <span>{rssError}</span>
+                    </div>
+                  )}
+
+                  {parsedPodcast && (
+                    <div className="space-y-6 animate-fade-in">
+                      {/* Podcast Info Header */}
+                      <div className="flex flex-col md:flex-row gap-6 p-6 bg-white/[0.01] border border-white/5 rounded-3xl w-full">
+                        <div className="flex flex-col items-center gap-3 shrink-0">
+                          <img 
+                            src={parsedPodcast.logo} 
+                            alt={parsedPodcast.title} 
+                            className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover border border-white/10 shadow-2xl"
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/300?text=Podcast'; }}
+                          />
+                          <span className="text-[8px] bg-rose-600 text-white px-2 py-0.5 rounded font-black tracking-widest uppercase">Podcast Detectado</span>
+                        </div>
+                        
+                        <div className="flex-1 space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Título del Podcast</label>
+                              <input 
+                                type="text" 
+                                value={parsedPodcast.title} 
+                                onChange={(e) => setParsedPodcast({ ...parsedPodcast, title: e.target.value })}
+                                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                              />
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Autor</label>
+                              <input 
+                                type="text" 
+                                value={parsedPodcast.author} 
+                                onChange={(e) => setParsedPodcast({ ...parsedPodcast, author: e.target.value })}
+                                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Enlace de la Carátula (URL Logo)</label>
+                            <input 
+                              type="text" 
+                              value={parsedPodcast.logo} 
+                              onChange={(e) => setParsedPodcast({ ...parsedPodcast, logo: e.target.value })}
+                              className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-[11px] font-bold outline-none focus:border-rose-600 transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Descripción</label>
+                            <textarea 
+                              rows="2"
+                              value={parsedPodcast.description} 
+                              onChange={(e) => setParsedPodcast({ ...parsedPodcast, description: e.target.value })}
+                              className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-xs font-bold outline-none focus:border-rose-600 transition-all resize-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Episode Action Toolbar */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <input 
+                            type="checkbox" 
+                            id="selectAllEps" 
+                            checked={selectedEpisodes.length === parsedPodcast.episodes.length} 
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedEpisodes(parsedPodcast.episodes.map(ep => ep.id));
+                              } else {
+                                setSelectedEpisodes([]);
+                              }
+                            }}
+                            className="w-5 h-5 accent-rose-600 cursor-pointer"
+                          />
+                          <label htmlFor="selectAllEps" className="text-[10px] font-black text-white uppercase tracking-widest cursor-pointer mr-2">
+                            Todos ({parsedPodcast.episodes.length})
+                          </label>
+
+                          <div className="flex items-center gap-1.5 border-l border-white/10 pl-3">
+                            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest mr-1">RÁPIDO:</span>
+                            {[10, 20, 30, 50].map(num => (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => {
+                                  const count = Math.min(num, parsedPodcast.episodes.length);
+                                  setSelectedEpisodes(parsedPodcast.episodes.slice(0, count).map(ep => ep.id));
+                                }}
+                                className="px-2 py-1 bg-white/5 hover:bg-rose-600 border border-white/10 hover:border-rose-600 rounded-lg text-[8px] font-black text-white uppercase tracking-wider transition-all"
+                              >
+                                Últimos {num}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={handleImportEpisodes}
+                          disabled={importingEpisodes || selectedEpisodes.length === 0}
+                          className="px-8 py-3.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:opacity-50 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                        >
+                          {importingEpisodes ? 'Importando Lote...' : `Importar ${selectedEpisodes.length} Seleccionados`}
+                        </button>
+                      </div>
+
+                      {/* Búsqueda / Filtro de Episodios */}
+                      <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                        <div className="relative flex-1 w-full group">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-rose-500 transition-colors" />
+                          <input 
+                            type="text" 
+                            placeholder="FILTRAR EPISODIOS POR PALABRA CLAVE (Ej: lluvia, cuento, meditación)..." 
+                            value={rssEpisodeFilter} 
+                            onChange={(e) => setRssEpisodeFilter(e.target.value)} 
+                            className="w-full bg-black/50 border border-white/10 focus:border-rose-600/50 rounded-xl py-3 pl-12 pr-4 text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest outline-none transition-all placeholder:text-gray-700 font-mono" 
+                          />
+                        </div>
+                        {rssEpisodeFilter && (
+                          <div className="flex gap-2 w-full md:w-auto">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const visibleIds = filteredEpisodes.map(ep => ep.id);
+                                setSelectedEpisodes(prev => Array.from(new Set([...prev, ...visibleIds])));
+                              }}
+                              className="flex-1 md:flex-none px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-600/30 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                            >
+                              Seleccionar {filteredEpisodes.length} Filtrados
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const visibleIds = filteredEpisodes.map(ep => ep.id);
+                                setSelectedEpisodes(prev => prev.filter(id => !visibleIds.includes(id)));
+                              }}
+                              className="flex-1 md:flex-none px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                            >
+                              Deseleccionar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Episodes Checklist */}
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                        {filteredEpisodes.map(ep => {
+                          const isSel = selectedEpisodes.includes(ep.id);
+                          return (
+                            <div 
+                              key={ep.id} 
+                              onClick={() => {
+                                setSelectedEpisodes(prev => 
+                                  prev.includes(ep.id) 
+                                    ? prev.filter(id => id !== ep.id) 
+                                    : [...prev, ep.id]
+                                );
+                              }}
+                              className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-4 items-start ${isSel ? 'bg-rose-600/5 border-rose-600/30' : 'bg-white/[0.01] border-white/5 hover:bg-white/[0.03]'}`}
+                            >
+                              <input 
+                                type="checkbox" 
+                                checked={isSel}
+                                readOnly
+                                className="w-5 h-5 accent-rose-600 shrink-0 mt-0.5 cursor-pointer"
+                              />
+                              <img 
+                                src={ep.logo} 
+                                alt="" 
+                                className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0" 
+                                onError={(e) => { e.target.src = parsedPodcast.logo; }}
+                              />
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <h5 className="text-xs font-black text-white uppercase tracking-wide truncate">{ep.title}</h5>
+                                  <span className="text-[8px] bg-white/5 border border-white/10 text-gray-400 px-1.5 py-0.5 rounded font-bold">{ep.year}</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500 font-medium line-clamp-2 leading-relaxed">{ep.description}</p>
+                                <p className="text-[8px] text-rose-500 font-mono truncate">{ep.url}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : items
                 .filter(i => (i.name || i.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
                 .filter(i => filterCategory === '' || i.category === filterCategory)
@@ -544,6 +1079,16 @@ export default function AdminPanel({ onClose, onUpdate }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 transition-all">
+                    {item.groupId && (
+                      <button 
+                        onClick={() => handleDeleteGroup(item.groupId, (item.name || item.title || '').split('-')[0].trim())} 
+                        className="px-3 py-2 bg-rose-600/15 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl border border-rose-600/20 hover:border-rose-600 transition-all text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5"
+                        title="Eliminar todos los episodios de esta serie o podcast"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Todo el Grupo</span>
+                      </button>
+                    )}
                     <button onClick={() => handleEdit(item)} className="p-3 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition-all" title="Editar"><Edit3 className="w-4 h-4" /></button>
                     <button onClick={() => handleDelete(item.id)} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                   </div>

@@ -36,6 +36,8 @@ export const CATEGORY_TRANSLATIONS = {
   'shopping': 'Tienda',
   'series': 'Series',
   'auto': 'Autos',
+  'podcasts': 'Podcasts',
+  'podcast': 'Podcasts',
   'undefined': 'Otros',
   'xxx': null, // Ocultar esta categoría
   'adult': null,
@@ -63,8 +65,9 @@ export const matchesCat = (c, target) => {
   const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const normalizedChCat = chCat.includes('documentary') ? 'documentales' : chCat.includes('religious') ? 'religioso' : chCat;
 
-  if (target === 'cine (vod)') return c.isVOD && !c.groupId; // Películas VOD
-  if (target === 'series (vod)') return c.isVOD && !!c.groupId; // Series VOD
+  if (target === 'cine (vod)') return c.isVOD && !c.groupId && !c.isPodcast && c.category !== 'Podcasts'; // Películas VOD
+  if (target === 'series (vod)') return c.isVOD && !!c.groupId && !c.isPodcast && c.category !== 'Podcasts'; // Series VOD
+  if (target === 'podcasts') return c.isPodcast || normalizedChCat.includes('podcast'); // Podcasts (Audio)
   if (target === 'maratones 24/7' || target === 'maratones') return !c.isVOD && (normalizedChCat.includes('serie') || normalizedChCat.includes('pelicula') || normalizedChCat.includes('cine'));
   if (target === 'tv abierta') return !c.isVOD && (normalizedChCat.includes('nacional') || normalizedChCat.includes('noticia') || normalizedChCat.includes('general'));
 

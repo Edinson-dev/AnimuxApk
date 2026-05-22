@@ -150,14 +150,14 @@ export default function App() {
   const forceRefresh = () => loadData(true);
 
   const allCategories = useMemo(() => {
-    const baseCats = ['Cine (VOD)', 'Series (VOD)', 'Maratones 24/7', 'TV Abierta', 'Deportes', 'Documentales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
+    const baseCats = ['Cine (VOD)', 'Series (VOD)', 'Podcasts', 'Maratones 24/7', 'TV Abierta', 'Deportes', 'Documentales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
     const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
     
     // Solo agregar categorías de la nube que no estén ya en nuestras baseCats lógicas
     const finalCats = new Set([...baseCats, 'Favoritos']);
     translatedCloud.forEach(cat => {
        const normalized = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-       if (!normalized.includes('cine') && !normalized.includes('pelicula') && !normalized.includes('serie')) {
+       if (!normalized.includes('cine') && !normalized.includes('pelicula') && !normalized.includes('serie') && !normalized.includes('podcast')) {
          finalCats.add(cat);
        }
     });

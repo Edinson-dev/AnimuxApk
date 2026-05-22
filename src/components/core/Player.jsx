@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
   import Hls from 'hls.js';
-  import { X, AlertCircle, Loader2, Play, PictureInPicture, Calendar, Clock, Heart } from 'lucide-react';
+  import { X, AlertCircle, Loader2, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
   import { sendAdminAlert } from '../../config/telegram';
 
-
+const formatTime = (secs) => {
+  if (isNaN(secs) || secs === null) return '0:00';
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
 
   export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false, isFavorite, onToggleFavorite }) {
     const videoRef = useRef(null);
@@ -22,12 +27,19 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
     const [levels, setLevels] = useState([]);
     const [currentLevel, setCurrentLevel] = useState(-1);
 
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1);
+
     // ── Playback Progress State ──────────────────────────────────────────
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedTime, setSavedTime] = useState(0);
 
     // ── Season Management ──────────────────────────────────────────────────
     const [selectedSeason, setSelectedSeason] = useState(1);
+    const [sidebarFilter, setSidebarFilter] = useState('');
 
     const availableSeasons = useMemo(() => {
       if (!channel || !channel.groupId || !channel.isVOD) return [];
@@ -128,6 +140,67 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       return hasKeyword && !isDirectFile;
     }, [currentUrl, isYouTube, isDrive, isArchive]);
 
+    const isPodcast = useMemo(() => {
+      if (!channel) return false;
+      const urlLower = String(currentUrl || '').toLowerCase();
+      return (
+        channel.isPodcast || 
+        channel.category === 'Podcasts' || 
+        channel.category === 'podcast' || 
+        urlLower.includes('.mp3') ||
+        urlLower.includes('.m4a')
+      );
+    }, [channel, currentUrl]);
+
+    // ── Sidebar Episodes filtering and sorting (Spotify/TV isolated) ───────
+    const sidebarEpisodes = useMemo(() => {
+      if (!channel) return [];
+      
+      let baseList = [];
+      
+      if (isPodcast) {
+        // Filter out only podcast items
+        const allPodcasts = playlist.filter(item => 
+          item.isPodcast || 
+          item.category === 'Podcasts' || 
+          item.category === 'podcast'
+        );
+        
+        if (channel.groupId) {
+          baseList = allPodcasts.filter(item => item.groupId === channel.groupId);
+        } else if (channel.author) {
+          baseList = allPodcasts.filter(item => item.author === channel.author);
+        } else {
+          const prefix = (channel.name || channel.title || '').split(' - ')[0]?.trim();
+          if (prefix) {
+            baseList = allPodcasts.filter(item => {
+              const itemPrefix = (item.name || item.title || '').split(' - ')[0]?.trim();
+              return itemPrefix && itemPrefix.toLowerCase() === prefix.toLowerCase();
+            });
+          } else {
+            baseList = allPodcasts;
+          }
+        }
+      } else {
+        if (!channel.groupId || !channel.isVOD) return [];
+        baseList = playlist.filter(item => item.groupId === channel.groupId);
+        baseList = baseList.filter(item => (item.season || 1) === selectedSeason);
+      }
+      
+      // Apply sidebar filter if active
+      if (sidebarFilter.trim()) {
+        const q = sidebarFilter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        baseList = baseList.filter(item => {
+          const name = (item.name || item.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const desc = (item.description || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return name.includes(q) || desc.includes(q);
+        });
+      }
+      
+      // Sort episodes naturally by name/title
+      return baseList.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+    }, [channel, playlist, isPodcast, selectedSeason, sidebarFilter]);
+
     // ── Inicialización al cambiar canal ───────────────────────────────────
     useEffect(() => {
       if (!channel) return;
@@ -139,6 +212,8 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       setMinimized(false);
       setLevels([]);
       setCurrentLevel(-1);
+      setPlaybackRate(1);
+      setSidebarFilter('');
       
       // Decodificar si es necesario
       let url = channel.url ? decodeCamouflage(channel.url) : '';
@@ -189,6 +264,45 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
         }
       }
     }, [channel]);
+
+    // ── Sync Video Playback State (For Podcast Custom Controls) ───────────
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      const onTimeUpdate = () => setCurrentTime(video.currentTime);
+      const onDurationChange = () => setDuration(video.duration || 0);
+      const onPlay = () => setIsPlaying(true);
+      const onPause = () => setIsPlaying(false);
+      const onVolumeChange = () => setIsMuted(video.muted);
+
+      video.addEventListener('timeupdate', onTimeUpdate);
+      video.addEventListener('durationchange', onDurationChange);
+      video.addEventListener('play', onPlay);
+      video.addEventListener('pause', onPause);
+      video.addEventListener('volumechange', onVolumeChange);
+
+      // Sync initial state
+      setCurrentTime(video.currentTime);
+      setDuration(video.duration || 0);
+      setIsPlaying(!video.paused);
+      setIsMuted(video.muted);
+
+      return () => {
+        video.removeEventListener('timeupdate', onTimeUpdate);
+        video.removeEventListener('durationchange', onDurationChange);
+        video.removeEventListener('play', onPlay);
+        video.removeEventListener('pause', onPause);
+        video.removeEventListener('volumechange', onVolumeChange);
+      };
+    }, [currentUrl]);
+
+    // Sync playback rate when source or speed changes
+    useEffect(() => {
+      if (videoRef.current) {
+        videoRef.current.playbackRate = playbackRate;
+      }
+    }, [currentUrl, playbackRate]);
 
     // ── Saltar al siguiente servidor ──────────────────────────────────────
     const tryNextServer = () => {
@@ -253,9 +367,14 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
       const isM3U8 = urlLower.includes('.m3u8') ||
                      urlLower.includes('jmp2.uk') ||
                      urlLower.includes('.ts') ||
-                     (currentUrl.includes('/play/') && !urlLower.includes('.mp4') && !urlLower.includes('.mkv'));
+                     (currentUrl.includes('/play/') && 
+                      !urlLower.includes('.mp4') && 
+                      !urlLower.includes('.mkv') && 
+                      !urlLower.includes('.mp3') && 
+                      !urlLower.includes('.m4a') && 
+                      !urlLower.includes('podcast'));
 
-      const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3'].some(e => urlLower.includes(e));
+      const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3', '.m4a'].some(e => urlLower.includes(e));
       
       // Lógica de Proxy Protegida:
       // 1. Canales de TV (HLS/M3U8): Usan proxy si no están marcados como directos (Necesario para Caracol/ESPN)
@@ -530,17 +649,198 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
               ) : isEmbed ? (
                  <iframe src={currentUrl} className="w-full h-full border-0 bg-black" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen title="Embed Player" />
               ) : (
-                 <video 
-                   ref={videoRef} 
-                   className="w-full h-full object-contain shadow-2xl" 
-                   controls 
-                   autoPlay 
-                   playsInline
-                   controlsList="nodownload"
-                   onContextMenu={(e) => e.preventDefault()}
-                   onPlay={() => setLoading(false)}
-                   onPlaying={() => setLoading(false)}
-                 />
+                 <>
+                   <video 
+                     ref={videoRef} 
+                     className={isPodcast ? "opacity-0 absolute pointer-events-none w-0 h-0" : "w-full h-full object-contain shadow-2xl"} 
+                     controls={!isPodcast} 
+                     autoPlay 
+                     playsInline
+                     controlsList="nodownload"
+                     onContextMenu={(e) => e.preventDefault()}
+                     onPlay={() => setLoading(false)}
+                     onPlaying={() => setLoading(false)}
+                   />
+                   {isPodcast && (
+                     <div className="absolute inset-0 flex flex-col items-center justify-between p-6 md:p-8 bg-gradient-to-b from-[#0c0c0e]/80 via-[#121216]/95 to-[#08080a]/98 text-white overflow-hidden select-none">
+                       {/* Background pulsing glow */}
+                       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-gradient-to-tr from-rose-500/20 to-violet-500/10 rounded-full blur-[80px] transition-transform duration-1000 ${isPlaying ? 'scale-125 opacity-100 animate-pulse' : 'scale-100 opacity-60'}`} />
+                         <div className="absolute inset-0 bg-black/40 backdrop-blur-[20px]" />
+                       </div>
+
+                       {/* Holographic Cover Art Card */}
+                       <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 mt-4 w-full max-w-sm">
+                         {/* 3D Glassmorphism Frame with rotating disk/vinyl style cover */}
+                         <div className="relative group">
+                           {/* Glow ring under the cover */}
+                           <div className={`absolute -inset-1.5 bg-gradient-to-r from-rose-500 to-violet-600 rounded-full blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : ''}`} />
+                           
+                           {/* Disc Container */}
+                           <div className="relative w-44 h-44 md:w-56 md:h-56 p-1.5 bg-white/5 border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-center backdrop-blur-md">
+                             {/* Central vinyl spindle hole representation */}
+                             <div className="absolute w-6 h-6 bg-black border-2 border-white/20 rounded-full z-20 flex items-center justify-center">
+                               <div className="w-1.5 h-1.5 bg-rose-600 rounded-full" />
+                             </div>
+                             
+                             {/* Floating / Rotating Cover */}
+                             <img 
+                               src={channel.logo || '/icon-512.png'} 
+                               alt="Podcast Cover" 
+                               className={`w-full h-full object-cover rounded-full border border-white/20 shadow-inner ${isPlaying ? 'animate-spin-slow' : ''}`}
+                               style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
+                               onError={(e) => { e.target.src = '/icon-512.png'; }}
+                             />
+                           </div>
+                         </div>
+
+                         {/* Track Metadata */}
+                         <div className="text-center space-y-2 px-4 w-full">
+                           <h3 className="text-base md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70 tracking-tight line-clamp-2 uppercase">
+                             {channel.displayName || channel.name}
+                           </h3>
+                           <p className="text-[9px] md:text-[10px] text-rose-500 font-extrabold tracking-[0.2em] uppercase">
+                             {channel.author || channel.category || 'Podcast Episode'}
+                           </p>
+                         </div>
+
+                         {/* Mini Sound Equalizer Waves */}
+                         <div className="flex items-end justify-center gap-1.5 h-8">
+                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((bar) => {
+                             const duration = 0.6 + Math.random() * 0.8;
+                             return (
+                               <div 
+                                 key={bar} 
+                                 className="w-1 h-full rounded-full bg-gradient-to-t from-rose-500 to-violet-500 transition-all equalizer-bar"
+                                 style={{
+                                   transform: isPlaying ? 'scaleY(1)' : 'scaleY(0.15)',
+                                   transformOrigin: 'bottom',
+                                   animation: isPlaying ? `equalizer-wave ${duration}s ease-in-out infinite alternate` : 'none',
+                                   animationDelay: `${bar * 0.07}s`
+                                 }}
+                               />
+                             );
+                           })}
+                         </div>
+                       </div>
+
+                       {/* Interactive Timeline & Premium Controls */}
+                       <div className="relative z-10 w-full max-w-md space-y-4 md:space-y-6 mt-4">
+                         {/* Timeline Seeker */}
+                         <div className="space-y-2">
+                           <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                             <span>{formatTime(currentTime)}</span>
+                             <span>{formatTime(duration)}</span>
+                           </div>
+                           <div className="relative group/timeline w-full">
+                             <input 
+                               type="range" 
+                               min="0" 
+                               max={duration || 100} 
+                               value={currentTime} 
+                               onChange={(e) => {
+                                 const val = parseFloat(e.target.value);
+                                 if (videoRef.current) videoRef.current.currentTime = val;
+                                 setCurrentTime(val);
+                               }}
+                               className="w-full h-1.5 bg-white/10 rounded-full appearance-none outline-none cursor-pointer accent-rose-600 transition-all group-hover/timeline:h-2"
+                               style={{
+                                 background: `linear-gradient(to right, rgb(225, 29, 72) 0%, rgb(225, 29, 72) ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.1) ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.1) 100%)`
+                               }}
+                             />
+                           </div>
+                         </div>
+
+                         {/* Control Buttons Panel */}
+                         <div className="flex items-center justify-between px-4 md:px-8">
+                           {/* Mute/Volume Toggle */}
+                           <button 
+                             onClick={() => {
+                               if (videoRef.current) videoRef.current.muted = !isMuted;
+                             }}
+                             className="p-3 text-gray-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-all"
+                             title="Silenciar / Activar Sonido"
+                           >
+                             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                           </button>
+
+                           {/* Main playback group */}
+                           <div className="flex items-center gap-4">
+                             {/* Skip Backward 15s */}
+                             <button 
+                               onClick={() => {
+                                 if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 15);
+                               }}
+                               className="p-3.5 text-white/80 hover:text-white rounded-full bg-white/5 hover:bg-white/10 border border-white/5 active:scale-90 transition-all flex items-center justify-center"
+                               title="Retroceder 15s"
+                             >
+                               <span className="text-[10px] font-black tracking-tighter mr-0.5">-15s</span>
+                             </button>
+
+                             {/* Play / Pause Holographic Trigger */}
+                             <button 
+                               onClick={() => {
+                                 if (videoRef.current) {
+                                   if (isPlaying) videoRef.current.pause();
+                                   else videoRef.current.play().catch(() => {});
+                                 }
+                               }}
+                               className="w-16 h-16 rounded-full bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white flex items-center justify-center shadow-lg shadow-rose-600/30 active:scale-95 hover:scale-105 transition-all border border-rose-400/20"
+                               title={isPlaying ? 'Pausar' : 'Reproducir'}
+                             >
+                               {isPlaying ? <Pause className="w-6 h-6 text-white fill-current animate-pulse" /> : <Play className="w-6 h-6 text-white fill-current translate-x-0.5" />}
+                             </button>
+
+                             {/* Skip Forward 15s */}
+                             <button 
+                               onClick={() => {
+                                 if (videoRef.current) videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + 15);
+                               }}
+                               className="p-3.5 text-white/80 hover:text-white rounded-full bg-white/5 hover:bg-white/10 border border-white/5 active:scale-90 transition-all flex items-center justify-center"
+                               title="Avanzar 15s"
+                             >
+                               <span className="text-[10px] font-black tracking-tighter ml-0.5">+15s</span>
+                             </button>
+                           </div>
+
+                            {/* Playback speed toggle */}
+                            <button 
+                              onClick={() => {
+                                const speeds = [1, 1.25, 1.5, 1.75, 2];
+                                const nextIdx = (speeds.indexOf(playbackRate) + 1) % speeds.length;
+                                const newSpeed = speeds[nextIdx];
+                                if (videoRef.current) videoRef.current.playbackRate = newSpeed;
+                                setPlaybackRate(newSpeed);
+                              }}
+                              className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 border border-white/5 text-[9px] font-black text-rose-500 uppercase tracking-widest transition-all min-w-[75px] text-center animate-pulse"
+                              style={{ animationDuration: '3s' }}
+                              title="Velocidad de reproducción"
+                            >
+                              {playbackRate === 1 ? '1.0x SPEED' : `${playbackRate}x SPEED`}
+                            </button>
+                         </div>
+                       </div>
+
+                       {/* Floating custom styles */}
+                       <style>{`
+                         @keyframes spin-slow {
+                           from { transform: rotate(0deg); }
+                           to { transform: rotate(360deg); }
+                         }
+                         .animate-spin-slow {
+                           animation: spin-slow 25s linear infinite;
+                         }
+                         @keyframes equalizer-wave {
+                           0% { transform: scaleY(0.15); }
+                           100% { transform: scaleY(1); }
+                         }
+                         .equalizer-bar {
+                           transform-origin: bottom;
+                         }
+                       `}</style>
+                     </div>
+                   )}
+                 </>
               )}
 
               {/* Resume Prompt Overlay */}
@@ -688,13 +988,36 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                     <div className="flex items-center gap-2">
                        <div className="w-1 h-4 bg-rose-600 rounded-full" />
                        <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-                          {channel.groupId && channel.isVOD ? 'Episodios' : `Más de ${channel.category}`}
+                          {channel.groupId && channel.isVOD ? (isPodcast ? 'Pistas del Pódcast' : 'Episodios') : `Más de ${channel.category}`}
                        </h4>
                     </div>
                     {(!channel.groupId || !channel.isVOD) && <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest animate-pulse">En Vivo</span>}
                  </div>
+
+                 {isPodcast && channel.groupId && channel.isVOD && (
+                    <div className="mb-4 px-2 lg:px-0">
+                      <div className="relative group/search">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/search:text-rose-500 transition-colors" />
+                        <input
+                          type="text"
+                          placeholder="Buscar episodio..."
+                          value={sidebarFilter}
+                          onChange={(e) => setSidebarFilter(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 text-[10px] font-black uppercase tracking-wider bg-white/[0.03] hover:bg-white/[0.06] focus:bg-[#08080a] text-white rounded-xl border border-white/5 focus:border-rose-500/50 outline-none transition-all placeholder-gray-500"
+                        />
+                        {sidebarFilter && (
+                          <button
+                            onClick={() => setSidebarFilter('')}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                 )}
                  
-                 {channel.groupId && channel.isVOD && availableSeasons.length > 1 && (
+                 {channel.groupId && channel.isVOD && !isPodcast && availableSeasons.length > 1 && (
                     <div className="flex gap-2 mb-6 px-2 lg:px-0 overflow-x-auto no-scrollbar pb-1">
                       {availableSeasons.map(s => (
                         <button
@@ -707,17 +1030,94 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                       ))}
                     </div>
                  )}
-                 
-                 <div className={`${channel.groupId && channel.isVOD ? 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-2 gap-3 lg:gap-4' : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'} pb-6 lg:pb-0 px-2 lg:px-0`}>
-                    {(channel.groupId && channel.isVOD 
-                      ? playlist.filter(item => 
-                          item.groupId === channel.groupId && 
-                          (item.season || 1) === selectedSeason
-                        ).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })) 
+                  <div className={`flex-1 pb-6 lg:pb-0 px-2 lg:px-0 ${
+                     channel.groupId && channel.isVOD
+                       ? (isPodcast 
+                           ? 'flex flex-col gap-2' 
+                           : 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-2 gap-3 lg:gap-4')
+                       : 'flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar lg:custom-scrollbar gap-3'
+                   }`}>
+                    {((channel.groupId && channel.isVOD) || isPodcast 
+                      ? sidebarEpisodes 
                       : playlist.filter(item => true)
                     ).map((item, idx) => {
                       const isCurrentlyPlaying = String(item.id) === String(channel.id) || item.url === channel.url;
                       
+                      if (isPodcast) {
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => onPlayNext(item)}
+                            className={`group flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer border transition-all duration-300 relative ${
+                              isCurrentlyPlaying
+                                ? 'bg-rose-500/10 border-rose-500/30'
+                                : 'bg-white/[0.02] hover:bg-white/[0.06] border-transparent hover:border-white/10'
+                            }`}
+                          >
+                            {/* Track Index or Play indicator */}
+                            <div className="w-6 shrink-0 flex items-center justify-center relative">
+                              {isCurrentlyPlaying ? (
+                                <div className="flex items-end gap-0.5 h-3 w-3">
+                                  {[1, 2, 3].map((bar) => {
+                                    const duration = 0.5 + Math.random() * 0.5;
+                                    return (
+                                      <div
+                                        key={bar}
+                                        className="w-[2px] h-full bg-rose-500"
+                                        style={{
+                                          transform: isPlaying ? 'scaleY(1)' : 'scaleY(0.2)',
+                                          transformOrigin: 'bottom',
+                                          animation: isPlaying ? `equalizer-wave ${duration}s ease-in-out infinite alternate` : 'none',
+                                          animationDelay: `${bar * 0.15}s`
+                                        }}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="text-[10px] font-black text-gray-500 group-hover:opacity-0 transition-opacity">
+                                    {idx + 1}
+                                  </span>
+                                  <Play className="w-3 h-3 text-white fill-current absolute opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </>
+                              )}
+                            </div>
+
+                            {/* Cover logo */}
+                            <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-black border border-white/5 relative group-hover:scale-105 transition-transform duration-300">
+                              <img src={item.logo} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.src = '/icon-512.png'; }} />
+                              {isCurrentlyPlaying && <div className="absolute inset-0 bg-rose-950/20" />}
+                            </div>
+
+                            {/* Text details */}
+                            <div className="flex-1 min-w-0">
+                              <h5 className={`text-[11px] font-extrabold truncate uppercase tracking-tight transition-colors ${
+                                isCurrentlyPlaying ? 'text-rose-400' : 'text-white group-hover:text-rose-500'
+                              }`}>
+                                {item.title || item.name}
+                              </h5>
+                              <div className="flex items-center gap-2 mt-0.5 opacity-60">
+                                <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate max-w-[120px]">
+                                  {item.author || 'Podcast'}
+                                </span>
+                                {item.year && (
+                                  <>
+                                    <div className="w-1 h-1 rounded-full bg-gray-500" />
+                                    <span className="text-[8px] font-bold text-gray-400">{item.year}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Left highlight strip */}
+                            {isCurrentlyPlaying && (
+                              <div className="absolute left-0 top-3 bottom-3 w-0.5 bg-rose-600 rounded-full" />
+                            )}
+                          </div>
+                        );
+                      }
+
                       return (
                       <div
                         key={item.id}
@@ -734,7 +1134,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                                <img src={item.logo} className="w-full h-full object-cover opacity-30 group-hover:opacity-50 group-hover:scale-110 transition-all duration-700" alt="" />
                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                              </div>
-
+ 
                              {/* Contenido Visual */}
                              <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center w-full h-full">
                                <div className="flex flex-col items-center gap-0.5">
@@ -752,14 +1152,14 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                                  {item.name?.split('-').pop() || 'Reproducir'}
                                </span>
                              </div>
-
+ 
                              {/* Icono Play flotante en hover */}
                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                <div className="p-1.5 bg-rose-600 rounded-full shadow-lg">
                                   <Play className="w-2 h-2 text-white fill-current" />
-                               </div>
+                                </div>
                              </div>
-
+ 
                              {String(item.id) === String(channel.id) && (
                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-600 animate-pulse" />
                              )}
@@ -788,7 +1188,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
                       </div>
                       )
                     })}
-                 </div>
+                  </div>
 
                  {/* Second Section: Global Trends */}
                  <div className="mt-6 lg:mt-8 px-2 lg:px-0">
