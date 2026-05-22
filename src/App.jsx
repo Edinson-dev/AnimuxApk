@@ -24,6 +24,7 @@ import InstallGuide from './components/ui/InstallGuide';
 import TvGuideModal from './components/ui/TvGuideModal';
 import DonateModal from './components/ui/DonateModal';
 import { sendTelegramMessage } from './config/telegram';
+import { translateCat, matchesCat } from './utils/categories';
 
 const APP_VERSION = '1.2';
 
@@ -148,56 +149,6 @@ export default function App() {
 
   const forceRefresh = () => loadData(true);
 
-  // ── Traductor de categorías (inglés → español) ───────────────
-  const CATEGORY_TRANSLATIONS = {
-    'sports': 'Deportes',
-    'sport': 'Deportes',
-    'news': 'Noticias',
-    'entertainment': 'Entretenimiento',
-    'movies': 'Películas',
-    'movie': 'Películas',
-    'music': 'Música',
-    'kids': 'Infantil',
-    'children': 'Infantil',
-    'documentary': 'Documentales',
-    'documentaries': 'Documentales',
-    'religious': 'Religioso',
-    'religion': 'Religioso',
-    'education': 'Educación',
-    'educational': 'Educación',
-    'comedy': 'Comedia',
-    'drama': 'Drama',
-    'classic': 'Clásicos',
-    'classics': 'Clásicos',
-    'lifestyle': 'Estilo de Vida',
-    'food': 'Cocina',
-    'cooking': 'Cocina',
-    'travel': 'Viajes',
-    'nature': 'Naturaleza',
-    'science': 'Ciencia',
-    'business': 'Negocios',
-    'weather': 'Clima',
-    'animation': 'Animación',
-    'family': 'Familia',
-    'general': 'General',
-    'culture': 'Cultura',
-    'outdoor': 'Naturaleza',
-    'shop': 'Tienda',
-    'shopping': 'Tienda',
-    'series': 'Series',
-    'auto': 'Autos',
-    'undefined': 'Otros',
-    'xxx': null, // Ocultar esta categoría
-    'adult': null,
-  };
-
-  const translateCat = (cat) => {
-    if (!cat) return 'Otros';
-    const key = cat.toLowerCase().trim();
-    if (CATEGORY_TRANSLATIONS[key] === null) return null; // Ocultar
-    return CATEGORY_TRANSLATIONS[key] || cat; // Traducir o dejar original
-  };
-
   const allCategories = useMemo(() => {
     const baseCats = ['Cine (VOD)', 'Series (VOD)', 'Maratones 24/7', 'TV Abierta', 'Deportes', 'Documentales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
     const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
@@ -249,20 +200,6 @@ export default function App() {
     }
     return grouped;
   }, [allUnique]);
-
-  const matchesCat = (c, target) => {
-    const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-    const normalizedChCat = chCat.includes('documentary') ? 'documentales' : chCat.includes('religious') ? 'religioso' : chCat;
-
-    if (target === 'cine (vod)') return c.isVOD && !c.groupId; // Películas VOD
-    if (target === 'series (vod)') return c.isVOD && !!c.groupId; // Series VOD
-    if (target === 'maratones 24/7' || target === 'maratones') return !c.isVOD && (normalizedChCat.includes('serie') || normalizedChCat.includes('pelicula') || normalizedChCat.includes('cine'));
-    if (target === 'tv abierta') return !c.isVOD && (normalizedChCat.includes('nacional') || normalizedChCat.includes('noticia') || normalizedChCat.includes('general'));
-
-    if (target === 'deportes') return normalizedChCat.includes('deporte') || normalizedChCat.includes('sport');
-    
-    return normalizedChCat === target || normalizedChCat.includes(target);
-  };
 
   const handleReportBroken = (channel) => {
     const updated = [...brokenChannels, String(channel.id)];
