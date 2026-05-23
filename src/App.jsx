@@ -26,7 +26,7 @@ import DonateModal from './components/ui/DonateModal';
 import { sendTelegramMessage } from './config/telegram';
 import { translateCat, matchesCat } from './utils/categories';
 
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 export default function App() {
   const {
@@ -152,14 +152,14 @@ export default function App() {
   const allCategories = useMemo(() => {
     const baseCats = ['Cine (VOD)', 'Series (VOD)', 'Podcasts', 'Maratones 24/7', 'TV Abierta', 'Deportes', 'Documentales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
     const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
-    
+
     // Solo agregar categorías de la nube que no estén ya en nuestras baseCats lógicas
     const finalCats = new Set([...baseCats, 'Favoritos']);
     translatedCloud.forEach(cat => {
-       const normalized = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-       if (!normalized.includes('cine') && !normalized.includes('pelicula') && !normalized.includes('serie') && !normalized.includes('podcast')) {
-         finalCats.add(cat);
-       }
+      const normalized = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (!normalized.includes('cine') && !normalized.includes('pelicula') && !normalized.includes('serie') && !normalized.includes('podcast')) {
+        finalCats.add(cat);
+      }
     });
     return Array.from(finalCats);
   }, [cloudCategories]);
@@ -185,7 +185,7 @@ export default function App() {
   const groupedChannels = useMemo(() => {
     const grouped = [];
     const seenGroups = new Set();
-    
+
     for (const item of allUnique) {
       if (item.groupId && item.isVOD) {
         if (!seenGroups.has(item.groupId)) {
@@ -206,15 +206,15 @@ export default function App() {
     setBrokenChannels(updated);
     localStorage.setItem('animux_broken', JSON.stringify(updated));
     toast.error('Canal reportado. Se ocultará de la lista.');
-    
+
     // Notificar al administrador vía Telegram
     const message = `🚨 <b>REPORTE DE FALLO</b>\n\n` +
-                    `📺 <b>Canal:</b> ${channel.name || channel.title}\n` +
-                    `📂 <b>Categoría:</b> ${channel.category}\n` +
-                    `🔗 <b>URL:</b> ${channel.url}\n` +
-                    `🆔 <b>ID:</b> ${channel.id}\n\n` +
-                    `<i>El usuario ha reportado que este enlace no funciona.</i>`;
-    
+      `📺 <b>Canal:</b> ${channel.name || channel.title}\n` +
+      `📂 <b>Categoría:</b> ${channel.category}\n` +
+      `🔗 <b>URL:</b> ${channel.url}\n` +
+      `🆔 <b>ID:</b> ${channel.id}\n\n` +
+      `<i>El usuario ha reportado que este enlace no funciona.</i>`;
+
     sendTelegramMessage(message);
     setActiveChannel(null);
   };
@@ -312,7 +312,7 @@ export default function App() {
   const seoData = useMemo(() => {
     const defaultTitle = "Animux - Streaming Premium de Películas, Series y TV en Vivo";
     const defaultDesc = "Disfruta de las mejores películas, series y canales de TV en vivo totalmente gratis en Animux. Calidad premium, sin anuncios intrusivos y actualizaciones diarias.";
-    
+
     const active = activeChannel || selectedDetail;
     if (active) {
       const name = active.name || active.title;
@@ -399,30 +399,30 @@ export default function App() {
 
 
   return (
-      <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
-        <Helmet defaultTitle="Animux - Streaming Premium" titleTemplate="%s">
-          <title>{seoData.title}</title>
-          <meta name="description" content={seoData.description} />
-          
-          {/* Open Graph / Facebook / WhatsApp */}
-          <meta property="og:type" content="website" />
-          <meta property="og:title" content={seoData.title} />
-          <meta property="og:description" content={seoData.description} />
-          <meta property="og:image" content={seoData.image} />
-          <meta property="og:url" content={seoData.url} />
+    <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
+      <Helmet defaultTitle="Animux - Streaming Premium" titleTemplate="%s">
+        <title>{seoData.title}</title>
+        <meta name="description" content={seoData.description} />
 
-          {/* Twitter */}
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content={seoData.title} />
-          <meta name="twitter:description" content={seoData.description} />
-          <meta name="twitter:image" content={seoData.image} />
-        </Helmet>
+        {/* Open Graph / Facebook / WhatsApp */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={seoData.title} />
+        <meta property="og:description" content={seoData.description} />
+        <meta property="og:image" content={seoData.image} />
+        <meta property="og:url" content={seoData.url} />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoData.title} />
+        <meta name="twitter:description" content={seoData.description} />
+        <meta name="twitter:image" content={seoData.image} />
+      </Helmet>
 
       <Header
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-        onGoHome={() => { 
-          setActiveCategory('Inicio'); 
-          setSearchQuery(''); 
+        onGoHome={() => {
+          setActiveCategory('Inicio');
+          setSearchQuery('');
           setLogoClicks(p => {
             if (p + 1 === 5) {
               const pwd = window.prompt('🔒 Acceso Restringido. Introduce la clave de administrador:');
