@@ -25,8 +25,9 @@ import TvGuideModal from './components/ui/TvGuideModal';
 import DonateModal from './components/ui/DonateModal';
 import { sendTelegramMessage } from './config/telegram';
 import { translateCat, matchesCat } from './utils/categories';
+import { version } from '../package.json';
 
-const APP_VERSION = '1.3';
+const APP_VERSION = version;
 
 export default function App() {
   const {
