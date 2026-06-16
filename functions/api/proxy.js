@@ -32,7 +32,7 @@ export async function onRequest(context) {
     
     ];
     const BLOCKED_IPS = ['181.78.', '181.114.'];
-    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip));
+    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip)) || targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org');
 
     // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
     const controller = new AbortController();
