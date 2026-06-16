@@ -379,7 +379,8 @@ const formatTime = (secs) => {
       // Lógica de Proxy Protegida:
       // 1. Canales de TV (HLS/M3U8): Usan proxy si no están marcados como directos (Necesario para Caracol/ESPN)
       // 2. Películas/Series (VOD/Direct): NUNCA usan proxy para no saturar Render/Cloudflare
-      const needsProxy = isExternal && (isProd || isLocal) && !channel.direct && !isDirectVideo && !channel.isVOD;
+      const isDirectHost = urlLower.includes('fubo18.com') || urlLower.includes('latamvidzfy.org') || urlLower.includes('vivolatamz.org');
+      const needsProxy = isExternal && (isProd || isLocal) && !channel.direct && !isDirectVideo && !channel.isVOD && !isDirectHost;
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
