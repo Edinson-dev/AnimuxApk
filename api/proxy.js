@@ -16,16 +16,24 @@ export default async function handler(req, res) {
   if (!target) return res.status(400).json({ error: 'Falta url' });
 
   try {
+    const targetLower = target.toLowerCase();
     const originUrl = new URL(target).origin;
     
     // FETCH AL IPTV (Simulando un reproductor nativo para EVITAR BLOQUEOS)
+    const fetchHeaders = {
+      'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
+      'Accept': '*/*',
+      'Connection': 'keep-alive'
+    };
+
+    if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org')) {
+      fetchHeaders['Referer'] = 'https://futbol-libres.su/';
+      fetchHeaders['Origin'] = 'https://futbol-libres.su/';
+    }
+
     const response = await fetch(target, {
       method: 'GET',
-      headers: {
-        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
-        'Accept': '*/*',
-        'Connection': 'keep-alive'
-      },
+      headers: fetchHeaders,
       redirect: 'follow'
     });
 

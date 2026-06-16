@@ -45,6 +45,12 @@ export async function onRequest(context) {
         'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
         'Accept': '*/*',
       };
+
+      if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org')) {
+        fetchHeaders['Referer'] = 'https://futbol-libres.su/';
+        fetchHeaders['Origin'] = 'https://futbol-libres.su/';
+      }
+
       // Solo enviar Range si el browser lo envía (range requests de video)
       const rangeHeader = request.headers.get('Range');
       if (rangeHeader) fetchHeaders['Range'] = rangeHeader;
