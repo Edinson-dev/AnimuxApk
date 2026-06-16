@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       'Connection': 'keep-alive'
     };
 
-    if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org')) {
+    if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org') || targetLower.includes('vivolatamz.org')) {
       fetchHeaders['Referer'] = 'https://futbol-libres.su/';
       fetchHeaders['Origin'] = 'https://futbol-libres.su/';
     }

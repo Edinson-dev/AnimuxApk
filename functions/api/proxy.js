@@ -32,7 +32,7 @@ export async function onRequest(context) {
     
     ];
     const BLOCKED_IPS = ['181.78.', '181.114.'];
-    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip)) || targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org');
+    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip)) || targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org') || targetLower.includes('vivolatamz.org');
 
     // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
     const controller = new AbortController();
@@ -46,7 +46,7 @@ export async function onRequest(context) {
         'Accept': '*/*',
       };
 
-      if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org')) {
+      if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org') || targetLower.includes('vivolatamz.org')) {
         fetchHeaders['Referer'] = 'https://futbol-libres.su/';
         fetchHeaders['Origin'] = 'https://futbol-libres.su/';
       }
