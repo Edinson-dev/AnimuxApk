@@ -15,6 +15,7 @@ import Skeleton from './components/ui/Skeleton';
 import Toast, { toast } from './components/ui/Toast';
 import NewsBanner from './components/ui/NewsBanner';
 import CommunityCard from './components/ui/CommunityCard';
+import SoccerLoader from './components/ui/SoccerLoader';
 
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -380,10 +381,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Progress Bar Luxury */}
-            <div className="w-48 h-[3px] bg-white/5 rounded-full overflow-hidden mx-auto border border-white/5">
-              <div className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full animate-loading-bar shadow-[0_0_10px_rgba(225,29,72,0.8)]" />
-            </div>
+            {/* Soccer Loader */}
+            <SoccerLoader className="w-20 h-20 mx-auto" />
           </div>
         </div>
 
@@ -418,6 +417,13 @@ export default function App() {
         <meta name="twitter:description" content={seoData.description} />
         <meta name="twitter:image" content={seoData.image} />
       </Helmet>
+
+      {/* Thematic Spotlights Background (Mundial / Deportes) */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[10%] w-[40%] h-[50%] bg-blue-600/10 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute top-[-10%] right-[10%] w-[40%] h-[50%] bg-emerald-600/10 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '5s' }} />
+        <div className="absolute bottom-[20%] left-[30%] w-[50%] h-[50%] bg-rose-600/5 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '6s' }} />
+      </div>
 
       <Header
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
@@ -467,7 +473,7 @@ export default function App() {
           onShowTvGuide={() => setShowTvGuide(true)}
         />
 
-        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-black pt-4 md:pt-16 pb-24 md:pb-6">
+        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-transparent pt-4 md:pt-16 pb-24 md:pb-6 z-10 relative">
           <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-4 md:py-6 space-y-6 md:space-y-8">
 
             {activeCategory === 'Inicio' && !searchQuery ? (
@@ -577,20 +583,30 @@ export default function App() {
                       </LazyRow>
                     )}
 
-                    {/* Fila 2: Deportes en Vivo */}
+                    {/* Especial: Deportes & Mundial */}
                     {allUnique.filter(c => matchesCat(c, 'deportes')).length > 0 && (
                       <LazyRow>
-                        <div className="space-y-5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Deportes en Vivo</h3>
-                          </div>
-                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                            {allUnique.filter(c => matchesCat(c, 'deportes')).slice(0, 15).map(c => (
-                              <div key={c.id} className="w-[160px] md:w-[260px] shrink-0">
-                                <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
-                              </div>
-                            ))}
+                        <div className="relative p-5 md:p-6 rounded-[2rem] overflow-hidden mb-2 border border-white/10 shadow-2xl">
+                          {/* Fondo Especial del Carrusel */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 via-blue-900/20 to-black z-0" />
+                          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/15 rounded-full blur-[60px] z-0" />
+                          <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-500/15 rounded-full blur-[60px] z-0" />
+                          
+                          <div className="relative z-10 space-y-6">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="text-2xl animate-bounce" style={{ animationDuration: '2s' }}>⚽</span>
+                              <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">
+                                Especial Deportes & Mundial
+                              </h3>
+                              <div className="px-2 py-1 bg-rose-600 rounded text-[9px] font-black uppercase tracking-widest animate-pulse">EN VIVO</div>
+                            </div>
+                            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                              {allUnique.filter(c => matchesCat(c, 'deportes')).slice(0, 15).map(c => (
+                                <div key={c.id} className="w-[160px] md:w-[260px] shrink-0">
+                                  <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </LazyRow>

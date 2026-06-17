@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
   import Hls from 'hls.js';
-  import { X, AlertCircle, Loader2, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
+  import { X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
   import { sendAdminAlert } from '../../config/telegram';
+  import SoccerLoader from '../ui/SoccerLoader';
 
 const formatTime = (secs) => {
   if (isNaN(secs) || secs === null) return '0:00';
@@ -926,8 +927,8 @@ const formatTime = (secs) => {
             {/* Status Overlays */}
             {loading && !error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xl z-20">
-                <div className="relative">
-                  <Loader2 className="w-12 h-12 text-rose-600 animate-spin mb-4" />
+                <div className="relative mb-6">
+                  <SoccerLoader className="w-16 h-16" />
                   <div className="absolute inset-0 blur-xl bg-rose-600/20 animate-pulse rounded-full" />
                 </div>
                 <p className="text-white font-black text-[11px] tracking-[0.5em] uppercase opacity-80 animate-pulse">Optimizando Señal...</p>
