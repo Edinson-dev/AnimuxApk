@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
   import { X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
   import { sendAdminAlert } from '../../config/telegram';
-import SoccerLoader from '../ui/SoccerLoader';
+import ContentLoader from '../ui/ContentLoader';
 
 const formatTime = (secs) => {
   if (isNaN(secs) || secs === null) return '0:00';
@@ -941,18 +941,7 @@ const formatTime = (secs) => {
             {/* Status Overlays */}
             {loading && !error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xl z-20">
-                <div className="relative mb-6">
-                  <SoccerLoader className="w-16 h-16" />
-                  <div className="absolute inset-0 blur-xl bg-rose-600/20 animate-pulse rounded-full" />
-                </div>
-                <p className="text-white font-black text-[11px] tracking-[0.5em] uppercase opacity-80 animate-pulse">Optimizando Señal...</p>
-                <div className="mt-8 flex gap-1">
-                  {[1,2,3,4,5].map(i => (
-                    <div key={i} className="w-1 h-4 bg-white/10 rounded-full overflow-hidden">
-                      <div className="w-full h-full bg-rose-600 animate-loading-bar" style={{ animationDelay: `${i * 0.1}s` }} />
-                    </div>
-                  ))}
-                </div>
+                <ContentLoader channel={channel} className="w-16 h-16" />
               </div>
             )}
             
