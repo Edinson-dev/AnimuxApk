@@ -45,7 +45,7 @@ const formatTime = (secs) => {
       if (!channel || !channel.groupId || !channel.isVOD) return [];
       const seasons = new Set();
       playlist
-        .filter(item => item.groupId === channel.groupId)
+        .filter(item => item && item.groupId === channel.groupId)
         .forEach(item => {
           seasons.add(item.season || 1);
         });
@@ -129,16 +129,22 @@ const formatTime = (secs) => {
       
       // Archive.org solo es embed si NO es un archivo directo de video
       if (isArchive) {
-        const isDirect = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
+        const isDirect = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3', '.m4a'].some(ext => url.includes(ext));
         if (!isDirect) return true;
       }
       
-      const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'canal.php', 'cuevana', '/nu/', '/lat/'];
+      // Si el canal está explícitamente marcado como embed
+      if (channel && channel.isEmbed) return true;
+
+      // Si es un archivo directo de video o HLS stream, NUNCA es embed
+      const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3', '.m4a', 'm3u'].some(ext => url.includes(ext));
+      if (isDirectFile) return false;
+
+      const embedKeywords = ['/embed/', 'player.php', 'cuevana', 'embed.html', '/iframe/'];
       const hasKeyword = embedKeywords.some(kw => url.includes(kw));
-      const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
       
-      return hasKeyword && !isDirectFile;
-    }, [currentUrl, isYouTube, isDrive, isArchive]);
+      return hasKeyword;
+    }, [currentUrl, isYouTube, isDrive, isArchive, channel]);
 
     const isPodcast = useMemo(() => {
       if (!channel) return false;
@@ -367,20 +373,28 @@ const formatTime = (secs) => {
       const isM3U8 = urlLower.includes('.m3u8') ||
                      urlLower.includes('jmp2.uk') ||
                      urlLower.includes('.ts') ||
+                     urlLower.includes('.m3u') ||
                      (currentUrl.includes('/play/') && 
                       !urlLower.includes('.mp4') && 
                       !urlLower.includes('.mkv') && 
                       !urlLower.includes('.mp3') && 
                       !urlLower.includes('.m4a') && 
-                      !urlLower.includes('podcast'));
+                      !urlLower.includes('podcast')) ||
+                     (!channel.isVOD && !isEmbed);
 
       const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3', '.m4a'].some(e => urlLower.includes(e));
       
       // Lógica de Proxy Protegida:
-      // 1. Canales de TV (HLS/M3U8): Usan proxy si no están marcados como directos (Necesario para Caracol/ESPN)
-      // 2. Películas/Series (VOD/Direct): NUNCA usan proxy para no saturar Render/Cloudflare
-      const isDirectHost = urlLower.includes('fubo18.com') || urlLower.includes('latamvidzfy.org') || urlLower.includes('vivolatamz.org');
-      const needsProxy = isExternal && (isProd || isLocal) && !channel.direct && !isDirectVideo && !channel.isVOD && !isDirectHost;
+      // 1. Canales con Referer obligatorio (fubo18, latamvidzfy, vivolatamz) DEBEN usar proxy para que el backend inyecte los headers
+      // 2. Contenido HTTP en sitio HTTPS (Mixed Content) DEBE usar proxy
+      // 3. Canales de TV en vivo no marcados como directos
+      const isSpecialRefererHost = urlLower.includes('fubo18.com') || urlLower.includes('latamvidzfy.org') || urlLower.includes('vivolatamz.org');
+      const isMixedContent = isProd && currentUrl.startsWith('http:');
+      const needsProxy = isExternal && (isProd || isLocal) && (
+        isSpecialRefererHost || 
+        isMixedContent || 
+        (!channel.direct && !isDirectVideo && !channel.isVOD)
+      );
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
 
@@ -494,7 +508,7 @@ const formatTime = (secs) => {
 
       // 6. Fallback nativo del navegador
       } else {
-        video.src = currentUrl;
+        video.src = needsProxy ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` : currentUrl;
         video.load();
         video.play().catch(() => {});
         video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); };

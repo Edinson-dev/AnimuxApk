@@ -10,7 +10,7 @@ export default function Header({
   needRefresh, 
   updateServiceWorker,
   onForceRefresh,
-  appVersion = '2.5',
+  appVersion = '1.4',
   lastSync,
   isKidsMode,
   setIsKidsMode,
