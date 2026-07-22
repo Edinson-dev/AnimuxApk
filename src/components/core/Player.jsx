@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
   import { X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
   import { sendAdminAlert } from '../../config/telegram';
-  import SoccerLoader from '../ui/SoccerLoader';
 
 const formatTime = (secs) => {
   if (isNaN(secs) || secs === null) return '0:00';
@@ -134,7 +133,7 @@ const formatTime = (secs) => {
         if (!isDirect) return true;
       }
       
-      const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'cuevana', '/nu/', '/lat/'];
+      const embedKeywords = ['embed', 'player', 'iframe', '/v/', 'video.php', 'canal.php', 'cuevana', '/nu/', '/lat/'];
       const hasKeyword = embedKeywords.some(kw => url.includes(kw));
       const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3'].some(ext => url.includes(ext));
       
@@ -649,7 +648,7 @@ const formatTime = (secs) => {
               ) : isDrive ? (
                  <iframe src={`https://drive.google.com/file/d/${getDriveId(currentUrl)}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen />
               ) : isEmbed ? (
-                 <iframe src={currentUrl} className="w-full h-full border-0 bg-black" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen title="Embed Player" />
+                 <iframe src={currentUrl} referrerPolicy="no-referrer" className="w-full h-full border-0 bg-black" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen title="Embed Player" />
               ) : (
                  <>
                    <video 
