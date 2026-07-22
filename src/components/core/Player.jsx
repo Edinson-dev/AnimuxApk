@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
   import { X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
   import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
   import { sendAdminAlert } from '../../config/telegram';
+import SoccerLoader from '../ui/SoccerLoader';
 
 const formatTime = (secs) => {
   if (isNaN(secs) || secs === null) return '0:00';
