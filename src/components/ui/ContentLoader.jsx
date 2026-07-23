@@ -1,6 +1,7 @@
 import React from 'react';
 import SoccerLoader from './SoccerLoader';
 import FilmLoader from './FilmLoader';
+import TvLoader from './TvLoader';
 import { Disc } from 'lucide-react';
 
 export default function ContentLoader({ channel, className = "w-16 h-16" }) {
@@ -8,11 +9,14 @@ export default function ContentLoader({ channel, className = "w-16 h-16" }) {
   const nameLower = (channel?.name || channel?.displayName || '').toLowerCase();
 
   const isPodcast = channel?.isPodcast || catLower === 'podcasts' || catLower === 'podcast';
-  const isVOD = channel?.isVOD === true;
-  const isSeries = isVOD && !!channel?.groupId;
-  const isMovie = isVOD && !channel?.groupId;
   
-  const isSports = /deportes|sports|futbol|fútbol|mundial|fifa|espn|fox|directv|dsports|tnt sports|champions|liga|copa/i.test(catLower) ||
+  // Detección mejorada de VOD / Películas / Series (incluso si isVOD no viene boolean explicito)
+  const isVOD = channel?.isVOD === true || /pelicula|película|cine|series|movie|film|vod|estreno/i.test(catLower);
+  const isSeries = isVOD && (!!channel?.groupId || /serie|season|temporada|episodio/i.test(catLower));
+  const isMovie = isVOD && !isSeries;
+  
+  // Detección de Deportes (Solo para canales o transmisiones deportivas se usa SoccerLoader)
+  const isSports = /deportes|sports|futbol|fútbol|mundial|fifa|espn|fox sports|dsports|directv sports|tnt sports|champions|liga|copa|lucha|wwe|ufc|nba|f1|formula 1|beisbol|béisbol/i.test(catLower) ||
                    /futbol|fútbol|mundial|fifa|match|vs|partido/i.test(nameLower);
 
   let loaderComponent = null;
@@ -36,9 +40,9 @@ export default function ContentLoader({ channel, className = "w-16 h-16" }) {
     statusText = 'Optimizando Señal Deportiva...';
     loaderComponent = <SoccerLoader className={className} />;
   } else {
-    // Para TV en vivo general o canales en vivo
+    // Para TV en vivo general o canales en vivo no deportivos
     statusText = 'Optimizando Señal...';
-    loaderComponent = <SoccerLoader className={className} />;
+    loaderComponent = <TvLoader className={className} />;
   }
 
   return (
