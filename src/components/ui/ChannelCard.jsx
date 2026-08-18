@@ -1,13 +1,12 @@
 import React, { memo, useState, useCallback, useRef } from 'react';
 import { Play, Heart, Film, Tv, Eye } from 'lucide-react';
+import { getItemYear } from '../../utils/filters';
 
 const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onToggleFavorite }) {
-  if (!channel) return null;
-
   const [imgError, setImgError] = useState(false);
   const [progress, setProgress] = useState(null);
 
-  const isVOD = channel.isVOD === true;
+  const isVOD = channel?.isVOD === true;
 
   // Cargar progreso y escuchar actualizaciones
   React.useEffect(() => {
@@ -81,12 +80,19 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
     return '#6b7280';
   };
 
+  if (!channel) return null;
+
   return (
     <div 
       tabIndex={0}
       className="group relative flex flex-col gap-2 cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-500/80 rounded-2xl will-change-transform ripple-touch"
       onClick={handlePlay}
       onKeyDown={handleKeyDown}
+      onFocus={(e) => {
+        try {
+          e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        } catch {}
+      }}
       style={{ contain: 'layout style paint' }}
     >
       <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/5 transition-colors duration-200 group-hover:border-rose-500/30 ${isVOD ? 'aspect-[2/3]' : 'aspect-video'}`}>
@@ -173,15 +179,25 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
         <h4 className="text-[11px] md:text-sm font-black text-white/90 truncate uppercase tracking-tight transition-colors duration-300 group-hover:text-rose-400">
           {displayName}
         </h4>
-        <div className="flex items-center gap-2 mt-0.5 opacity-50">
+        <div className="flex items-center gap-1.5 mt-0.5 opacity-60 flex-wrap">
            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getCatColor() }} />
-           {isVOD ? <Film className="w-3 h-3 text-gray-400" /> : <Tv className="w-3 h-3 text-gray-400" />}
-           <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+           {isVOD ? <Film className="w-3 h-3 text-gray-400 shrink-0" /> : <Tv className="w-3 h-3 text-gray-400 shrink-0" />}
+           <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[85px] md:max-w-[110px]">
              {(channel.category || '').toLowerCase().includes('documentary') ? 'Documentales' : 
               (channel.category || '').toLowerCase().includes('religious') ? 'Religioso' : 
               channel.category}
            </p>
-           {!isVOD && viewerCount > 0 && (
+           {getItemYear(channel) && (
+             <span className="text-[8px] md:text-[9px] font-bold text-gray-400 shrink-0">
+               • {getItemYear(channel)}
+             </span>
+           )}
+           {channel.rating && Number(channel.rating) > 0 && (
+             <span className="flex items-center text-[8px] md:text-[9px] font-black text-amber-400 shrink-0 ml-auto">
+               ⭐ {Number(channel.rating).toFixed(1)}
+             </span>
+           )}
+           {!isVOD && viewerCount > 0 && (!channel.rating || Number(channel.rating) <= 0) && (
              <span className="flex items-center gap-0.5 text-[7px] font-black text-green-500/70 ml-auto shrink-0">
                <Eye className="w-2.5 h-2.5" />
                {viewerCount}

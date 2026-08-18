@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { X, Scale, Shield, ShoppingBag } from 'lucide-react';
+import { X, Scale, Shield, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import Header from './components/layout/Header';
 import Hero from './components/ui/Hero';
@@ -15,6 +15,7 @@ import Skeleton from './components/ui/Skeleton';
 import Toast, { toast } from './components/ui/Toast';
 import NewsBanner from './components/ui/NewsBanner';
 import CommunityCard from './components/ui/CommunityCard';
+import FilterControls from './components/ui/FilterControls';
 
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -25,6 +26,7 @@ import TvGuideModal from './components/ui/TvGuideModal';
 import DonateModal from './components/ui/DonateModal';
 import { sendTelegramMessage } from './config/telegram';
 import { translateCat, matchesCat } from './utils/categories';
+import { matchesYear, matchesGenre, applySorting } from './utils/filters';
 import { version } from '../package.json';
 
 const APP_VERSION = version;
@@ -51,6 +53,19 @@ export default function App() {
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Estados de Filtros: Año, Género y Popularidad
+  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedGenre, setSelectedGenre] = useState('all');
+  const [selectedPopularity, setSelectedPopularity] = useState('default');
+
+  const handleResetFilters = useCallback(() => {
+    setSelectedYear('all');
+    setSelectedGenre('all');
+    setSelectedPopularity('default');
+  }, []);
+
+  const isCustomFiltering = selectedYear !== 'all' || selectedGenre !== 'all' || selectedPopularity !== 'default';
 
   // Auto-Actualización Inteligente (PWA)
   useEffect(() => {
@@ -223,7 +238,7 @@ export default function App() {
   const filteredChannels = useMemo(() => {
     let result = [...groupedChannels];
 
-    // Filtro maestro de Modo Kids
+    // 1. Filtro maestro de Modo Kids
     if (isKidsMode) {
       const kidsKeywords = ['infantil', 'kids', 'muñeco', 'disney', 'nickelodeon', 'cartoon', 'dibujo', 'niño', 'junior', 'boing', 'clan'];
       result = result.filter(c => {
@@ -233,20 +248,45 @@ export default function App() {
       });
     }
 
-    if (searchQuery) return result.filter(c => (c.name || c.title || '').toLowerCase().includes(searchQuery.toLowerCase()));
-
-    if (activeCategory === 'Favoritos') return result.filter(c => favorites.includes(String(c.id)));
-    if (activeCategory === 'Inicio') return result;
-
-    const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-
-    // Lógica especial para la pestaña "Nuevos"
-    if (target === 'nuevos' || target === 'nuevo') {
-      return result.filter(c => c.isNew === true);
+    // 2. Búsqueda por texto (Search Query)
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(c => 
+        (c.name || c.title || '').toLowerCase().includes(q) ||
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.description || '').toLowerCase().includes(q)
+      );
     }
 
-    return result.filter(c => matchesCat(c, target));
-  }, [searchQuery, activeCategory, favorites, allUnique, isKidsMode]);
+    // 3. Categoría activa
+    if (activeCategory === 'Favoritos') {
+      result = result.filter(c => favorites.includes(String(c.id)));
+    } else if (activeCategory !== 'Inicio') {
+      const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (target === 'nuevos' || target === 'nuevo') {
+        result = result.filter(c => c.isNew === true);
+      } else {
+        result = result.filter(c => matchesCat(c, target));
+      }
+    }
+
+    // 4. Filtro por Género (Genre)
+    if (selectedGenre && selectedGenre !== 'all') {
+      result = result.filter(c => matchesGenre(c, selectedGenre));
+    }
+
+    // 5. Filtro por Año (Year)
+    if (selectedYear && selectedYear !== 'all') {
+      result = result.filter(c => matchesYear(c, selectedYear));
+    }
+
+    // 6. Popularidad / Ordenamiento (Popularity & Sorting)
+    if (selectedPopularity && selectedPopularity !== 'default') {
+      result = applySorting(result, selectedPopularity);
+    }
+
+    return result;
+  }, [groupedChannels, isKidsMode, searchQuery, activeCategory, favorites, selectedGenre, selectedYear, selectedPopularity]);
 
   const categoryCounts = useMemo(() => {
     const counts = {};
@@ -304,10 +344,10 @@ export default function App() {
     }, { rootMargin: '400px' });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, selectedYear, selectedGenre, selectedPopularity]);
 
-  // Reset visible count when category changes
-  useEffect(() => { setVisibleCount(48); }, [activeCategory]);
+  // Reset visible count when category or filters change
+  useEffect(() => { setVisibleCount(48); }, [activeCategory, selectedYear, selectedGenre, selectedPopularity, searchQuery]);
 
   // ── Lógica de SEO Dinámico (Debe ir antes de cualquier return condicional) ────
   const seoData = useMemo(() => {
@@ -472,11 +512,11 @@ export default function App() {
           onShowTvGuide={() => setShowTvGuide(true)}
         />
 
-        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-transparent pt-4 md:pt-16 pb-24 md:pb-6 z-10 relative">
-          <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-4 md:py-6 space-y-6 md:space-y-8">
+        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-transparent pt-3 md:pt-16 pb-36 md:pb-12 safe-area-bottom z-10 relative scroll-smooth">
+          <div className="max-w-[1800px] mx-auto px-3.5 sm:px-6 md:px-8 py-3 md:py-6 space-y-6 md:space-y-8">
 
-            {activeCategory === 'Inicio' && !searchQuery ? (
-              <div className="space-y-8 animate-fade-in">
+            {activeCategory === 'Inicio' && !searchQuery && !isCustomFiltering ? (
+              <div className="space-y-6 md:space-y-8 animate-fade-in">
                 <Hero
                   featuredChannel={
                     isKidsMode
@@ -487,19 +527,31 @@ export default function App() {
                   onDetails={setSelectedDetail}
                 />
 
+                {/* Filtros rápidos en Inicio */}
+                <FilterControls
+                  selectedYear={selectedYear}
+                  setSelectedYear={setSelectedYear}
+                  selectedGenre={selectedGenre}
+                  setSelectedGenre={setSelectedGenre}
+                  selectedPopularity={selectedPopularity}
+                  setSelectedPopularity={setSelectedPopularity}
+                  totalResults={groupedChannels.length}
+                  onResetFilters={handleResetFilters}
+                />
+
                 <CommunityCard />
 
                 {isKidsMode ? (
-                  <div className="space-y-8">
+                  <div className="space-y-6 md:space-y-8">
                     {/* Fila 1: Top Infantiles */}
-                    <div className="space-y-5">
+                    <div className="space-y-4 md:space-y-5">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-6 bg-yellow-400 rounded-full" />
-                        <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Top Infantiles</h3>
+                        <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Top Infantiles</h3>
                       </div>
-                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                      <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                         {allUnique.filter(c => (c.category || '').toLowerCase().includes('infantil')).slice(0, 15).map(c => (
-                          <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                          <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                             <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                           </div>
                         ))}
@@ -507,14 +559,14 @@ export default function App() {
                     </div>
                     {/* Fila 2: Anime y Dibujos */}
                     <LazyRow>
-                      <div className="space-y-5">
+                      <div className="space-y-4 md:space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-blue-400 rounded-full" />
-                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Anime y Dibujos</h3>
+                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Anime y Dibujos</h3>
                         </div>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                           {groupedChannels.filter(c => (c.category || '').toLowerCase().includes('anime') || (c.category || '').toLowerCase().includes('muñeco')).slice(0, 15).map(c => (
-                            <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                            <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                             </div>
                           ))}
@@ -524,17 +576,17 @@ export default function App() {
 
                     {/* Fila 3: Canales Disney & Nick */}
                     <LazyRow>
-                      <div className="space-y-5">
+                      <div className="space-y-4 md:space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-purple-400 rounded-full" />
-                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Mundo Disney & Nick</h3>
+                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Mundo Disney & Nick</h3>
                         </div>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                           {groupedChannels.filter(c => {
                             const name = (c.name || '').toLowerCase();
                             return name.includes('disney') || name.includes('nick') || name.includes('cartoon');
                           }).slice(0, 15).map(c => (
-                            <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                            <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                             </div>
                           ))}
@@ -543,18 +595,18 @@ export default function App() {
                     </LazyRow>
                   </div>
                 ) : (
-                  <div className="space-y-8">
+                  <div className="space-y-6 md:space-y-8">
                     {/* Fila: Películas (VOD) */}
                     {allUnique.filter(c => matchesCat(c, 'cine (vod)')).length > 0 && (
                       <LazyRow>
-                        <div className="space-y-5">
+                        <div className="space-y-4 md:space-y-5">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Cine (VOD)</h3>
+                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Cine (VOD)</h3>
                           </div>
-                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                             {allUnique.filter(c => matchesCat(c, 'cine (vod)')).slice(0, 15).map(c => (
-                              <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                              <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                                 <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                               </div>
                             ))}
@@ -566,14 +618,14 @@ export default function App() {
                     {/* Fila: Series (VOD) */}
                     {groupedChannels.filter(c => matchesCat(c, 'series (vod)')).length > 0 && (
                       <LazyRow>
-                        <div className="space-y-5">
+                        <div className="space-y-4 md:space-y-5">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Series (VOD)</h3>
+                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Series (VOD)</h3>
                           </div>
-                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                             {groupedChannels.filter(c => matchesCat(c, 'series (vod)')).slice(0, 15).map(c => (
-                              <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                              <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                                 <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                               </div>
                             ))}
@@ -585,14 +637,14 @@ export default function App() {
                     {/* Fila: Deportes */}
                     {allUnique.filter(c => matchesCat(c, 'deportes')).length > 0 && (
                       <LazyRow>
-                        <div className="space-y-5">
+                        <div className="space-y-4 md:space-y-5">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Deportes en Vivo</h3>
+                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Deportes en Vivo</h3>
                           </div>
-                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                             {allUnique.filter(c => matchesCat(c, 'deportes')).slice(0, 15).map(c => (
-                              <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                              <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                                 <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                               </div>
                             ))}
@@ -603,14 +655,14 @@ export default function App() {
 
                     {/* Fila 4: Continuar Viendo */}
                     {recentChannels.length > 0 && (
-                      <div className="space-y-5">
+                      <div className="space-y-4 md:space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
+                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
                         </div>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
                           {recentChannels.map(c => (
-                            <div key={c.id} className="w-[140px] md:w-[220px] shrink-0">
+                            <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
                             </div>
                           ))}
@@ -632,16 +684,16 @@ export default function App() {
                       if (!items.length) return null;
                       return (
                         <LazyRow key={cat}>
-                          <div className="space-y-5">
+                          <div className="space-y-4 md:space-y-5">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="w-1.5 h-6 bg-white/20 rounded-full" />
-                                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">{cat}</h3>
+                                <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{cat}</h3>
                               </div>
                               <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest bg-rose-500/10 px-4 py-2 rounded-full transition-all">Explorar Todo</button>
                             </div>
-                            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
-                              {items.slice(0, 15).map(c => <div key={c.id} className="w-[130px] md:w-[200px] shrink-0"><ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} /></div>)}
+                            <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                              {items.slice(0, 15).map(c => <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0"><ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} /></div>)}
                             </div>
                           </div>
                         </LazyRow>
@@ -651,21 +703,61 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="animate-view-enter" key={activeCategory}>
-                <div className="flex items-center justify-between mb-8">
+              <div className="animate-view-enter space-y-6" key={`${activeCategory}-${selectedYear}-${selectedGenre}-${selectedPopularity}-${searchQuery}`}>
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-8 bg-rose-600 rounded-full" />
-                    <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">{activeCategory}</h2>
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter">
+                      {searchQuery
+                        ? `Búsqueda: "${searchQuery}"`
+                        : isCustomFiltering && activeCategory === 'Inicio'
+                        ? 'Explorar Catálogo'
+                        : activeCategory}
+                    </h2>
                   </div>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5">
                     {filteredChannels.length} Resultados
                   </p>
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6 stagger-grid">
-                  {filteredChannels.slice(0, visibleCount).map(c => (
-                    <ChannelCard key={c.id} channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={handleToggleFavorite} />
-                  ))}
-                </div>
+
+                {/* Filter Controls Bar */}
+                <FilterControls
+                  selectedYear={selectedYear}
+                  setSelectedYear={setSelectedYear}
+                  selectedGenre={selectedGenre}
+                  setSelectedGenre={setSelectedGenre}
+                  selectedPopularity={selectedPopularity}
+                  setSelectedPopularity={setSelectedPopularity}
+                  totalResults={filteredChannels.length}
+                  onResetFilters={handleResetFilters}
+                />
+
+                {filteredChannels.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center bg-white/[0.02] border border-white/5 rounded-3xl p-8 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-rose-600/10 flex items-center justify-center text-rose-500">
+                      <SlidersHorizontal className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight">No se encontraron resultados</h3>
+                      <p className="text-xs text-gray-400 max-w-md mx-auto font-medium">
+                        No hay contenidos que coincidan con la combinación de filtros seleccionada (año, género o búsqueda).
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleResetFilters}
+                      className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                    >
+                      Restablecer Filtros
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 md:gap-6 stagger-grid">
+                    {filteredChannels.slice(0, visibleCount).map(c => (
+                      <ChannelCard key={c.id} channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={handleToggleFavorite} />
+                    ))}
+                  </div>
+                )}
+
                 {/* Infinite scroll sentinel */}
                 {visibleCount < filteredChannels.length && (
                   <div ref={loadMoreRef} className="flex justify-center py-8">

@@ -1,9 +1,14 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-  import Hls from 'hls.js';
-  import { X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, Calendar, Clock, Heart, Search } from 'lucide-react';
-  import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
-  import { sendAdminAlert } from '../../config/telegram';
+import Hls from 'hls.js';
+import { 
+  X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, 
+  Calendar, Clock, Heart, Search, Languages, Subtitles, Upload, 
+  Check, Trash2, Plus, Minus 
+} from 'lucide-react';
+import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
+import { sendAdminAlert } from '../../config/telegram';
 import ContentLoader from '../ui/ContentLoader';
+import { convertSrtToVtt, createSubBlobUrl } from '../../utils/subtitles';
 
 const formatTime = (secs) => {
   if (isNaN(secs) || secs === null) return '0:00';
@@ -12,29 +17,42 @@ const formatTime = (secs) => {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 };
 
-  export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false, isFavorite, onToggleFavorite }) {
-    const videoRef = useRef(null);
-    const hlsRef = useRef(null);
-    const serverIndexRef = useRef(0); // ref para acceder en closures sin stale state
-    const freezeRef = useRef({ lastTime: 0, counter: 0 });
+export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false, isFavorite, onToggleFavorite }) {
+  const videoRef = useRef(null);
+  const hlsRef = useRef(null);
+  const serverIndexRef = useRef(0); // ref para acceder en closures sin stale state
+  const freezeRef = useRef({ lastTime: 0, counter: 0 });
+  const fileInputRef = useRef(null);
 
-    const [error, setError] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [serverIndex, setServerIndex] = useState(0);
-    const [currentUrl, setCurrentUrl] = useState('');
-    const [isPiP, setIsPiP] = useState(false);
-    const [minimized, setMinimized] = useState(false);
-    
-    const [levels, setLevels] = useState([]);
-    const [currentLevel, setCurrentLevel] = useState(-1);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [serverIndex, setServerIndex] = useState(0);
+  const [currentUrl, setCurrentUrl] = useState('');
+  const [isPiP, setIsPiP] = useState(false);
+  const [minimized, setMinimized] = useState(false);
+  
+  const [levels, setLevels] = useState([]);
+  const [currentLevel, setCurrentLevel] = useState(-1);
 
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isMuted, setIsMuted] = useState(false);
-    const [playbackRate, setPlaybackRate] = useState(1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
-    // ── Playback Progress State ──────────────────────────────────────────
+  // ── Audio & Subtitles State ──────────────────────────────────────────
+  const [audioTracks, setAudioTracks] = useState([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState(-1);
+  const [subtitleTracks, setSubtitleTracks] = useState([]);
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(-1); // -1 = off, number = HLS index, 'external' = custom file
+  const [showAudioSubtitlesModal, setShowAudioSubtitlesModal] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState('subtitles'); // 'subtitles' | 'audio'
+  const [externalSubtitle, setExternalSubtitle] = useState(null); // { name, rawText, isSrt, blobUrl }
+  const [subOffset, setSubOffset] = useState(0); // in seconds
+  const [subColor, setSubColor] = useState('white'); // 'white' | 'yellow' | 'cyan' | 'green'
+  const [subSize, setSubSize] = useState('medium'); // 'small' | 'medium' | 'large'
+
+  // ── Playback Progress State ──────────────────────────────────────────
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedTime, setSavedTime] = useState(0);
 
@@ -208,6 +226,90 @@ const formatTime = (secs) => {
       return baseList.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
     }, [channel, playlist, isPodcast, selectedSeason, sidebarFilter]);
 
+    // ── Audio & Subtitles Handlers ───────────────────────────────────────
+    const handleFileUpload = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawText = event.target.result;
+        const isSrt = file.name.toLowerCase().endsWith('.srt');
+        if (externalSubtitle?.blobUrl) {
+          URL.revokeObjectURL(externalSubtitle.blobUrl);
+        }
+        const blobUrl = createSubBlobUrl(rawText, isSrt, subOffset);
+        setExternalSubtitle({
+          name: file.name,
+          rawText,
+          isSrt,
+          blobUrl
+        });
+        setSelectedSubtitleTrack('external');
+        if (hlsRef.current) {
+          hlsRef.current.subtitleTrack = -1;
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    };
+
+    const handleOffsetChange = (delta) => {
+      const newOffset = Math.round((subOffset + delta) * 10) / 10;
+      setSubOffset(newOffset);
+      if (externalSubtitle && externalSubtitle.rawText) {
+        if (externalSubtitle.blobUrl) {
+          URL.revokeObjectURL(externalSubtitle.blobUrl);
+        }
+        const newBlobUrl = createSubBlobUrl(externalSubtitle.rawText, externalSubtitle.isSrt, newOffset);
+        setExternalSubtitle(prev => ({ ...prev, blobUrl: newBlobUrl }));
+      }
+    };
+
+    const handleRemoveExternalSub = () => {
+      if (externalSubtitle?.blobUrl) {
+        URL.revokeObjectURL(externalSubtitle.blobUrl);
+      }
+      setExternalSubtitle(null);
+      setSelectedSubtitleTrack(-1);
+      setSubOffset(0);
+    };
+
+    const handleSelectAudioTrack = (trackId) => {
+      setSelectedAudioTrack(trackId);
+      if (hlsRef.current) {
+        hlsRef.current.audioTrack = trackId;
+      }
+    };
+
+    const handleSelectSubtitleTrack = (trackId) => {
+      setSelectedSubtitleTrack(trackId);
+      if (trackId === 'external') {
+        if (hlsRef.current) {
+          hlsRef.current.subtitleTrack = -1;
+        }
+      } else if (typeof trackId === 'number') {
+        if (hlsRef.current) {
+          hlsRef.current.subtitleTrack = trackId;
+          hlsRef.current.subtitleDisplay = trackId !== -1;
+        }
+      }
+    };
+
+    // Sync active text tracks in HTML5 video
+    useEffect(() => {
+      if (videoRef.current && videoRef.current.textTracks) {
+        for (let i = 0; i < videoRef.current.textTracks.length; i++) {
+          const track = videoRef.current.textTracks[i];
+          if (selectedSubtitleTrack === 'external') {
+            track.mode = 'showing';
+          } else if (selectedSubtitleTrack === -1) {
+            track.mode = 'disabled';
+          }
+        }
+      }
+    }, [selectedSubtitleTrack, externalSubtitle?.blobUrl, subOffset]);
+
     // ── Inicialización al cambiar canal ───────────────────────────────────
     useEffect(() => {
       if (!channel) return;
@@ -221,6 +323,18 @@ const formatTime = (secs) => {
       setCurrentLevel(-1);
       setPlaybackRate(1);
       setSidebarFilter('');
+      
+      // Reset audio/subtitles for new stream
+      setAudioTracks([]);
+      setSelectedAudioTrack(-1);
+      setSubtitleTracks([]);
+      setSelectedSubtitleTrack(-1);
+      setShowAudioSubtitlesModal(false);
+      if (externalSubtitle?.blobUrl) {
+        URL.revokeObjectURL(externalSubtitle.blobUrl);
+      }
+      setExternalSubtitle(null);
+      setSubOffset(0);
       
       // Decodificar si es necesario
       let url = channel.url ? decodeCamouflage(channel.url) : '';
@@ -479,8 +593,46 @@ const formatTime = (secs) => {
              const uniqueLevels = availableLevels.filter((l, i, self) => l.height && self.findIndex(t => t.height === l.height) === i).sort((a,b) => b.height - a.height);
              setLevels(uniqueLevels);
           }
+
+          // Detect embedded audio tracks
+          if (hls.audioTracks && hls.audioTracks.length > 0) {
+            setAudioTracks(hls.audioTracks);
+            setSelectedAudioTrack(hls.audioTrack);
+          }
+
+          // Detect embedded subtitle tracks
+          if (hls.subtitleTracks && hls.subtitleTracks.length > 0) {
+            setSubtitleTracks(hls.subtitleTracks);
+          }
           
           video.play().catch(() => {});
+        });
+
+        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
+          if (data && data.audioTracks) {
+            setAudioTracks(data.audioTracks);
+            setSelectedAudioTrack(hls.audioTrack);
+          }
+        });
+
+        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (event, data) => {
+          if (data && typeof data.id === 'number') {
+            setSelectedAudioTrack(data.id);
+          }
+        });
+
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
+          if (data && data.subtitleTracks) {
+            setSubtitleTracks(data.subtitleTracks);
+          }
+        });
+
+        hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (event, data) => {
+          if (data && typeof data.id === 'number') {
+            if (selectedSubtitleTrack !== 'external') {
+              setSelectedSubtitleTrack(data.id);
+            }
+          }
         });
 
         let networkRetryCount = 0;
@@ -607,6 +759,23 @@ const formatTime = (secs) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Botón de Audio y Subtítulos */}
+              {!isPodcast && !isEmbed && (
+                <button
+                  onClick={() => setShowAudioSubtitlesModal(true)}
+                  title="Pistas de Audio y Subtítulos"
+                  className={`p-2.5 rounded-full border transition-all relative ${
+                    (selectedSubtitleTrack !== -1 || audioTracks.length > 1)
+                      ? 'bg-rose-600/20 border-rose-600/50 text-rose-400'
+                      : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
+                  }`}
+                >
+                  <Languages className="w-5 h-5" />
+                  {selectedSubtitleTrack !== -1 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                  )}
+                </button>
+              )}
               <button
                 onClick={() => setMinimized(true)}
                 title="Minimizar"
@@ -668,15 +837,27 @@ const formatTime = (secs) => {
                  <>
                    <video 
                      ref={videoRef} 
-                     className={isPodcast ? "opacity-0 absolute pointer-events-none w-0 h-0" : "w-full h-full object-contain shadow-2xl"} 
+                     className={`${isPodcast ? "opacity-0 absolute pointer-events-none w-0 h-0" : "w-full h-full object-contain shadow-2xl"} sub-color-${subColor} sub-size-${subSize}`} 
                      controls={!isPodcast} 
                      autoPlay 
                      playsInline
+                     crossOrigin="anonymous"
                      controlsList="nodownload"
                      onContextMenu={(e) => e.preventDefault()}
                      onPlay={() => setLoading(false)}
                      onPlaying={() => setLoading(false)}
-                   />
+                   >
+                     {selectedSubtitleTrack === 'external' && externalSubtitle?.blobUrl && (
+                       <track 
+                         key={`${externalSubtitle.blobUrl}-${subOffset}`}
+                         kind="subtitles" 
+                         src={externalSubtitle.blobUrl} 
+                         srcLang="es" 
+                         label={externalSubtitle.name || 'Subtítulo Personalizado'} 
+                         default 
+                       />
+                     )}
+                   </video>
                    {isPodcast && (
                      <div className="absolute inset-0 flex flex-col items-center justify-between p-6 md:p-8 bg-gradient-to-b from-[#0c0c0e]/80 via-[#121216]/95 to-[#08080a]/98 text-white overflow-hidden select-none">
                        {/* Background pulsing glow */}
@@ -893,6 +1074,25 @@ const formatTime = (secs) => {
                     <span className="text-[9px] font-black text-white uppercase tracking-widest">Señal Estable</span>
                   </div>
 
+                  {/* Botón de Audio y Subtítulos en badges */}
+                  {!isPodcast && !isEmbed && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAudioSubtitlesModal(true);
+                      }}
+                      title="Audio y Subtítulos"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${
+                        selectedSubtitleTrack !== -1 || audioTracks.length > 1
+                          ? 'bg-rose-600/30 border-rose-500 text-rose-300 shadow-lg shadow-rose-600/20'
+                          : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <Languages className="w-3.5 h-3.5" />
+                      <span>{selectedSubtitleTrack !== -1 ? 'Sub: ON' : 'Audio / Sub'}</span>
+                    </button>
+                  )}
+
                   {/* Botón de Favorito en el Player */}
                   <button
                     onClick={(e) => {
@@ -934,6 +1134,272 @@ const formatTime = (secs) => {
                       <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">1080p HD</span>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Audio and Subtitles Modal Overlay */}
+              {showAudioSubtitlesModal && !minimized && (
+                <div className="absolute inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
+                  <div 
+                    className="absolute inset-0" 
+                    onClick={() => setShowAudioSubtitlesModal(false)} 
+                  />
+                  <div className="relative w-full max-w-md bg-[#0d0d12] border border-white/15 rounded-3xl p-5 md:p-6 shadow-[0_25px_60px_rgba(0,0,0,0.95)] z-10 space-y-4 animate-slide-up">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                      <div className="flex items-center gap-2.5">
+                        <Languages className="w-5 h-5 text-rose-500" />
+                        <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-white">Audio y Subtítulos</h3>
+                      </div>
+                      <button 
+                        onClick={() => setShowAudioSubtitlesModal(false)}
+                        className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                      <button
+                        onClick={() => setActiveModalTab('subtitles')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                          activeModalTab === 'subtitles'
+                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <Subtitles className="w-3.5 h-3.5" />
+                        Subtítulos
+                        {selectedSubtitleTrack !== -1 && (
+                          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setActiveModalTab('audio')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                          activeModalTab === 'audio'
+                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        Audio
+                        {audioTracks.length > 1 && (
+                          <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded-full font-black">
+                            {audioTracks.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Subtitles Tab Content */}
+                    {activeModalTab === 'subtitles' && (
+                      <div className="space-y-3.5 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+                        {/* Subtitle Selection List */}
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+                            Pistas Disponibles
+                          </span>
+
+                          {/* Desactivados */}
+                          <button
+                            onClick={() => handleSelectSubtitleTrack(-1)}
+                            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                              selectedSubtitleTrack === -1
+                                ? 'bg-rose-600/20 text-rose-300 border border-rose-500/40 font-black'
+                                : 'bg-white/[0.02] hover:bg-white/5 text-gray-300 border border-white/5'
+                            }`}
+                          >
+                            <span>Desactivados</span>
+                            {selectedSubtitleTrack === -1 && <Check className="w-4 h-4 text-rose-400" />}
+                          </button>
+
+                          {/* Embedded Subtitle Tracks */}
+                          {subtitleTracks.map((st, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleSelectSubtitleTrack(st.id ?? idx)}
+                              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                                selectedSubtitleTrack === (st.id ?? idx)
+                                  ? 'bg-rose-600/20 text-rose-300 border border-rose-500/40 font-black'
+                                  : 'bg-white/[0.02] hover:bg-white/5 text-gray-300 border border-white/5'
+                              }`}
+                            >
+                              <span>{st.name || st.lang || `Subtítulo ${idx + 1}`}</span>
+                              {selectedSubtitleTrack === (st.id ?? idx) && <Check className="w-4 h-4 text-rose-400" />}
+                            </button>
+                          ))}
+
+                          {/* External Subtitle Track (If loaded) */}
+                          {externalSubtitle && (
+                            <div className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                              selectedSubtitleTrack === 'external'
+                                ? 'bg-rose-600/20 text-rose-300 border-rose-500/40'
+                                : 'bg-white/[0.02] hover:bg-white/5 text-gray-300 border border-white/5'
+                            }`}>
+                              <button
+                                onClick={() => handleSelectSubtitleTrack('external')}
+                                className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+                              >
+                                <Subtitles className="w-4 h-4 text-rose-400 shrink-0" />
+                                <div className="truncate">
+                                  <p className="text-xs font-black truncate">{externalSubtitle.name}</p>
+                                  <span className="text-[9px] text-gray-400 uppercase tracking-wider">Subtítulo Personalizado</span>
+                                </div>
+                              </button>
+                              <div className="flex items-center gap-2">
+                                {selectedSubtitleTrack === 'external' && <Check className="w-4 h-4 text-rose-400" />}
+                                <button
+                                  onClick={handleRemoveExternalSub}
+                                  title="Eliminar subtítulo externo"
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-600/20 text-gray-400 hover:text-rose-400 transition-all"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Upload External Subtitle File */}
+                        <div className="pt-1">
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept=".srt,.vtt,text/plain"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-rose-500/50 text-gray-200 hover:text-white text-xs font-black uppercase tracking-wider transition-all"
+                          >
+                            <Upload className="w-4 h-4 text-rose-500" />
+                            Cargar archivo .SRT o .VTT
+                          </button>
+                        </div>
+
+                        {/* Sync Offset and Styling Settings (if subtitle is active) */}
+                        {selectedSubtitleTrack !== -1 && (
+                          <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-3 pt-2.5">
+                            {/* Timing Delay / Offset */}
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Sincronización</span>
+                                <span className="text-xs font-bold text-white">
+                                  {subOffset === 0 ? '0.0s (Normal)' : `${subOffset > 0 ? '+' : ''}${subOffset}s`}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleOffsetChange(-0.5)}
+                                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-black border border-white/10 active:scale-95"
+                                  title="Retrasar 0.5s"
+                                >
+                                  -0.5s
+                                </button>
+                                <button
+                                  onClick={() => setSubOffset(0)}
+                                  className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold border border-white/5"
+                                  title="Restablecer sincronía"
+                                >
+                                  Reset
+                                </button>
+                                <button
+                                  onClick={() => handleOffsetChange(0.5)}
+                                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-black border border-white/10 active:scale-95"
+                                  title="Adelantar 0.5s"
+                                >
+                                  +0.5s
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Color & Size */}
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                              <div>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">Color</span>
+                                <div className="flex gap-2">
+                                  {[
+                                    { id: 'white', bg: 'bg-white', label: 'Blanco' },
+                                    { id: 'yellow', bg: 'bg-yellow-400', label: 'Amarillo' },
+                                    { id: 'cyan', bg: 'bg-sky-400', label: 'Cian' },
+                                  ].map(c => (
+                                    <button
+                                      key={c.id}
+                                      onClick={() => setSubColor(c.id)}
+                                      className={`w-5 h-5 rounded-full ${c.bg} border-2 transition-all ${
+                                        subColor === c.id ? 'border-rose-500 scale-110 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+                                      }`}
+                                      title={c.label}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">Tamaño</span>
+                                <div className="flex gap-1">
+                                  {[
+                                    { id: 'small', label: 'S' },
+                                    { id: 'medium', label: 'M' },
+                                    { id: 'large', label: 'L' },
+                                  ].map(s => (
+                                    <button
+                                      key={s.id}
+                                      onClick={() => setSubSize(s.id)}
+                                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all border ${
+                                        subSize === s.id
+                                          ? 'bg-rose-600 text-white border-rose-500'
+                                          : 'bg-white/5 text-gray-400 border-white/5 hover:text-white'
+                                      }`}
+                                    >
+                                      {s.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Audio Tab Content */}
+                    {activeModalTab === 'audio' && (
+                      <div className="space-y-2 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+                          Pistas de Audio ({audioTracks.length || 1})
+                        </span>
+
+                        {audioTracks.length > 0 ? (
+                          audioTracks.map((at, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleSelectAudioTrack(idx)}
+                              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                                selectedAudioTrack === idx
+                                  ? 'bg-rose-600/20 text-rose-300 border border-rose-500/40 font-black'
+                                  : 'bg-white/[0.02] hover:bg-white/5 text-gray-300 border border-white/5'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Volume2 className="w-4 h-4 text-rose-400" />
+                                <span>{at.name || at.lang || `Pista ${idx + 1}`}</span>
+                              </div>
+                              {selectedAudioTrack === idx && <Check className="w-4 h-4 text-rose-400" />}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-center space-y-1">
+                            <p className="text-xs font-bold text-gray-300">Pista Principal (Predeterminada)</p>
+                            <p className="text-[10px] text-gray-500 font-medium">Esta transmisión cuenta con una única pista de audio estéreo.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
