@@ -549,7 +549,7 @@ export default function App() {
                         <div className="w-1.5 h-6 bg-yellow-400 rounded-full" />
                         <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Top Infantiles</h3>
                       </div>
-                      <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                      <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                         {allUnique.filter(c => (c.category || '').toLowerCase().includes('infantil')).slice(0, 15).map(c => (
                           <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                             <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
@@ -564,7 +564,7 @@ export default function App() {
                           <div className="w-1.5 h-6 bg-blue-400 rounded-full" />
                           <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Anime y Dibujos</h3>
                         </div>
-                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                           {groupedChannels.filter(c => (c.category || '').toLowerCase().includes('anime') || (c.category || '').toLowerCase().includes('muñeco')).slice(0, 15).map(c => (
                             <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
@@ -581,7 +581,7 @@ export default function App() {
                           <div className="w-1.5 h-6 bg-purple-400 rounded-full" />
                           <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Mundo Disney & Nick</h3>
                         </div>
-                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                           {groupedChannels.filter(c => {
                             const name = (c.name || '').toLowerCase();
                             return name.includes('disney') || name.includes('nick') || name.includes('cartoon');
@@ -604,7 +604,7 @@ export default function App() {
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
                             <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Cine (VOD)</h3>
                           </div>
-                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                             {allUnique.filter(c => matchesCat(c, 'cine (vod)')).slice(0, 15).map(c => (
                               <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                                 <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
@@ -623,7 +623,7 @@ export default function App() {
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
                             <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Series (VOD)</h3>
                           </div>
-                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                             {groupedChannels.filter(c => matchesCat(c, 'series (vod)')).slice(0, 15).map(c => (
                               <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                                 <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
@@ -642,7 +642,7 @@ export default function App() {
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
                             <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Deportes en Vivo</h3>
                           </div>
-                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                             {allUnique.filter(c => matchesCat(c, 'deportes')).slice(0, 15).map(c => (
                               <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                                 <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
@@ -660,7 +660,7 @@ export default function App() {
                           <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
                           <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
                         </div>
-                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                        <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                           {recentChannels.map(c => (
                             <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0">
                               <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} />
@@ -692,7 +692,7 @@ export default function App() {
                               </div>
                               <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest bg-rose-500/10 px-4 py-2 rounded-full transition-all">Explorar Todo</button>
                             </div>
-                            <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 touch-pan-x scroll-smooth">
+                            <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                               {items.slice(0, 15).map(c => <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0"><ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} /></div>)}
                             </div>
                           </div>

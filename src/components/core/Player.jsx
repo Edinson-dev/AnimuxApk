@@ -168,12 +168,16 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const isPodcast = useMemo(() => {
       if (!channel) return false;
       const urlLower = String(currentUrl || '').toLowerCase();
-      return (
+      return Boolean(
         channel.isPodcast || 
         channel.category === 'Podcasts' || 
         channel.category === 'podcast' || 
+        (typeof channel.category === 'string' && channel.category.toLowerCase().includes('podcast')) ||
+        channel.type === 'podcast' ||
         urlLower.includes('.mp3') ||
-        urlLower.includes('.m4a')
+        urlLower.includes('.m4a') ||
+        urlLower.includes('anchor.fm') ||
+        urlLower.includes('/podcast/')
       );
     }, [channel, currentUrl]);
 
@@ -485,7 +489,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       const isExternal = currentUrl.startsWith('http');
 
       // Detección de tipo de stream
-      const isM3U8 = urlLower.includes('.m3u8') ||
+      const isM3U8 = !isPodcast && (
+                     urlLower.includes('.m3u8') ||
                      urlLower.includes('jmp2.uk') ||
                      urlLower.includes('.ts') ||
                      urlLower.includes('.m3u') ||
@@ -495,9 +500,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                       !urlLower.includes('.mp3') && 
                       !urlLower.includes('.m4a') && 
                       !urlLower.includes('podcast')) ||
-                     (!channel.isVOD && !isEmbed);
+                     (!channel.isVOD && !isEmbed));
 
-      const isDirectVideo = !isM3U8 && ['.mp4', '.mkv', '.mp3', '.m4a'].some(e => urlLower.includes(e));
+      const isDirectMedia = isPodcast || (!isM3U8 && ['.mp4', '.mkv', '.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.webm'].some(e => urlLower.includes(e)));
       
       // Lógica de Proxy Protegida:
       // 1. Canales con Referer obligatorio (fubo18, latamvidzfy, vivolatamz) DEBEN usar proxy para que el backend inyecte los headers
@@ -508,10 +513,10 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       const needsProxy = isExternal && (isProd || isLocal) && (
         isSpecialRefererHost || 
         isMixedContent || 
-        (!channel.direct && !isDirectVideo && !channel.isVOD)
+        (!isPodcast && !isDirectMedia && !channel.direct && !channel.isVOD)
       );
 
-      console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isM3U8 ? 'HLS' : 'Direct'}`);
+      console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isPodcast ? 'Podcast/Audio' : (isM3U8 ? 'HLS' : 'Direct')}`);
 
       let loadTimeout;
       let monitorInterval;
@@ -520,8 +525,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       // Los embeds (Archive.org, Drive, YouTube) no deben lanzar "Enlace Caído" por timeout de video
       if (!isEmbed) {
         // 2. Timeout de conexión inicial (Solo para Live TV con servidores Xtream)
-        // Para VOD (Archive.org, Drive, etc) permitimos que el navegador cargue sin límite de tiempo
-        if (!channel.isVOD && !isDirectVideo && channel.streamId) {
+        // Para VOD (Archive.org, Drive, Podcasts) permitimos que el navegador cargue sin límite de tiempo
+        if (!channel.isVOD && !isDirectMedia && !isPodcast && channel.streamId) {
           loadTimeout = setTimeout(() => {
             if (video && video.currentTime === 0) {
               console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
@@ -531,7 +536,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         }
 
         // 3. Monitor de congelamiento (Solo para Live TV con servidores Xtream)
-        if (!channel.isVOD && !isDirectVideo && channel.streamId) {
+        if (!channel.isVOD && !isDirectMedia && !isPodcast && channel.streamId) {
           monitorInterval = setInterval(() => {
             if (video && !video.paused && !video.ended && video.readyState >= 2) {
               if (video.currentTime === freezeRef.current.lastTime) {
@@ -550,12 +555,30 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       }
 
 
-      // 4. Reproducción de video directo (mp4, ts, etc.)
-      if (isDirectVideo) {
+      // 4. Reproducción directa (podcasts, audio, mp4, ts, etc.)
+      if (isDirectMedia) {
         video.src = needsProxy ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` : currentUrl;
         video.load();
         video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); video.play().catch(() => {}); };
-        video.onerror = () => { clearTimeout(loadTimeout); tryNextServer(); };
+        video.onloadeddata = () => { clearTimeout(loadTimeout); setLoading(false); };
+        video.onerror = (err) => { 
+          clearTimeout(loadTimeout); 
+          console.error('❌ Error en reproducción directa:', currentUrl, err);
+          // Si falló de forma directa en HTTPS, intentar con el proxy como alternativa antes de rendirse
+          if (!needsProxy && isExternal && !currentUrl.startsWith('/api/proxy')) {
+            console.warn('🔄 Reintentando podcast con proxy de respaldo...');
+            video.src = `/api/proxy?url=${encodeURIComponent(currentUrl)}`;
+            video.load();
+            video.play().catch(() => {});
+            return;
+          }
+          if (isPodcast || channel.fromM3U || !channel.streamId) {
+            setError(true);
+            setLoading(false);
+            return;
+          }
+          tryNextServer(); 
+        };
 
       // 5. Reproducción HLS Pura (El backend inyecta los proxies a los fragmentos)
       } else if (Hls.isSupported() && isM3U8) {
@@ -824,7 +847,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             </div>
           )}
 
-          <div className="relative shrink-0 w-full aspect-video lg:aspect-auto lg:flex-1 flex items-center justify-center group overflow-hidden z-10 bg-black">
+          <div className={`relative shrink-0 w-full ${isPodcast ? 'aspect-auto min-h-[380px] sm:min-h-[440px]' : 'aspect-video'} lg:aspect-auto lg:flex-1 flex items-center justify-center group overflow-hidden z-10 bg-black`}>
             {/* Real Video Player */}
             <div className="w-full h-full flex items-center justify-center relative">
               {isYouTube ? (
@@ -841,7 +864,6 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                      controls={!isPodcast} 
                      autoPlay 
                      playsInline
-                     crossOrigin="anonymous"
                      controlsList="nodownload"
                      onContextMenu={(e) => e.preventDefault()}
                      onPlay={() => setLoading(false)}

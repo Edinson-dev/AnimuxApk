@@ -112,7 +112,7 @@ video.sub-size-large::cue {
 /* ── Performance: GPU-accelerated scroll containers ────────────── */
 main {
   -webkit-overflow-scrolling: touch;
-  transform: translateZ(0);
+  touch-action: pan-y;
 }
 
 /* Reduce DECORATIVE motion only — keep spinners and loaders alive */
