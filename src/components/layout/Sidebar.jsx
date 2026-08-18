@@ -2,23 +2,35 @@ import React from 'react';
 import { Home, Star, Tv, Film, Activity, Smile, Music, Zap, Heart, History, Layers, Monitor, RefreshCw, Flag, MapPin, Scale } from 'lucide-react';
 
 const ICON_MAP = {
-  'inicio': Home,
-  'nuevos': Star,
-  'series': Monitor,
-  'peliculas': Film,
-  'deportes': Activity,
-  'infantil': Smile,
-  'musica': Music,
-  'anime': Zap,
-  'favoritos': Heart,
-  'recientes': History,
-  'nacionales': Flag,
-  'regional': MapPin,
+  'inicio': { icon: Home, color: '#e11d48' },
+  'nuevos': { icon: Star, color: '#f59e0b' },
+  'series': { icon: Monitor, color: '#f97316' },
+  'series (vod)': { icon: Monitor, color: '#f97316' },
+  'peliculas': { icon: Film, color: '#e11d48' },
+  'cine (vod)': { icon: Film, color: '#e11d48' },
+  'deportes': { icon: Activity, color: '#22c55e' },
+  'infantil': { icon: Smile, color: '#facc15' },
+  'musica': { icon: Music, color: '#a855f7' },
+  'anime': { icon: Zap, color: '#3b82f6' },
+  'favoritos': { icon: Heart, color: '#ec4899' },
+  'recientes': { icon: History, color: '#8b5cf6' },
+  'nacionales': { icon: Flag, color: '#ef4444' },
+  'regional': { icon: MapPin, color: '#14b8a6' },
+  'entretenimiento': { icon: Tv, color: '#06b6d4' },
+  'podcasts': { icon: Music, color: '#10b981' },
+  'documentales': { icon: Film, color: '#14b8a6' },
+  'maratones 24/7': { icon: RefreshCw, color: '#8b5cf6' },
+  'tv abierta': { icon: Tv, color: '#3b82f6' },
 };
 
-const getCatIcon = (cat) => {
+const getCatInfo = (cat) => {
   const key = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  return ICON_MAP[key] || Layers;
+  // Try exact match first, then partial
+  if (ICON_MAP[key]) return ICON_MAP[key];
+  for (const [k, v] of Object.entries(ICON_MAP)) {
+    if (key.includes(k) || k.includes(key)) return v;
+  }
+  return { icon: Layers, color: '#6b7280' };
 };
 
 export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode, onShowLegal, onShowTvGuide }) {
@@ -33,7 +45,7 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
       {/* Category list */}
       <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2">
         {categories.map(cat => {
-          const Icon = getCatIcon(cat);
+          const { icon: Icon, color: catColor } = getCatInfo(cat);
           const isActive = activeCategory === cat;
           const count = counts[cat];
 
@@ -47,20 +59,19 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
                 transition-all duration-200 w-full text-left
                 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-rose-600/20 focus:text-white
                 ${isActive
-                  ? 'bg-rose-600/15 text-white'
+                  ? 'bg-white/[0.06] text-white'
                   : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200'
                 }
               `}
             >
-              {/* Active bar indicator */}
+              {/* Active bar indicator — colored per category */}
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-rose-600 rounded-r-full" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ backgroundColor: catColor }} />
               )}
 
               <Icon
-                className={`w-5 h-5 shrink-0 transition-colors duration-200 ${
-                  isActive ? 'text-rose-500' : 'group-hover:text-gray-300'
-                }`}
+                className="w-5 h-5 shrink-0 transition-colors duration-200"
+                style={isActive ? { color: catColor } : {}}
                 fill={cat === 'Favoritos' && isActive ? 'currentColor' : 'none'}
               />
 
@@ -71,9 +82,12 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
 
               {/* Count badge - desktop only */}
               {count !== undefined && count > 0 && (
-                <span className={`hidden md:block text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[22px] text-center ${
-                  isActive ? 'bg-rose-600/30 text-rose-400' : 'bg-white/[0.06] text-gray-600'
-                }`}>
+                <span 
+                  className={`hidden md:block text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[22px] text-center ${
+                    isActive ? 'text-white' : 'bg-white/[0.06] text-gray-600'
+                  }`}
+                  style={isActive ? { backgroundColor: `${catColor}30`, color: catColor } : {}}
+                >
                   {count > 999 ? '999+' : count}
                 </span>
               )}

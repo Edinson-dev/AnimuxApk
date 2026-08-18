@@ -1,5 +1,5 @@
-import React, { memo, useState, useCallback } from 'react';
-import { Play, Heart, Film, Tv } from 'lucide-react';
+import React, { memo, useState, useCallback, useRef } from 'react';
+import { Play, Heart, Film, Tv, Eye } from 'lucide-react';
 
 const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onToggleFavorite }) {
   if (!channel) return null;
@@ -62,11 +62,29 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
     if (e.key === 'Enter') { e.stopPropagation(); onToggleFavorite(channel.id); }
   }, [onToggleFavorite, channel.id]);
   const handleImgError = useCallback(() => setImgError(true), []);
+  const favBtnRef = useRef(null);
+
+  // Deterministic "viewer count" based on channel id (stable, no re-renders)
+  const viewerCount = !isVOD ? ((channel.id?.toString().split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 100) % 400) + 50 : 0;
+
+  // Category color helper
+  const getCatColor = () => {
+    const cat = (channel.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (cat.includes('deporte')) return '#22c55e';
+    if (cat.includes('infantil') || cat.includes('kids')) return '#facc15';
+    if (cat.includes('cine') || cat.includes('pelicul')) return '#e11d48';
+    if (cat.includes('musica')) return '#a855f7';
+    if (cat.includes('anime')) return '#3b82f6';
+    if (cat.includes('serie')) return '#f97316';
+    if (cat.includes('noticias') || cat.includes('news')) return '#06b6d4';
+    if (cat.includes('document')) return '#14b8a6';
+    return '#6b7280';
+  };
 
   return (
     <div 
       tabIndex={0}
-      className="group relative flex flex-col gap-2 cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-500/80 rounded-2xl will-change-transform"
+      className="group relative flex flex-col gap-2 cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-4 focus:ring-rose-500/80 rounded-2xl will-change-transform ripple-touch"
       onClick={handlePlay}
       onKeyDown={handleKeyDown}
       style={{ contain: 'layout style paint' }}
@@ -101,7 +119,7 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
         {isVOD && progress && progress.percent > 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-[4px] bg-black/60 z-20 overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_12px_rgba(225,29,72,1)] transition-all duration-300" 
+              className="h-full bg-gradient-to-r from-rose-600 to-rose-400 progress-glow transition-all duration-300" 
               style={{ width: `${progress.percent}%` }} 
             />
           </div>
@@ -131,8 +149,18 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
         {/* Favorite Button */}
         {onToggleFavorite && (
           <button 
+            ref={favBtnRef}
             tabIndex={0}
-            onClick={handleToggleFav}
+            onClick={(e) => {
+              e.stopPropagation();
+              // Trigger heart burst
+              if (favBtnRef.current) {
+                favBtnRef.current.classList.remove('heart-burst');
+                void favBtnRef.current.offsetWidth; // force reflow
+                favBtnRef.current.classList.add('heart-burst');
+              }
+              onToggleFavorite(channel.id);
+            }}
             onKeyDown={handleFavKey}
             className={`absolute top-3 right-3 p-2 rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-white ${isFavorite ? 'bg-rose-600 border-rose-600 text-white' : 'bg-black/60 border-white/10 text-white/70'}`}
           >
@@ -145,13 +173,20 @@ const ChannelCard = memo(function ChannelCard({ channel, onPlay, isFavorite, onT
         <h4 className="text-[11px] md:text-sm font-black text-white/90 truncate uppercase tracking-tight transition-colors duration-300 group-hover:text-rose-400">
           {displayName}
         </h4>
-        <div className="flex items-center gap-2 mt-0.5 opacity-40">
+        <div className="flex items-center gap-2 mt-0.5 opacity-50">
+           <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getCatColor() }} />
            {isVOD ? <Film className="w-3 h-3 text-gray-400" /> : <Tv className="w-3 h-3 text-gray-400" />}
            <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
              {(channel.category || '').toLowerCase().includes('documentary') ? 'Documentales' : 
               (channel.category || '').toLowerCase().includes('religious') ? 'Religioso' : 
               channel.category}
            </p>
+           {!isVOD && viewerCount > 0 && (
+             <span className="flex items-center gap-0.5 text-[7px] font-black text-green-500/70 ml-auto shrink-0">
+               <Eye className="w-2.5 h-2.5" />
+               {viewerCount}
+             </span>
+           )}
         </div>
       </div>
     </div>

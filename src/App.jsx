@@ -98,8 +98,8 @@ export default function App() {
         setChannelData({ channels: JSON.parse(cachedChans) });
         setLocalMovies(JSON.parse(cachedMovs));
 
-        // Mantenemos el splash un ratico incluso si es caché para profesionalismo
-        setTimeout(() => setIsAppLoading(false), 3000);
+        // Splash rápido si hay caché — el usuario ya conoce la marca
+        setTimeout(() => setIsAppLoading(false), 1200);
         return;
       }
 
@@ -142,8 +142,8 @@ export default function App() {
     }
     finally {
       if (!force) {
-        // Aumentado a 4.5 segundos para que se aprecie bien la marca
-        setTimeout(() => setIsAppLoading(false), 3000);
+        // Splash breve — suficiente para apreciar la marca sin frustrar al usuario
+        setTimeout(() => setIsAppLoading(false), 1500);
       }
     }
   };
@@ -346,17 +346,16 @@ export default function App() {
   if (isAppLoading) {
     return (
       <div className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center font-sans overflow-hidden">
-        {/* Animated Background Nebula */}
+        {/* Lightweight ambient glow (no animate-pulse, no blur-[120px]) */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-rose-600/10 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-[20%] left-[30%] w-[40%] h-[40%] bg-rose-600/8 rounded-full blur-[80px]" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center gap-10">
-          {/* Logo con Glow Radiante */}
-          <div className="relative group scale-110">
-            <div className="absolute inset-0 bg-rose-600 rounded-full blur-[40px] opacity-20 animate-pulse" />
-            <div className="relative w-24 h-24 md:w-32 md:h-32 p-4 bg-white/5 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl flex items-center justify-center transform animate-float">
+          {/* Logo */}
+          <div className="relative scale-110">
+            <div className="absolute inset-0 bg-rose-600 rounded-full blur-[30px] opacity-15" />
+            <div className="relative w-24 h-24 md:w-32 md:h-32 p-4 bg-white/5 rounded-[2rem] border border-white/10 shadow-2xl flex items-center justify-center transform animate-float">
               <img
                 src="/icon-192.png"
                 alt="Animux Logo"
@@ -418,10 +417,11 @@ export default function App() {
       </Helmet>
 
       {/* Thematic Spotlights Background (Mundial / Deportes) */}
+      {/* Ambient glow — estático para no consumir GPU con animate-pulse constante */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[10%] w-[40%] h-[50%] bg-blue-600/10 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute top-[-10%] right-[10%] w-[40%] h-[50%] bg-emerald-600/10 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '5s' }} />
-        <div className="absolute bottom-[20%] left-[30%] w-[50%] h-[50%] bg-rose-600/5 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute top-[-20%] left-[10%] w-[40%] h-[50%] bg-blue-600/8 rounded-full blur-[150px]" />
+        <div className="absolute top-[-10%] right-[10%] w-[40%] h-[50%] bg-emerald-600/6 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[20%] left-[30%] w-[50%] h-[50%] bg-rose-600/4 rounded-full blur-[150px]" />
       </div>
 
       <Header
@@ -651,7 +651,7 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="animate-fade-in">
+              <div className="animate-view-enter" key={activeCategory}>
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-8 bg-rose-600 rounded-full" />
@@ -661,7 +661,7 @@ export default function App() {
                     {filteredChannels.length} Resultados
                   </p>
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6 stagger-grid">
                   {filteredChannels.slice(0, visibleCount).map(c => (
                     <ChannelCard key={c.id} channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={handleToggleFavorite} />
                   ))}
