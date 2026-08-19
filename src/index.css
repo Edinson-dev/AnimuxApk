@@ -398,6 +398,19 @@ main {
 .cat-series    { --cat-color: #f97316; }
 .cat-noticias  { --cat-color: #06b6d4; }
 
+/* ── Ad Animations ───────────────────────────────────────────────── */
+@keyframes ad-shine {
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  40%  { transform: translateX(100%) skewX(-12deg); }
+  100% { transform: translateX(100%) skewX(-12deg); }
+}
+
+@keyframes equalizer-wave {
+  0%   { transform: scaleY(0.2); }
+  50%  { transform: scaleY(1); }
+  100% { transform: scaleY(0.4); }
+}
+
 /* ── Reduce motion: apagar animaciones decorativas ───────────────── */
 @media (prefers-reduced-motion: reduce) {
   .stagger-grid > * {

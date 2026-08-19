@@ -16,6 +16,10 @@ import Toast, { toast } from './components/ui/Toast';
 import NewsBanner from './components/ui/NewsBanner';
 import CommunityCard from './components/ui/CommunityCard';
 import FilterControls from './components/ui/FilterControls';
+import AdBanner from './components/ui/AdBanner';
+import NativeAdCard from './components/ui/NativeAdCard';
+import PrerollAd from './components/ui/PrerollAd';
+import { ADS_CONFIG, shouldShowPreroll } from './config/ads';
 
 import { db } from './config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -48,6 +52,8 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('Inicio');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChannel, setActiveChannel] = useState(null);
+  const [pendingChannel, setPendingChannel] = useState(null);
+  const [showPreroll, setShowPreroll] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
@@ -311,18 +317,21 @@ export default function App() {
   // ── Memoized callbacks for ChannelCard (prevents re-renders) ──
   const handlePlay = useCallback((ch) => {
     // Si es una serie (representante de grupo), buscamos el último episodio visto
+    let resolvedChannel = ch;
     if (ch.isGroupRepresentative && ch.groupId) {
       const lastEpisodeId = localStorage.getItem(`animux_last_episode_${ch.groupId}`);
       if (lastEpisodeId) {
-        // Buscamos el episodio real en nuestra lista de canales
         const lastEpisode = allUnique.find(item => String(item.id) === String(lastEpisodeId));
-        if (lastEpisode) {
-          setActiveChannel(lastEpisode);
-          return;
-        }
+        if (lastEpisode) resolvedChannel = lastEpisode;
       }
     }
-    setActiveChannel(ch);
+    // Pre-roll ad: mostrar antes de reproducir si aplica
+    if (shouldShowPreroll()) {
+      setPendingChannel(resolvedChannel);
+      setShowPreroll(true);
+    } else {
+      setActiveChannel(resolvedChannel);
+    }
   }, [allUnique]);
   const handleToggleFavorite = useCallback((id) => {
     setFavorites(prev => {
@@ -541,6 +550,9 @@ export default function App() {
 
                 <CommunityCard />
 
+                {/* 📢 Banner Publicitario */}
+                <AdBanner />
+
                 {isKidsMode ? (
                   <div className="space-y-6 md:space-y-8">
                     {/* Fila 1: Top Infantiles */}
@@ -752,8 +764,14 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 md:gap-6 stagger-grid">
-                    {filteredChannels.slice(0, visibleCount).map(c => (
-                      <ChannelCard key={c.id} channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={handleToggleFavorite} />
+                    {filteredChannels.slice(0, visibleCount).map((c, idx) => (
+                      <React.Fragment key={c.id}>
+                        {/* Insertar anuncio nativo cada N tarjetas */}
+                        {ADS_CONFIG.inGridEnabled && idx > 0 && idx % ADS_CONFIG.inGridInterval === 0 && (
+                          <NativeAdCard />
+                        )}
+                        <ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} onToggleFavorite={handleToggleFavorite} />
+                      </React.Fragment>
                     ))}
                   </div>
                 )}
@@ -850,6 +868,18 @@ export default function App() {
 
       <Toast />
       <NewsBanner />
+
+      {/* Pre-roll Ad Overlay */}
+      {showPreroll && pendingChannel && (
+        <PrerollAd
+          channelName={pendingChannel.displayName || pendingChannel.name}
+          onComplete={() => {
+            setShowPreroll(false);
+            setActiveChannel(pendingChannel);
+            setPendingChannel(null);
+          }}
+        />
+      )}
     </div>
   );
 }
