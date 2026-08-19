@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Heart, HeartHandshake, Star, ExternalLink } from 'lucide-react';
+import { BINANCE_REFERRAL, ADS_CONFIG } from '../../config/ads';
 
 const PAYPAL_URL = 'https://www.paypal.com/donate/?business=ASFZPPBP7DN7L&no_recurring=0&item_name=Mantener+servidores+del+proyecto.&currency_code=USD';
 
@@ -72,15 +73,35 @@ export default function DonateModal({ onClose }) {
             ))}
           </div>
 
-          {/* Botón principal */}
+          {/* Botón PayPal */}
           <button
             onClick={() => handleDonate(null)}
-            className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-rose-600/20 flex items-center justify-center gap-3"
+            className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-rose-600/20 flex items-center justify-center gap-3"
           >
             <Heart className="w-4 h-4 fill-current" />
             Apoyar con PayPal
             <ExternalLink className="w-3 h-3 opacity-50" />
           </button>
+
+          {/* Opción Binance Referido / Apoyo Cripto (condicional) */}
+          {ADS_CONFIG.enabled && ADS_CONFIG.binanceEnabled && (
+            <button
+              onClick={() => window.open(BINANCE_REFERRAL.link, '_blank', 'noopener,noreferrer')}
+              className="w-full py-3 bg-[#1e2329] hover:bg-[#2b313a] border border-yellow-500/30 hover:border-yellow-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2.5 shadow-lg shadow-black/40 group"
+            >
+              <div className="w-5 h-5 rounded-md bg-[#F0B90B] flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 120 120" className="w-3.5 h-3.5 fill-[#181a20]">
+                  <path d="M60 15L74.1 29.1L49.1 54.1L35 40L60 15Z" />
+                  <path d="M85.9 40.9L100 55L85.9 69.1L71.8 55L85.9 40.9Z" />
+                  <path d="M60 65.9L74.1 80L60 94.1L45.9 80L60 65.9Z" />
+                  <path d="M34.1 40.9L48.2 55L34.1 69.1L20 55L34.1 40.9Z" />
+                  <path d="M60 40L70 50L60 60L50 50L60 40Z" />
+                </svg>
+              </div>
+              <span>Regístrate en Binance (Bono $1,000)</span>
+              <ExternalLink className="w-3 h-3 text-yellow-500 opacity-70 group-hover:opacity-100" />
+            </button>
+          )}
 
           {/* Nota pequeña */}
           <div className="flex items-center gap-2 pt-1">

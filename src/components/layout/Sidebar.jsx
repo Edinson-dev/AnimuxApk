@@ -33,7 +33,18 @@ const getCatInfo = (cat) => {
   return { icon: Layers, color: '#6b7280' };
 };
 
+import { BINANCE_REFERRAL, ADS_CONFIG } from '../../config/ads';
+
 export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode, onShowLegal, onShowTvGuide }) {
+  const [copiedCode, setCopiedCode] = React.useState(false);
+
+  const handleCopyCode = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(BINANCE_REFERRAL.code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
@@ -123,6 +134,42 @@ export default function Sidebar({ categories = [], activeCategory, setActiveCate
           <RefreshCw className="w-4 h-4 group-hover:animate-spin" />
           <span className="text-[10px] font-black uppercase tracking-widest">Actualizar Datos</span>
         </button>
+        {/* Binance Referral Card */}
+        {ADS_CONFIG.enabled && ADS_CONFIG.binanceEnabled && (
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-[#1e2329] to-[#121418] border border-yellow-500/25 relative overflow-hidden group shadow-lg shadow-black/40">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-5 h-5 rounded-md bg-[#F0B90B] flex items-center justify-center shrink-0 shadow-sm shadow-yellow-500/30">
+                <svg viewBox="0 0 120 120" className="w-3.5 h-3.5 fill-[#181a20]">
+                  <path d="M60 15L74.1 29.1L49.1 54.1L35 40L60 15Z" />
+                  <path d="M85.9 40.9L100 55L85.9 69.1L71.8 55L85.9 40.9Z" />
+                  <path d="M60 65.9L74.1 80L60 94.1L45.9 80L60 65.9Z" />
+                  <path d="M34.1 40.9L48.2 55L34.1 69.1L20 55L34.1 40.9Z" />
+                  <path d="M60 40L70 50L60 60L50 50L60 40Z" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-black text-[#F0B90B] uppercase tracking-wider">Binance Bonus</span>
+            </div>
+            <p className="text-[9px] text-gray-400 font-medium leading-tight mb-2">
+              Gana hasta <span className="text-white font-bold">$1,000 USD</span> en comisiones
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => window.open(BINANCE_REFERRAL.link, '_blank')}
+                className="flex-1 py-1.5 bg-[#F0B90B] hover:bg-[#fcd535] text-black font-black text-[9px] uppercase tracking-wider rounded-lg text-center transition-all active:scale-95"
+              >
+                Reclamar
+              </button>
+              <button
+                onClick={handleCopyCode}
+                title="Copiar código de referido"
+                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 rounded-lg text-[9px] font-mono font-bold transition-all active:scale-95"
+              >
+                {copiedCode ? '¡LISTO!' : 'CÓDIGO'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Telegram Community */}
         <button
           onClick={() => window.open('https://t.me/AnimuxOficial', '_blank')}

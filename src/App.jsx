@@ -15,6 +15,9 @@ import Skeleton from './components/ui/Skeleton';
 import Toast, { toast } from './components/ui/Toast';
 import NewsBanner from './components/ui/NewsBanner';
 import CommunityCard from './components/ui/CommunityCard';
+import BinancePromoCard from './components/ui/BinancePromoCard';
+import AdsterraNativeBanner from './components/ui/AdsterraNativeBanner';
+import AdsterraSocialBar from './components/ui/AdsterraSocialBar';
 import FilterControls from './components/ui/FilterControls';
 import AdBanner from './components/ui/AdBanner';
 import NativeAdCard from './components/ui/NativeAdCard';
@@ -465,6 +468,9 @@ export default function App() {
         <meta name="twitter:image" content={seoData.image} />
       </Helmet>
 
+      {/* Adsterra Social Bar (Notificación flotante pequeña y cerrable) */}
+      <AdsterraSocialBar />
+
       {/* Thematic Spotlights Background (Mundial / Deportes) */}
       {/* Ambient glow — estático para no consumir GPU con animate-pulse constante */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -550,8 +556,14 @@ export default function App() {
 
                 <CommunityCard />
 
-                {/* 📢 Banner Publicitario */}
-                <AdBanner />
+                {/* 📢 Banner / Promo (solo se muestra si la publicidad está activa) */}
+                {ADS_CONFIG.enabled && (
+                  <>
+                    {ADS_CONFIG.bannerEnabled && <AdBanner />}
+                    {ADS_CONFIG.binanceEnabled && <BinancePromoCard />}
+                    {ADS_CONFIG.nativeBannerEnabled && <AdsterraNativeBanner />}
+                  </>
+                )}
 
                 {isKidsMode ? (
                   <div className="space-y-6 md:space-y-8">

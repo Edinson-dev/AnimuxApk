@@ -59,14 +59,14 @@ export default function AdBanner({ className = '' }) {
       {/* Content */}
       <div
         onClick={handleClick}
-        className="relative z-10 flex items-center justify-between gap-4 px-5 py-3.5 lg:px-8 lg:py-4 cursor-pointer group"
+        className="relative z-10 flex items-center justify-between gap-3 px-3.5 py-3 sm:px-5 sm:py-3.5 lg:px-8 lg:py-4 cursor-pointer group"
       >
-        <div className="flex items-center gap-3 lg:gap-5 flex-1 min-w-0">
-          <span className="text-2xl lg:text-3xl shrink-0 group-hover:scale-110 transition-transform duration-300">
+        <div className="flex items-center gap-2.5 sm:gap-3 lg:gap-5 flex-1 min-w-0">
+          <span className="text-xl sm:text-2xl lg:text-3xl shrink-0 group-hover:scale-110 transition-transform duration-300">
             {banner.icon}
           </span>
-          <div className="min-w-0">
-            <h3 className="text-xs lg:text-sm font-black text-white uppercase tracking-wider truncate">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[11px] sm:text-xs lg:text-sm font-black text-white uppercase tracking-wider truncate">
               {banner.title}
             </h3>
             <p className="text-[10px] lg:text-xs text-white/70 font-medium truncate mt-0.5 hidden sm:block">
@@ -75,10 +75,10 @@ export default function AdBanner({ className = '' }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <button className="flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all border border-white/20 hover:border-white/40 group-hover:scale-105">
-            {banner.cta}
-            <ExternalLink className="w-3 h-3" />
+        <div className="flex items-center gap-2 shrink-0">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all border border-white/20 hover:border-white/40 group-hover:scale-105 whitespace-nowrap">
+            <span>{banner.cta}</span>
+            <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
           </button>
         </div>
       </div>
