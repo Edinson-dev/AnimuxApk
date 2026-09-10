@@ -65,10 +65,6 @@ export const matchesCat = (c, target) => {
   const chCat = (c.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const normalizedChCat = chCat.includes('documentary') ? 'documentales' : chCat.includes('religious') ? 'religioso' : chCat;
 
-  if (target === 'todos los canales' || target === 'en vivo' || target === 'tv en vivo') return !c.isVOD;
-  if (target === 'todas las peliculas' || target === 'cine') return c.isVOD && !c.groupId && !c.isPodcast && c.category !== 'Podcasts';
-  if (target === 'todas las series') return c.isVOD && !!c.groupId && !c.isPodcast && c.category !== 'Podcasts';
-
   if (target === 'cine (vod)') return c.isVOD && !c.groupId && !c.isPodcast && c.category !== 'Podcasts'; // Películas VOD
   if (target === 'series (vod)') return c.isVOD && !!c.groupId && !c.isPodcast && c.category !== 'Podcasts'; // Series VOD
   if (target === 'podcasts') return c.isPodcast || normalizedChCat.includes('podcast'); // Podcasts (Audio)

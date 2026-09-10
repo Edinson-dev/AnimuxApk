@@ -52,7 +52,6 @@ export default function App() {
 
   const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('animux_favs') || '[]'));
   const [recentlyWatched, setRecentlyWatched] = useState(() => JSON.parse(localStorage.getItem('animux_recent') || '[]'));
-  const [masterTab, setMasterTab] = useState('home'); // 'home' | 'live' | 'movies' | 'series' | 'favorites'
   const [activeCategory, setActiveCategory] = useState('Inicio');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChannel, setActiveChannel] = useState(null);
@@ -74,17 +73,6 @@ export default function App() {
     setSelectedGenre('all');
     setSelectedPopularity('default');
   }, []);
-
-  const handleSelectMasterTab = useCallback((tab) => {
-    setMasterTab(tab);
-    setSearchQuery('');
-    handleResetFilters();
-    if (tab === 'home') setActiveCategory('Inicio');
-    else if (tab === 'live') setActiveCategory('Todos los Canales');
-    else if (tab === 'movies') setActiveCategory('Cine (VOD)');
-    else if (tab === 'series') setActiveCategory('Series (VOD)');
-    else if (tab === 'favorites') setActiveCategory('Favoritos');
-  }, [handleResetFilters]);
 
   const isCustomFiltering = selectedYear !== 'all' || selectedGenre !== 'all' || selectedPopularity !== 'default';
 
@@ -201,27 +189,6 @@ export default function App() {
     return Array.from(finalCats);
   }, [cloudCategories]);
 
-  const displayedCategories = useMemo(() => {
-    if (masterTab === 'live') {
-      const liveCats = allCategories.filter(cat => {
-        const lower = cat.toLowerCase();
-        return !lower.includes('cine') && !lower.includes('serie') && !lower.includes('pelicul') && cat !== 'Favoritos';
-      });
-      return ['Todos los Canales', ...liveCats];
-    }
-    if (masterTab === 'movies') {
-      return ['Cine (VOD)', 'Acción', 'Comedia', 'Terror', 'Ciencia Ficción', 'Drama', 'Animación', 'Familia', 'Aventura', 'Romance'];
-    }
-    if (masterTab === 'series') {
-      return ['Series (VOD)', 'Anime', 'Drama', 'Comedia', 'Acción'];
-    }
-    if (masterTab === 'favorites') {
-      return ['Favoritos', 'Continuar Viendo'];
-    }
-    // masterTab === 'home'
-    return ['Inicio', 'Favoritos', 'Deportes', 'Cine (VOD)', 'Series (VOD)', 'Infantil', 'Música', 'Anime'];
-  }, [masterTab, allCategories]);
-
   const allUnique = useMemo(() => {
     let base = [...localMovies, ...channelData.channels].filter(c => !brokenChannels.includes(String(c.id)));
     const deleted = JSON.parse(localStorage.getItem('animux_deleted') || '[]');
@@ -300,40 +267,15 @@ export default function App() {
       );
     }
 
-    // 3. Filtrado por Master Tab y Categoría activa
-    if (masterTab === 'live') {
-      result = result.filter(c => !c.isVOD);
-      if (activeCategory && activeCategory !== 'Todos los Canales' && activeCategory !== 'Inicio') {
-        const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        result = result.filter(c => matchesCat(c, target));
-      }
-    } else if (masterTab === 'movies') {
-      result = result.filter(c => c.isVOD && !c.groupId && !c.isPodcast && c.category !== 'Podcasts');
-      if (activeCategory && activeCategory !== 'Cine (VOD)' && activeCategory !== 'Inicio') {
-        result = result.filter(c => matchesGenre(c, activeCategory) || matchesCat(c, activeCategory.toLowerCase()));
-      }
-    } else if (masterTab === 'series') {
-      result = result.filter(c => c.isVOD && !!c.groupId && !c.isPodcast && c.category !== 'Podcasts');
-      if (activeCategory && activeCategory !== 'Series (VOD)' && activeCategory !== 'Inicio') {
-        result = result.filter(c => matchesGenre(c, activeCategory) || matchesCat(c, activeCategory.toLowerCase()));
-      }
-    } else if (masterTab === 'favorites') {
-      if (activeCategory === 'Continuar Viendo') {
-        result = recentChannels;
+    // 3. Categoría activa
+    if (activeCategory === 'Favoritos') {
+      result = result.filter(c => favorites.includes(String(c.id)));
+    } else if (activeCategory !== 'Inicio') {
+      const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (target === 'nuevos' || target === 'nuevo') {
+        result = result.filter(c => c.isNew === true);
       } else {
-        result = result.filter(c => favorites.includes(String(c.id)));
-      }
-    } else {
-      // masterTab === 'home'
-      if (activeCategory === 'Favoritos') {
-        result = result.filter(c => favorites.includes(String(c.id)));
-      } else if (activeCategory !== 'Inicio') {
-        const target = activeCategory.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        if (target === 'nuevos' || target === 'nuevo') {
-          result = result.filter(c => c.isNew === true);
-        } else {
-          result = result.filter(c => matchesCat(c, target));
-        }
+        result = result.filter(c => matchesCat(c, target));
       }
     }
 
@@ -353,7 +295,7 @@ export default function App() {
     }
 
     return result;
-  }, [groupedChannels, isKidsMode, searchQuery, activeCategory, favorites, selectedGenre, selectedYear, selectedPopularity, masterTab, recentChannels]);
+  }, [groupedChannels, isKidsMode, searchQuery, activeCategory, favorites, selectedGenre, selectedYear, selectedPopularity]);
 
   const categoryCounts = useMemo(() => {
     const counts = {};
@@ -539,10 +481,9 @@ export default function App() {
 
       <Header
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-        masterTab={masterTab}
-        setMasterTab={handleSelectMasterTab}
         onGoHome={() => {
-          handleSelectMasterTab('home');
+          setActiveCategory('Inicio');
+          setSearchQuery('');
           setLogoClicks(p => {
             if (p + 1 === 5) {
               const pwd = window.prompt('🔒 Acceso Restringido. Introduce la clave de administrador:');
@@ -573,15 +514,14 @@ export default function App() {
       />
 
       <CategoryBar
-        categories={displayedCategories} activeCategory={activeCategory}
+        categories={allCategories} activeCategory={activeCategory}
         setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
       />
 
       <div className="flex flex-1 overflow-hidden pt-[52px] md:pt-0">
         <Sidebar
-          categories={displayedCategories} activeCategory={activeCategory}
+          categories={['Inicio', ...allCategories]} activeCategory={activeCategory}
           setActiveCategory={setActiveCategory} counts={categoryCounts} version={APP_VERSION}
-          masterTab={masterTab} setMasterTab={handleSelectMasterTab}
           isKidsMode={isKidsMode} setIsKidsMode={setIsKidsMode}
           onShowLegal={() => setShowLegal(true)}
           onShowTvGuide={() => setShowTvGuide(true)}
@@ -787,28 +727,20 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="animate-view-enter space-y-6" key={`${masterTab}-${activeCategory}-${selectedYear}-${selectedGenre}-${selectedPopularity}-${searchQuery}`}>
+              <div className="animate-view-enter space-y-6" key={`${activeCategory}-${selectedYear}-${selectedGenre}-${selectedPopularity}-${searchQuery}`}>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-8 bg-gradient-to-b from-rose-500 to-rose-700 rounded-full shadow-lg shadow-rose-600/40" />
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter text-white">
+                    <div className="w-2 h-8 bg-rose-600 rounded-full" />
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter">
                       {searchQuery
                         ? `Búsqueda: "${searchQuery}"`
-                        : masterTab === 'live' && (activeCategory === 'Todos los Canales' || activeCategory === 'Inicio')
-                        ? '📺 Canales en Vivo'
-                        : masterTab === 'movies' && (activeCategory === 'Cine (VOD)' || activeCategory === 'Inicio')
-                        ? '🎬 Películas (Cine VOD)'
-                        : masterTab === 'series' && (activeCategory === 'Series (VOD)' || activeCategory === 'Inicio')
-                        ? '🍿 Series Completas'
-                        : masterTab === 'favorites'
-                        ? '⭐ Mi Espacio'
                         : isCustomFiltering && activeCategory === 'Inicio'
                         ? 'Explorar Catálogo'
                         : activeCategory}
                     </h2>
                   </div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.25em] bg-white/[0.04] px-4 py-2 rounded-full border border-white/10 shadow-sm">
-                    {filteredChannels.length} Títulos
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5">
+                    {filteredChannels.length} Resultados
                   </p>
                 </div>
 
@@ -913,7 +845,7 @@ export default function App() {
         </main>
       </div>
 
-      <BottomNav masterTab={masterTab} setMasterTab={handleSelectMasterTab} />
+      <BottomNav activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSearchOpen={() => setIsSearchOpen(true)} />
 
       {activeChannel && (
         <Player

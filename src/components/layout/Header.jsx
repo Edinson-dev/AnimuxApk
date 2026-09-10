@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale, Shield, Tv, Zap } from 'lucide-react';
-import MasterNav from './MasterNav';
 
 export default function Header({ 
   searchQuery, 
@@ -19,8 +18,6 @@ export default function Header({
   setIsSearchOpen,
   onShowLegal,
   onShowTvGuide,
-  masterTab = 'home',
-  setMasterTab,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -112,14 +109,9 @@ export default function Header({
           </div>
         </div>
 
-        {/* Master Navigation Bar — Desktop / Tablet */}
-        <div className="hidden md:flex items-center mx-2">
-          <MasterNav activeTab={masterTab} onSelectTab={setMasterTab} />
-        </div>
-
         {/* Search bar — desktop */}
-        <div className="flex-1 max-w-xs xl:max-w-md hidden md:block relative ml-auto">
-          <div className="flex items-center bg-white/[0.05] border border-white/[0.07] focus-within:border-rose-600/40 focus-within:bg-white/[0.08] rounded-full py-1.5 px-4 transition-all gap-2">
+        <div className="flex-1 max-w-lg hidden md:block relative">
+          <div className="flex items-center bg-white/[0.05] border border-white/[0.07] focus-within:border-rose-600/40 focus-within:bg-white/[0.08] rounded-full py-2 px-5 transition-all gap-2">
             <Search className="w-3.5 h-3.5 text-gray-500 shrink-0" />
             <input
               type="text"

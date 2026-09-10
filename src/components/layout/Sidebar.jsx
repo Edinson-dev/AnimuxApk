@@ -35,20 +35,7 @@ const getCatInfo = (cat) => {
 
 import { BINANCE_REFERRAL, ADS_CONFIG } from '../../config/ads';
 
-export default function Sidebar({ 
-  categories = [], 
-  activeCategory, 
-  setActiveCategory, 
-  counts = {}, 
-  onRefresh, 
-  version, 
-  isKidsMode, 
-  setIsKidsMode, 
-  onShowLegal, 
-  onShowTvGuide,
-  masterTab = 'home',
-  setMasterTab,
-}) {
+export default function Sidebar({ categories = [], activeCategory, setActiveCategory, counts = {}, onRefresh, version, isKidsMode, setIsKidsMode, onShowLegal, onShowTvGuide }) {
   const [copiedCode, setCopiedCode] = React.useState(false);
 
   const handleCopyCode = (e) => {
@@ -58,23 +45,12 @@ export default function Sidebar({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const getSectionTitle = () => {
-    switch (masterTab) {
-      case 'live': return '📺 Canales TV';
-      case 'movies': return '🎬 Cine VOD';
-      case 'series': return '🍿 Series VOD';
-      case 'favorites': return '⭐ Mi Espacio';
-      default: return 'Explorar';
-    }
-  };
-
   return (
     <aside className="hidden md:flex w-[64px] md:w-[220px] shrink-0 bg-[#090909] border-r border-white/[0.04] flex-col overflow-y-auto overflow-x-hidden custom-scrollbar z-30">
 
       {/* Section label - desktop only */}
-      <div className="hidden md:flex items-center justify-between px-5 py-3.5 border-b border-white/[0.03]">
-        <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.25em]">{getSectionTitle()}</span>
-        <span className="text-[8px] font-bold text-rose-500/80 uppercase px-1.5 py-0.5 bg-rose-500/10 rounded-md">XUPER</span>
+      <div className="hidden md:flex items-center px-5 py-4 border-b border-white/[0.03]">
+        <span className="text-[9px] font-black text-gray-700 uppercase tracking-[0.3em]">Navegar</span>
       </div>
 
       {/* Category list */}
