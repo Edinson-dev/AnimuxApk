@@ -30,6 +30,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [currentUrl, setCurrentUrl] = useState('');
   const [isPiP, setIsPiP] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [showSidePanel, setShowSidePanel] = useState(true);
   
   const [levels, setLevels] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(-1);
@@ -39,6 +40,16 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+
+  // ── Quick Zapping List (XuperTV style) ───────────────────────────────
+  const quickChannels = useMemo(() => {
+    if (!playlist || playlist.length <= 1) return [];
+    const idx = playlist.findIndex(p => String(p.id) === String(channel?.id));
+    if (idx === -1) return playlist.slice(0, 15);
+    const start = Math.max(0, idx - 4);
+    const end = Math.min(playlist.length, idx + 8);
+    return playlist.slice(start, end);
+  }, [playlist, channel]);
 
   // ── Audio & Subtitles State ──────────────────────────────────────────
   const [audioTracks, setAudioTracks] = useState([]);
@@ -77,6 +88,26 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         setSelectedSeason(channel.season);
       }
     }, [channel]);
+
+    // ── Keyboard Zapping (XuperTV Quick Switcher) ───────────────────────
+    useEffect(() => {
+      const handleKeyZapping = (e) => {
+        if (minimized) return;
+        if (e.target && ['input', 'textarea', 'select'].includes(e.target.tagName?.toLowerCase())) return;
+        
+        if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+          e.preventDefault();
+          const currIdx = playlist.findIndex(p => String(p.id) === String(channel?.id));
+          if (currIdx > 0) onPlayNext(playlist[currIdx - 1]);
+        } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+          e.preventDefault();
+          const currIdx = playlist.findIndex(p => String(p.id) === String(channel?.id));
+          if (currIdx >= 0 && currIdx < playlist.length - 1) onPlayNext(playlist[currIdx + 1]);
+        }
+      };
+      window.addEventListener('keydown', handleKeyZapping);
+      return () => window.removeEventListener('keydown', handleKeyZapping);
+    }, [channel, playlist, minimized, onPlayNext]);
 
     // ── PiP events ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -806,6 +837,22 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </button>
+              {/* Alternar lista lateral */}
+              {!isPodcast && (
+                <button
+                  onClick={() => setShowSidePanel(!showSidePanel)}
+                  title={showSidePanel ? "Ocultar panel lateral (Pantalla Completa)" : "Ver canales y programación"}
+                  className={`p-2.5 rounded-full border transition-all ${
+                    showSidePanel 
+                      ? 'bg-rose-600/20 border-rose-600/50 text-rose-400' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={async () => {
                   try {
@@ -1453,11 +1500,46 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                 </div>
               </div>
             )}
+            {/* Quick Zapping Bar estilo XuperTV (Zapping flotante al pasar el ratón o tocar) */}
+            {!isPodcast && quickChannels.length > 1 && (
+              <div className="absolute bottom-4 left-4 right-4 z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <div className="max-w-3xl mx-auto bg-black/85 backdrop-blur-2xl border border-white/15 p-2 rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.8)] pointer-events-auto flex items-center gap-2">
+                  <div className="flex items-center gap-1 text-[9px] font-black uppercase text-rose-500 tracking-wider shrink-0 px-2 border-r border-white/10">
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span className="hidden sm:inline">Zapping</span>
+                  </div>
+                  <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                    {quickChannels.map(ch => {
+                      const isCurr = String(ch.id) === String(channel?.id);
+                      return (
+                        <button
+                          key={ch.id}
+                          onClick={() => onPlayNext(ch)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all border ${
+                            isCurr 
+                              ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-600/40 font-black' 
+                              : 'bg-white/[0.04] border-white/10 text-gray-300 hover:bg-white/15 hover:text-white'
+                          }`}
+                        >
+                          <img 
+                            src={ch.logo || '/icon-512.png'} 
+                            className="w-4 h-4 object-contain" 
+                            alt="" 
+                            onError={(e) => { e.target.src = '/icon-512.png'; }} 
+                          />
+                          <span className="truncate max-w-[120px] text-[11px]">{ch.displayName || ch.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Side Panel - Vertical on Desktop, Horizontal on Mobile */}
-          {!minimized && (
-            <div className="w-full lg:w-[400px] bg-[#050505]/60 backdrop-blur-3xl border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-auto lg:h-full overflow-hidden z-20 relative">
+          {!minimized && showSidePanel && (
+            <div className="w-full lg:w-[400px] bg-[#050505]/60 backdrop-blur-3xl border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-auto lg:h-full overflow-hidden z-20 relative animate-fade-in">
               {/* Quick Info / Description (Visible only when not minimized) */}
               <div className="p-4 lg:p-6 border-b border-white/5">
                 <div className="flex items-center justify-between mb-4">
