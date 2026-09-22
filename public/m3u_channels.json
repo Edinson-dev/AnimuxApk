@@ -9,11 +9,18 @@
       "url": "http://181.78.8.199:8000/play/a0b0/index.m3u8"
     },
     {
-      "id": 761,
+      "id": 1,
       "name": "RCN Más (1080p)",
       "logo": "https://i.imgur.com/MJzuRAN.png",
       "category": "nacionales",
       "url": "https://rcntv-rcnmas-1-us.plex.wurl.tv/playlist.m3u8"
+    },
+    {
+      "id": 761,
+      "name": "RCN HD (1080p)",
+      "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz_JyQOvJGS4p3cRnV11ufs_bVdZAblVurSTpQY-lrPQ&s=10",
+      "category": "nacionales",
+      "url": "http://181.118.151.218:8000/play/a097/index.m3u8"
     },
     {
       "id": "m3u-win-hd",
@@ -21,7 +28,7 @@
       "displayName": "Win Sports HD",
       "logo": "https://static.wikia.nocookie.net/logopedia/images/0/0f/WinSports2024.svg/revision/latest/scale-to-width-down/1000?cb=20240729163241",
       "category": "Deportes",
-      "url": "http://181.78.8.199:8000/play/a06v/index.m3u8"
+      "url": "http://181.118.151.218:8000/play/a02u/index.m3u8"
     },
     {
       "id": "m3u-espn-1",
@@ -52,6 +59,30 @@
       "logo": "https://static.wikia.nocookie.net/logopedia/images/2/22/ESPN2_2006.svg/revision/latest/scale-to-width-down/1000?cb=20200105155601&path-prefix=es",
       "category": "Deportes",
       "url": "http://181.78.14.26:4000/play/a02p/index.m3u8"
+    },
+    {
+      "id": "m3u-espn-3",
+      "name": "ESPN 3 (Col)",
+      "displayName": "ESPN 3 (Col)",
+      "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaBGOQD5UUeqYHRfvF4Ze4xvhnS6vR9fdKbqz9_Mscfw&s=10",
+      "category": "Deportes",
+      "url": "http://181.118.151.218:8000/play/a0m2/index.m3u8"
+    },
+    {
+      "id": "m3u-espn-PREMIUM",
+      "name": "ESPN PREMIUM",
+      "displayName": "ESPN PREMIUM",
+      "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_nQaqZ-sPZKnPPR7Bxa27bq972nX8C1HmiUvQRjDRqA&s=10",
+      "category": "Deportes",
+      "url": "http://190.60.39.220:8000/play/a06q/index.m3u8"
+    },
+    {
+      "id": "m3u-win-hd+",
+      "name": "Win Sports HD +",
+      "displayName": "Win Sports HD+",
+      "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSeCnv_W4KroXB8JOT8M-VyhbtD656dQOxrvFdTF19MuA&s=10",
+      "category": "Deportes",
+      "url": "http://181.118.151.218:8000/play/a07a/index.m3u8"
     }
   ]
 }

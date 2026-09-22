@@ -51,22 +51,36 @@ app.post('/api/refresh', async (req, res) => {
     }
 });
 
-// 3. Proxy para saltar bloqueos de Mixed Content (HTTP en HTTPS)
-app.get('/api/proxy', async (req, res) => {
+// 3. Proxy para saltar bloqueos de Mixed Content (HTTP en HTTPS) y soporte Relay
+app.get(['/api/proxy', '/proxy'], async (req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('URL requerida');
 
     let streamRequest;
     try {
         const urlObj = new URL(targetUrl);
+        const headers = {
+            'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18',
+            'Accept': '*/*'
+        };
+
+        const targetLower = targetUrl.toLowerCase();
+        if (targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org') || targetLower.includes('vivolatamz.org')) {
+            headers['Referer'] = 'https://futbol-libres.su/';
+            headers['Origin'] = 'https://futbol-libres.su/';
+        } else {
+            headers['Referer'] = urlObj.origin;
+        }
+
+        if (req.headers.range) {
+            headers['Range'] = req.headers.range;
+        }
+
         streamRequest = await axios({
             method: 'get',
             url: targetUrl,
             responseType: 'stream',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': urlObj.origin
-            },
+            headers: headers,
             timeout: 15000
         });
 

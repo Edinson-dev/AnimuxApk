@@ -29,10 +29,14 @@ export async function onRequest(context) {
     // ── Servidores de Relevo (Render con IP Colombiana) ──
     const RELAY_SERVERS = [
       'https://animux-relay-w3of.onrender.com',
-    
     ];
-    const BLOCKED_IPS = ['181.78.', '181.114.'];
-    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip)) || targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org') || targetLower.includes('vivolatamz.org');
+    // Bloqueo de Cloudflare en rangos de IPs colombianas (181.x, 190.x) o dominios protegidos
+    const BLOCKED_IPS = ['181.', '190.'];
+    const needsRelay = BLOCKED_IPS.some(ip => target.includes(ip)) || 
+                       /:\d{4,5}\/play\//.test(target) ||
+                       targetLower.includes('fubo18.com') || 
+                       targetLower.includes('latamvidzfy.org') || 
+                       targetLower.includes('vivolatamz.org');
 
     // Timeout 12s — evita que Cloudflare se cuelgue con IPs inaccesibles
     const controller = new AbortController();
@@ -55,35 +59,46 @@ export async function onRequest(context) {
       const rangeHeader = request.headers.get('Range');
       if (rangeHeader) fetchHeaders['Range'] = rangeHeader;
 
-      if (needsRelay) {
-        // Intenta con los servidores de la lista uno por uno (SALTO AUTOMÁTICO)
+      const fetchViaRelay = async () => {
         for (let i = 0; i < RELAY_SERVERS.length; i++) {
           const relay = RELAY_SERVERS[i];
           try {
             const fetchUrl = `${relay}/proxy?url=${encodeURIComponent(target)}`;
-            response = await fetch(fetchUrl, {
+            const res = await fetch(fetchUrl, {
               headers: fetchHeaders,
               redirect: 'follow',
               signal: controller.signal
             });
-            
-            // Si la respuesta es exitosa (200-299), salimos del bucle
-            if (response.ok) break;
-            
-            // Si es el último servidor y falló, nos quedamos con esta respuesta aunque sea error
-            if (i === RELAY_SERVERS.length - 1) break;
+            if (res.ok || i === RELAY_SERVERS.length - 1) return res;
           } catch (e) {
             if (i === RELAY_SERVERS.length - 1) throw e;
-            // Si no es el último, ignoramos el error e intentamos el siguiente
           }
         }
+      };
+
+      if (needsRelay) {
+        response = await fetchViaRelay();
       } else {
-        // Petición directa si no necesita Relay
-        response = await fetch(target, {
-          headers: fetchHeaders,
-          redirect: 'follow',
-          signal: controller.signal
-        });
+        try {
+          // Petición directa si no necesita Relay
+          response = await fetch(target, {
+            headers: fetchHeaders,
+            redirect: 'follow',
+            signal: controller.signal
+          });
+          // Si el servidor IPTV bloquea a Cloudflare (403 Forbidden o 401 Unauthorized), reintentar automáticamente con Relay
+          if ((response.status === 403 || response.status === 401 || response.status === 502) && RELAY_SERVERS.length > 0) {
+            console.warn(`[Proxy] Direct fetch retornó ${response.status}. Reintentando mediante Relay...`);
+            response = await fetchViaRelay();
+          }
+        } catch (err) {
+          if (RELAY_SERVERS.length > 0) {
+            console.warn(`[Proxy] Direct fetch falló (${err.message}). Reintentando mediante Relay...`);
+            response = await fetchViaRelay();
+          } else {
+            throw err;
+          }
+        }
       }
     } finally {
       clearTimeout(timeoutId);

@@ -31,11 +31,31 @@ export default async function handler(req, res) {
       fetchHeaders['Origin'] = 'https://futbol-libres.su/';
     }
 
-    const response = await fetch(target, {
-      method: 'GET',
-      headers: fetchHeaders,
-      redirect: 'follow'
-    });
+    const needsRelay = target.includes('181.') || target.includes('190.') || /:\d{4,5}\/play\//.test(target) ||
+                       targetLower.includes('fubo18.com') || targetLower.includes('latamvidzfy.org') || targetLower.includes('vivolatamz.org');
+    const RELAY_URL = 'https://animux-relay-w3of.onrender.com';
+
+    let response;
+    if (needsRelay) {
+      response = await fetch(`${RELAY_URL}/proxy?url=${encodeURIComponent(target)}`, {
+        method: 'GET',
+        headers: fetchHeaders,
+        redirect: 'follow'
+      });
+    } else {
+      response = await fetch(target, {
+        method: 'GET',
+        headers: fetchHeaders,
+        redirect: 'follow'
+      });
+      if (response.status === 403 || response.status === 401) {
+        response = await fetch(`${RELAY_URL}/proxy?url=${encodeURIComponent(target)}`, {
+          method: 'GET',
+          headers: fetchHeaders,
+          redirect: 'follow'
+        });
+      }
+    }
 
     const contentType = response.headers.get('content-type') || '';
     res.setHeader('Content-Type', contentType);

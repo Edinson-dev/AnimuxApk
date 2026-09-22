@@ -34,6 +34,7 @@ import DonateModal from './components/ui/DonateModal';
 import { sendTelegramMessage } from './config/telegram';
 import { translateCat, matchesCat } from './utils/categories';
 import { matchesYear, matchesGenre, applySorting } from './utils/filters';
+import SplashScreen from './components/ui/SplashScreen';
 import { version } from '../package.json';
 
 const APP_VERSION = version;
@@ -59,6 +60,7 @@ export default function App() {
   const [showPreroll, setShowPreroll] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [brokenChannels, setBrokenChannels] = useState(() => JSON.parse(localStorage.getItem('animux_broken') || '[]'));
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -395,61 +397,16 @@ export default function App() {
     };
   }, [activeChannel, selectedDetail, activeCategory]);
 
-  if (isAppLoading) {
-    return (
-      <div className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center font-sans overflow-hidden">
-        {/* Lightweight ambient glow (no animate-pulse, no blur-[120px]) */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-[20%] left-[30%] w-[40%] h-[40%] bg-rose-600/8 rounded-full blur-[80px]" />
-        </div>
-
-        <div className="relative z-10 flex flex-col items-center gap-10">
-          {/* Logo */}
-          <div className="relative scale-110">
-            <div className="absolute inset-0 bg-rose-600 rounded-full blur-[30px] opacity-15" />
-            <div className="relative w-24 h-24 md:w-32 md:h-32 p-4 bg-white/5 rounded-[2rem] border border-white/10 shadow-2xl flex items-center justify-center transform animate-float">
-              <img
-                src="/icon-192.png"
-                alt="Animux Logo"
-                className="w-full h-full object-contain filter drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]"
-              />
-            </div>
-          </div>
-
-          {/* Titulo Cinematográfico */}
-          <div className="text-center space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 tracking-[-0.05em] uppercase animate-letter-spacing">
-                ANIMUX
-              </h1>
-              <div className="flex items-center justify-center gap-3 opacity-0 animate-fade-in animation-delay-500">
-                <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-rose-600" />
-                <p className="text-[10px] md:text-xs text-rose-500 font-black uppercase tracking-[0.5em]">
-                  Premium Streaming
-                </p>
-                <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-rose-600" />
-              </div>
-            </div>
-
-            {/* Loader sencillo */}
-            <div className="w-10 h-10 border-3 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto shadow-lg shadow-rose-600/20" />
-          </div>
-        </div>
-
-        {/* Footer Info */}
-        <div className="absolute bottom-10 text-center space-y-2 opacity-30 animate-fade-in animation-delay-700">
-          <p className="text-[9px] font-black text-white uppercase tracking-[0.3em]">
-            V{APP_VERSION} • Sistema Verificado
-          </p>
-          <div className="w-1 h-1 bg-rose-600 rounded-full mx-auto animate-ping" />
-        </div>
-      </div>
-    );
-  }
-
-
   return (
     <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
+      {/* SplashScreen Cinemático con Desvanecimiento Suave (Fade Out) */}
+      {showSplash && (
+        <SplashScreen 
+          isLoading={isAppLoading} 
+          appVersion={APP_VERSION} 
+          onFinish={() => setShowSplash(false)} 
+        />
+      )}
       <Helmet defaultTitle="Animux - Streaming Premium" titleTemplate="%s">
         <title>{seoData.title}</title>
         <meta name="description" content={seoData.description} />
