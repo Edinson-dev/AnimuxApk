@@ -4,6 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand-50: 255 241 242;
+  --brand-100: 255 228 230;
+  --brand-200: 254 205 211;
+  --brand-300: 253 164 175;
+  --brand-400: 251 113 133;
+  --brand-500: 244 63 94;
+  --brand-600: 225 29 72;
+  --brand-700: 190 18 60;
+  --brand-800: 159 18 57;
+  --brand-900: 136 19 55;
+  --brand-950: 76 5 25;
+  --accent-primary: #e11d48;
+  --accent-glow: rgba(225, 29, 72, 0.45);
+}
+
 @layer base {
   body {
     @apply bg-[#000000] text-white overflow-hidden selection:bg-rose-600/30;
@@ -161,6 +177,16 @@ main {
   animation: fade-in 0.5s ease-out forwards;
 }
 
+@keyframes player-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.animate-player-fade-out {
+  animation: player-fade-out 0.28s ease-in forwards;
+  pointer-events: none;
+}
+
 .animate-slide-up {
   animation: slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -185,8 +211,8 @@ main {
 }
 
 .top-10-badge {
-  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
-  box-shadow: 0 2px 10px rgba(225, 29, 72, 0.4);
+  background: linear-gradient(135deg, var(--accent-primary, #e11d48) 0%, rgb(var(--brand-800, 159 18 57)) 100%);
+  box-shadow: 0 2px 10px var(--accent-glow, rgba(225, 29, 72, 0.4));
 }
 
 @keyframes loading-bar {
@@ -411,6 +437,88 @@ main {
   100% { transform: scaleY(0.4); }
 }
 
+/* ── Podcast / Vinyl Player ───────────────────────────────────────── */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 25s linear infinite;
+}
+
+/* ── Hero Carousel Progress Bar ──────────────────────────────────── */
+@keyframes hero-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* ── Professional Video Controls ─────────────────────────────────── */
+
+/* Progress bar thumb styling */
+.video-seek-bar {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.video-seek-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(225, 29, 72, 0.5);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0;
+}
+.video-seek-bar:hover::-webkit-slider-thumb,
+.video-controls-visible .video-seek-bar::-webkit-slider-thumb {
+  opacity: 1;
+  transform: scale(1.2);
+}
+.video-seek-bar::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 9999px;
+}
+.video-seek-bar:hover::-webkit-slider-runnable-track {
+  height: 5px;
+}
+
+/* Volume slider */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.1s;
+}
+.volume-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.3);
+}
+.volume-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 9999px;
+}
+
+/* Double-tap seek flash animation */
+@keyframes seek-flash {
+  0%   { opacity: 0.8; transform: scale(1); }
+  50%  { opacity: 0.6; transform: scale(1.1); }
+  100% { opacity: 0;   transform: scale(1.2); }
+}
+.seek-flash {
+  animation: seek-flash 0.4s ease-out forwards;
+}
+
 /* ── Reduce motion: apagar animaciones decorativas ───────────────── */
 @media (prefers-reduced-motion: reduce) {
   .stagger-grid > * {
@@ -419,7 +527,124 @@ main {
   .heart-burst,
   .animate-view-enter,
   .progress-glow,
-  .count-pop {
+  .count-pop,
+  .animate-spin-slow {
     animation: none !important;
   }
 }
+
+/* ── Smart TV (10-Foot UI) & D-Pad Remote Focus ──────────────────── */
+html.tv-mode {
+  font-size: 17px;
+  cursor: none !important;
+}
+
+html.tv-mode button:focus,
+html.tv-mode [tabindex="0"]:focus,
+html.tv-mode a:focus {
+  outline: 3.5px solid var(--accent-primary, #e11d48) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 30px var(--accent-glow, rgba(225, 29, 72, 0.7)), 0 10px 40px rgba(0, 0, 0, 0.9) !important;
+  transform: scale(1.05) !important;
+  z-index: 50 !important;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, outline 0.2s ease !important;
+}
+
+html.tv-mode main {
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+}
+
+/* Mobile viewport notch & dynamic island safe area */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: min(0vmin, env(safe-area-inset-left));
+    padding-right: min(0vmin, env(safe-area-inset-right));
+  }
+}
+
+/* ── Dynamic Real-Time Theme Engine Overrides ───────────────────── */
+.bg-rose-600,
+.bg-rose-700,
+.hover\:bg-rose-600:hover,
+.hover\:bg-rose-500:hover {
+  background-color: var(--accent-primary, #e11d48) !important;
+}
+
+.bg-rose-600\/10, .bg-rose-500\/10 {
+  background-color: rgba(var(--brand-600, 225 29 72), 0.1) !important;
+}
+.bg-rose-600\/15, .bg-rose-500\/15 {
+  background-color: rgba(var(--brand-600, 225 29 72), 0.15) !important;
+}
+.bg-rose-600\/20, .bg-rose-500\/20 {
+  background-color: rgba(var(--brand-600, 225 29 72), 0.2) !important;
+}
+.bg-rose-600\/30, .bg-rose-500\/30 {
+  background-color: rgba(var(--brand-600, 225 29 72), 0.3) !important;
+}
+.bg-rose-600\/5, .bg-rose-500\/5 {
+  background-color: rgba(var(--brand-600, 225 29 72), 0.05) !important;
+}
+
+.text-rose-500,
+.text-rose-400,
+.text-rose-600,
+.text-rose-300,
+.hover\:text-rose-500:hover,
+.hover\:text-rose-400:hover {
+  color: var(--accent-primary, #e11d48) !important;
+}
+
+.border-rose-500,
+.border-rose-600,
+.hover\:border-rose-600:hover,
+.hover\:border-rose-500:hover {
+  border-color: var(--accent-primary, #e11d48) !important;
+}
+
+.border-rose-600\/10, .border-rose-500\/10 {
+  border-color: rgba(var(--brand-600, 225 29 72), 0.1) !important;
+}
+.border-rose-600\/20, .border-rose-500\/20 {
+  border-color: rgba(var(--brand-600, 225 29 72), 0.2) !important;
+}
+.border-rose-600\/30, .border-rose-500\/30 {
+  border-color: rgba(var(--brand-600, 225 29 72), 0.3) !important;
+}
+.border-rose-600\/50, .border-rose-500\/50,
+.focus\:border-rose-600:focus, .focus\:border-rose-500:focus {
+  border-color: var(--accent-primary, #e11d48) !important;
+}
+
+.shadow-rose-600\/20,
+.shadow-rose-600\/30,
+.shadow-rose-600\/40,
+.shadow-rose-500\/20 {
+  box-shadow: 0 10px 30px var(--accent-glow, rgba(225, 29, 72, 0.45)) !important;
+}
+
+.from-rose-500\/20, .from-rose-600\/20 {
+  --tw-gradient-from: rgba(var(--brand-600, 225 29 72), 0.25) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(var(--brand-600, 225 29 72), 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.from-rose-600 {
+  --tw-gradient-from: var(--accent-primary, #e11d48) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(var(--brand-600, 225 29 72), 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.to-rose-700, .to-rose-600 {
+  --tw-gradient-to: rgb(var(--brand-800, 159 18 57)) var(--tw-gradient-to-position) !important;
+}
+
+.to-rose-600\/5, .to-rose-500\/5 {
+  --tw-gradient-to: rgba(var(--brand-600, 225 29 72), 0.05) var(--tw-gradient-to-position) !important;
+}
+
+.accent-rose-600 {
+  accent-color: var(--accent-primary, #e11d48) !important;
+}
+

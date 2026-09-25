@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -164,13 +164,44 @@ export default defineConfig({
         target: 'https://animux-relay-w3of.onrender.com',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path.replace(/^\/api\/proxy/, '/proxy')
+        rewrite: (path) => path.replace(/^\/api\/proxy/, '/proxy'),
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Proxy unavailable', message: err.message }));
+            }
+          });
+        }
+      },
+      '/proxy': {
+        target: 'https://animux-relay-w3of.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Proxy unavailable', message: err.message }));
+            }
+          });
+        }
       },
       '/api': {
-        target: 'http://127.0.0.1:5000',
+        target: 'https://animux-relay-w3of.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Proxy unavailable', message: err.message }));
+            }
+          });
+        }
       }
     }
   }
 })
+
+

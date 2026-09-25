@@ -18,6 +18,7 @@ export default function FilterControls({
 
   const isFiltered = selectedYear !== 'all' || selectedGenre !== 'all' || selectedPopularity !== 'default';
 
+
   const activeFiltersCount = [
     selectedYear !== 'all',
     selectedGenre !== 'all',
@@ -129,7 +130,51 @@ export default function FilterControls({
 
   return (
     <div ref={containerRef} className={`w-full space-y-2.5 relative z-40 overflow-visible ${className}`}>
-      {/* Main Filter Bar */}
+
+      {/* Active Filter Chips — dismissible pills showing active filters */}
+      {isFiltered && (
+        <div className="flex items-center gap-2 flex-wrap px-0.5 pb-0.5 animate-slide-up">
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-1 shrink-0">
+            <span className="w-1 h-1 bg-rose-500 rounded-full" />
+            Activos:
+          </span>
+
+          {selectedGenre !== 'all' && (
+            <button
+              onClick={() => setSelectedGenre('all')}
+              className="flex items-center gap-1.5 pl-2.5 pr-2 py-1 bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 rounded-full text-[10px] font-black text-rose-300 transition-all group/chip"
+            >
+              <Film className="w-2.5 h-2.5 opacity-70" />
+              {getGenreLabel()}
+              <X className="w-2.5 h-2.5 opacity-50 group-hover/chip:opacity-100 transition-opacity" />
+            </button>
+          )}
+
+          {selectedYear !== 'all' && (
+            <button
+              onClick={() => setSelectedYear('all')}
+              className="flex items-center gap-1.5 pl-2.5 pr-2 py-1 bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 rounded-full text-[10px] font-black text-rose-300 transition-all group/chip"
+            >
+              <Calendar className="w-2.5 h-2.5 opacity-70" />
+              {getYearLabel()}
+              <X className="w-2.5 h-2.5 opacity-50 group-hover/chip:opacity-100 transition-opacity" />
+            </button>
+          )}
+
+          {selectedPopularity !== 'default' && (
+            <button
+              onClick={() => setSelectedPopularity('default')}
+              className="flex items-center gap-1.5 pl-2.5 pr-2 py-1 bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 rounded-full text-[10px] font-black text-rose-300 transition-all group/chip"
+            >
+              <TrendingUp className="w-2.5 h-2.5 opacity-70" />
+              {getPopularityLabel()}
+              <X className="w-2.5 h-2.5 opacity-50 group-hover/chip:opacity-100 transition-opacity" />
+            </button>
+          )}
+        </div>
+      )}
+
+
       <div className="p-2 md:p-3 bg-[#0d0d10] border border-white/10 rounded-2xl shadow-xl relative z-30 overflow-visible">
         <div className="flex items-center justify-between gap-2 overflow-x-auto md:overflow-visible no-scrollbar">
           

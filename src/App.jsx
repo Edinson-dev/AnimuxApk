@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { X, Scale, Shield, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import Header from './components/layout/Header';
@@ -34,6 +33,8 @@ import DonateModal from './components/ui/DonateModal';
 import { sendTelegramMessage } from './config/telegram';
 import { translateCat, matchesCat } from './utils/categories';
 import { matchesYear, matchesGenre, applySorting } from './utils/filters';
+import { initTvNavigation } from './utils/tvNavigation';
+import { getActiveTheme, applyTheme } from './utils/theme';
 import SplashScreen from './components/ui/SplashScreen';
 import { version } from '../package.json';
 
@@ -44,7 +45,7 @@ export default function App() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r) { r && setInterval(() => { r.update(); }, 60 * 1000); },
+    onRegistered(r) { r && setInterval(() => { try { r.update(); } catch(_) {} }, 60 * 1000); },
   });
 
   const [channelData, setChannelData] = useState({ channels: [] });
@@ -86,8 +87,8 @@ export default function App() {
         toast.success('Nueva actualización descargada en segundo plano.');
       } else {
         // Si están en el menú, recargamos automáticamente para aplicar la nueva versión.
-        toast.success('Versión más reciente detectada. Recargando...', { duration: 3000 });
-        setTimeout(() => updateServiceWorker(true), 3000);
+        toast.success('Versión más reciente detectada. Recargando...', { duration: 1500 });
+        setTimeout(() => updateServiceWorker(true), 1500);
       }
     }
   }, [needRefresh, activeChannel, updateServiceWorker]);
@@ -103,51 +104,93 @@ export default function App() {
   const [showDonate, setShowDonate] = useState(false);
 
   useEffect(() => {
+    applyTheme(getActiveTheme().id);
     loadData();
     const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); setShowInstall(true); };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Smart TV Spatial D-Pad navigation engine
+  useEffect(() => {
+    const cleanup = initTvNavigation({
+      onBack: () => {
+        if (activeChannel) {
+          setActiveChannel(null);
+          return true;
+        }
+        if (selectedDetail) {
+          setSelectedDetail(null);
+          return true;
+        }
+        if (showTvGuide || showLegal || showInstallGuide || showDonate || showAdmin || isSearchOpen) {
+          setShowTvGuide(false);
+          setShowLegal(false);
+          setShowInstallGuide(false);
+          setShowDonate(false);
+          setShowAdmin(false);
+          setIsSearchOpen(false);
+          return true;
+        }
+        if (activeCategory !== 'Inicio') {
+          setActiveCategory('Inicio');
+          return true;
+        }
+        return false;
+      }
+    });
+    return cleanup;
+  }, [activeChannel, selectedDetail, showTvGuide, showLegal, showInstallGuide, showDonate, showAdmin, isSearchOpen, activeCategory]);
+
   const loadData = async (force = false) => {
     try {
       const now = Date.now();
-      const lastFetch = localStorage.getItem('animux_last_fetch') || 0;
+      const lastFetch = Number(localStorage.getItem('animux_last_fetch')) || 0;
       const CACHE_TIME = 15 * 60 * 1000;
 
       const cachedCats = localStorage.getItem('animux_cache_cats');
       const cachedChans = localStorage.getItem('animux_cache_chans');
       const cachedMovs = localStorage.getItem('animux_cache_movs');
 
-      if (!force && cachedCats && cachedChans && cachedMovs && (now - lastFetch < CACHE_TIME)) {
-        setCloudCategories(JSON.parse(cachedCats));
-        setChannelData({ channels: JSON.parse(cachedChans) });
-        setLocalMovies(JSON.parse(cachedMovs));
+      if (!force && cachedCats && cachedChans && (now - lastFetch < CACHE_TIME)) {
+        try {
+          if (cachedCats) setCloudCategories(JSON.parse(cachedCats));
+          if (cachedChans) setChannelData({ channels: JSON.parse(cachedChans) });
+          if (cachedMovs) setLocalMovies(JSON.parse(cachedMovs));
+        } catch (e) {
+          console.warn('Error al restaurar caché local:', e);
+        }
 
-        // Splash rápido si hay caché — el usuario ya conoce la marca
-        setTimeout(() => setIsAppLoading(false), 1200);
+        setTimeout(() => setIsAppLoading(false), 800);
         return;
       }
 
-      // Solo mostramos el Splash si es la carga inicial (no forzada por botón)
       if (!force) setIsAppLoading(true);
 
+      // Wrapper con timeout para evitar bloqueos si Firestore o red tardan
+      const withTimeout = (promise, ms = 3500, fallback = null) => {
+        return Promise.race([
+          promise,
+          new Promise((resolve) => setTimeout(() => resolve(fallback), ms))
+        ]).catch(() => fallback);
+      };
+
       const [catSnapshot, chanSnapshot, movSnapshot, m3uRes, localRes] = await Promise.all([
-        getDocs(collection(db, 'categories')),
-        getDocs(collection(db, 'channels')),
-        getDocs(collection(db, 'movies')),
+        withTimeout(getDocs(collection(db, 'categories')), 3500, { docs: [] }),
+        withTimeout(getDocs(collection(db, 'channels')), 3500, { docs: [] }),
+        withTimeout(getDocs(collection(db, 'movies')), 3500, { docs: [] }),
         fetch('/m3u_channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] })),
         fetch('/channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] }))
       ]);
 
-      const cats = catSnapshot.docs.map(doc => doc.data().name);
-      const firebaseChans = chanSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
-      const firebaseMovs = movSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, fromCloud: true }));
+      const cats = (catSnapshot?.docs || []).map(doc => doc.data?.()?.name).filter(Boolean);
+      const firebaseChans = (chanSnapshot?.docs || []).map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
+      const firebaseMovs = (movSnapshot?.docs || []).map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, fromCloud: true }));
 
       const allChans = [
-        ...m3uRes.channels.map(c => ({ ...c, isExternal: true })),
+        ...(m3uRes?.channels || []).map(c => ({ ...c, isExternal: true })),
         ...firebaseChans,
-        ...localRes.channels.map(c => ({ ...c, isLocal: true }))
+        ...(localRes?.channels || []).map(c => ({ ...c, isLocal: true }))
       ];
 
       setCloudCategories(cats);
@@ -164,24 +207,35 @@ export default function App() {
 
     } catch (err) {
       console.error('Error loading app data:', err);
+      // Fallback a caché si existe
+      try {
+        const cachedCats = localStorage.getItem('animux_cache_cats');
+        const cachedChans = localStorage.getItem('animux_cache_chans');
+        const cachedMovs = localStorage.getItem('animux_cache_movs');
+        if (cachedCats) setCloudCategories(JSON.parse(cachedCats));
+        if (cachedChans) setChannelData({ channels: JSON.parse(cachedChans) });
+        if (cachedMovs) setLocalMovies(JSON.parse(cachedMovs));
+      } catch (_) {}
       toast.error('Error al sincronizar contenidos');
     }
     finally {
-      if (!force) {
-        // Splash breve — suficiente para apreciar la marca sin frustrar al usuario
-        setTimeout(() => setIsAppLoading(false), 1500);
-      }
+      // Garantizar que la app siempre desbloquee la pantalla inicial
+      setTimeout(() => setIsAppLoading(false), 800);
     }
   };
 
   const forceRefresh = () => loadData(true);
 
   const allCategories = useMemo(() => {
-    const baseCats = ['Cine (VOD)', 'Series (VOD)', 'Podcasts', 'Maratones 24/7', 'TV Abierta', 'Deportes', 'Documentales', 'Infantil', 'Música', 'Anime', 'Entretenimiento'];
+    const baseCats = [
+      'Cine (VOD)', 'Series (VOD)', 'Favoritos',
+      'Deportes', 'TV Abierta', 'Entretenimiento', 'Noticias', 'Infantil', 'Anime', 'Documentales', 'Música',
+      'Maratones 24/7', 'Podcasts'
+    ];
     const translatedCloud = cloudCategories.map(translateCat).filter(Boolean);
 
     // Solo agregar categorías de la nube que no estén ya en nuestras baseCats lógicas
-    const finalCats = new Set([...baseCats, 'Favoritos']);
+    const finalCats = new Set(baseCats);
     translatedCloud.forEach(cat => {
       const normalized = cat.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
       if (!normalized.includes('cine') && !normalized.includes('pelicula') && !normalized.includes('serie') && !normalized.includes('podcast')) {
@@ -397,6 +451,17 @@ export default function App() {
     };
   }, [activeChannel, selectedDetail, activeCategory]);
 
+  useEffect(() => {
+    if (seoData?.title) {
+      document.title = seoData.title;
+    }
+  }, [seoData?.title]);
+
+  // Cerrar el player: el Player mismo maneja el fade-out y el exitFullscreen via triggerClose
+  const handleClosePlayer = useCallback(() => {
+    setActiveChannel(null);
+  }, []);
+
   return (
     <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden w-full relative">
       {/* SplashScreen Cinemático con Desvanecimiento Suave (Fade Out) */}
@@ -407,23 +472,6 @@ export default function App() {
           onFinish={() => setShowSplash(false)} 
         />
       )}
-      <Helmet defaultTitle="Animux - Streaming Premium" titleTemplate="%s">
-        <title>{seoData.title}</title>
-        <meta name="description" content={seoData.description} />
-
-        {/* Open Graph / Facebook / WhatsApp */}
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={seoData.title} />
-        <meta property="og:description" content={seoData.description} />
-        <meta property="og:image" content={seoData.image} />
-        <meta property="og:url" content={seoData.url} />
-
-        {/* Twitter */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={seoData.title} />
-        <meta name="twitter:description" content={seoData.description} />
-        <meta name="twitter:image" content={seoData.image} />
-      </Helmet>
 
       {/* Adsterra Social Bar (Notificación flotante pequeña y cerrable) */}
       <AdsterraSocialBar />
@@ -470,12 +518,7 @@ export default function App() {
         onShowTvGuide={() => setShowTvGuide(true)}
       />
 
-      <CategoryBar
-        categories={allCategories} activeCategory={activeCategory}
-        setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
-      />
-
-      <div className="flex flex-1 overflow-hidden pt-[52px] md:pt-0">
+      <div className="flex flex-1 overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top,0px))] md:pt-16">
         <Sidebar
           categories={['Inicio', ...allCategories]} activeCategory={activeCategory}
           setActiveCategory={setActiveCategory} counts={categoryCounts} version={APP_VERSION}
@@ -484,8 +527,15 @@ export default function App() {
           onShowTvGuide={() => setShowTvGuide(true)}
         />
 
-        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-transparent pt-3 md:pt-16 pb-36 md:pb-12 safe-area-bottom z-10 relative scroll-smooth">
-          <div className="max-w-[1800px] mx-auto px-3.5 sm:px-6 md:px-8 py-3 md:py-6 space-y-6 md:space-y-8">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          <CategoryBar
+            categories={allCategories} activeCategory={activeCategory}
+            setActiveCategory={(cat) => { setActiveCategory(cat); setSearchQuery(''); }}
+            onRefresh={forceRefresh}
+          />
+
+          <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-transparent px-3.5 sm:px-6 md:px-8 py-3.5 md:py-6 pb-32 md:pb-12 safe-area-bottom z-10 relative scroll-smooth">
+            <div className="max-w-[1800px] mx-auto space-y-5 md:space-y-8">
 
             {activeCategory === 'Inicio' && !searchQuery && !isCustomFiltering ? (
               <div className="space-y-6 md:space-y-8 animate-fade-in">
@@ -800,6 +850,7 @@ export default function App() {
             </footer>
           </div>
         </main>
+        </div>
       </div>
 
       <BottomNav activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSearchOpen={() => setIsSearchOpen(true)} />
@@ -810,12 +861,20 @@ export default function App() {
           playlist={allUnique}
           onPlayNext={(c) => setActiveChannel(c)}
           onReportBroken={handleReportBroken}
-          onClose={() => setActiveChannel(null)}
+          onClose={handleClosePlayer}
           isFavorite={favorites.includes(String(activeChannel.id))}
           onToggleFavorite={() => handleToggleFavorite(activeChannel.id)}
         />
       )}
-      {selectedDetail && <DetailsModal channel={selectedDetail} onClose={() => setSelectedDetail(null)} onPlay={setActiveChannel} isFavorite={favorites.includes(String(selectedDetail.id))} />}
+      {selectedDetail && (
+        <DetailsModal 
+          channel={selectedDetail} 
+          onClose={() => setSelectedDetail(null)} 
+          onPlay={setActiveChannel} 
+          isFavorite={favorites.includes(String(selectedDetail.id))}
+          allChannels={allUnique}
+        />
+      )}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onUpdate={loadData} />}
       {showLegal && <LegalModal onClose={() => setShowLegal(false)} />}
       {showTvGuide && <TvGuideModal onClose={() => setShowTvGuide(false)} />}

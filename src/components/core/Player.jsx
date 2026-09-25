@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import Hls from 'hls.js';
 import { 
   X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, 
   Calendar, Clock, Heart, Search, Languages, Subtitles, Upload, 
-  Check, Trash2, Plus, Minus 
+  Check, Trash2, Plus, Minus, Cast 
 } from 'lucide-react';
 import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
 import { sendAdminAlert } from '../../config/telegram';
 import ContentLoader from '../ui/ContentLoader';
 import { convertSrtToVtt, createSubBlobUrl } from '../../utils/subtitles';
+import { triggerCasting, checkCastSupport } from '../../utils/cast';
+import VideoControls, { EQ_DURATIONS } from '../player/VideoControls';
 
 const formatTime = (secs) => {
   if (isNaN(secs) || secs === null) return '0:00';
@@ -30,6 +32,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [currentUrl, setCurrentUrl] = useState('');
   const [isPiP, setIsPiP] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   
   const [levels, setLevels] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(-1);
@@ -39,8 +42,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-
-  // ── Audio & Subtitles State ──────────────────────────────────────────
+  const [sidebarFilter, setSidebarFilter] = useState('');
+  const [selectedSeason, setSelectedSeason] = useState(channel?.season || 1);
+  // â”€â”€ Audio & Subtitles State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [audioTracks, setAudioTracks] = useState([]);
   const [selectedAudioTrack, setSelectedAudioTrack] = useState(-1);
   const [subtitleTracks, setSubtitleTracks] = useState([]);
@@ -52,443 +56,82 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [subColor, setSubColor] = useState('white'); // 'white' | 'yellow' | 'cyan' | 'green'
   const [subSize, setSubSize] = useState('medium'); // 'small' | 'medium' | 'large'
 
-  // ── Playback Progress State ──────────────────────────────────────────
+  // â”€â”€ Playback Progress State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedTime, setSavedTime] = useState(0);
 
-    // ── Season Management ──────────────────────────────────────────────────
-    const [selectedSeason, setSelectedSeason] = useState(1);
-    const [sidebarFilter, setSidebarFilter] = useState('');
+  const isPodcast = channel?.category === 'PODCASTS' || channel?.category === 'RADIO' || channel?.isPodcast;
+  const getYouTubeId = (url) => { if (!url) return null; const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/); return match ? match[1] : null; };
+  const getDriveId = (url) => { if (!url) return null; const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/); return match ? match[1] : null; };
+  const isYouTube = currentUrl ? (currentUrl.includes('youtube.com') || currentUrl.includes('youtu.be')) : false;
+  const isDrive = currentUrl ? currentUrl.includes('drive.google.com') : false;
+  const isEmbed = isYouTube || isDrive || (currentUrl ? (currentUrl.includes('iframe') || currentUrl.includes('embed')) : false) || Boolean(channel?.isEmbed);
 
-    const availableSeasons = useMemo(() => {
-      if (!channel || !channel.groupId || !channel.isVOD) return [];
-      const seasons = new Set();
-      playlist
-        .filter(item => item && item.groupId === channel.groupId)
-        .forEach(item => {
-          seasons.add(item.season || 1);
-        });
-      return Array.from(seasons).sort((a, b) => a - b);
-    }, [channel, playlist]);
+  const safePlay = () => { if (videoRef.current) { const p = videoRef.current.play(); if (p !== undefined) { p.catch(e => { console.warn('Autoplay prevented', e); setIsPlaying(false); }); } } };
 
-    // Update selectedSeason when channel changes
-    useEffect(() => {
-      if (channel && channel.season) {
-        setSelectedSeason(channel.season);
-      }
-    }, [channel]);
 
-    // ── PiP events ────────────────────────────────────────────────────────
-    useEffect(() => {
-      const onEnter = () => setIsPiP(true);
-      const onLeave = () => setIsPiP(false);
-      document.addEventListener('enterpictureinpicture', onEnter);
-      document.addEventListener('leavepictureinpicture', onLeave);
-      return () => {
-        document.removeEventListener('enterpictureinpicture', onEnter);
-        document.removeEventListener('leavepictureinpicture', onLeave);
-      };
-    }, []);
-
-    // ── MediaSession API ──────────────────────────────────────────────────
-    useEffect(() => {
-      if (!channel || !('mediaSession' in navigator)) return;
-      try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: channel.displayName || channel.name || 'Animux',
-          artist: channel.category || 'Animux Streaming',
-          album: 'Animux',
-          artwork: [
-            { src: channel.logo || '/icon-512.png', sizes: '256x256', type: 'image/jpeg' },
-            { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-          ],
-        });
-        const vid = videoRef.current;
-        navigator.mediaSession.setActionHandler('play', () => { vid?.play(); navigator.mediaSession.playbackState = 'playing'; });
-        navigator.mediaSession.setActionHandler('pause', () => { vid?.pause(); navigator.mediaSession.playbackState = 'paused'; });
-        navigator.mediaSession.setActionHandler('stop', () => onClose());
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-          const idx = playlist.findIndex(p => String(p.id) === String(channel.id));
-          if (idx >= 0 && idx < playlist.length - 1) onPlayNext(playlist[idx + 1]);
-        });
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-          const idx = playlist.findIndex(p => String(p.id) === String(channel.id));
-          if (idx > 0) onPlayNext(playlist[idx - 1]);
-        });
-      } catch (e) {}
-      return () => {
-        try {
-          navigator.mediaSession.metadata = null;
-          ['play', 'pause', 'stop', 'nexttrack', 'previoustrack'].forEach(a => {
-            try { navigator.mediaSession.setActionHandler(a, null); } catch (_) {}
-          });
-        } catch (_) {}
-      };
-    }, [channel, playlist]);
-
-    // ── Helpers ───────────────────────────────────────────────────────────
-    const getYouTubeId = (url = '') => {
-      const match = String(url).match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-      return (match && match[2].length === 11) ? match[2] : null;
-    };
-
-    const getDriveId = (url = '') => {
-      const match = String(url).match(/\/d\/(.+?)\/(view|edit|preview)?/);
-      return match ? match[1] : null;
-    };
-
-    const isYouTube = !!getYouTubeId(currentUrl);
-    const isDrive = !!getDriveId(currentUrl);
-    const isArchive = currentUrl.includes('archive.org');
-
-    const isEmbed = useMemo(() => {
-      const url = String(currentUrl || '').toLowerCase();
-      // YouTube y Drive siempre son embeds
-      if (isYouTube || isDrive) return true;
-      
-      // Archive.org solo es embed si NO es un archivo directo de video
-      if (isArchive) {
-        const isDirect = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3', '.m4a'].some(ext => url.includes(ext));
-        if (!isDirect) return true;
-      }
-      
-      // Si el canal está explícitamente marcado como embed
-      if (channel && channel.isEmbed) return true;
-
-      // Si es un archivo directo de video o HLS stream, NUNCA es embed
-      const isDirectFile = ['.m3u8', '.mp4', '.mkv', '.ts', '.mp3', '.m4a', 'm3u'].some(ext => url.includes(ext));
-      if (isDirectFile) return false;
-
-      const embedKeywords = ['/embed/', 'player.php', 'cuevana', 'embed.html', '/iframe/'];
-      const hasKeyword = embedKeywords.some(kw => url.includes(kw));
-      
-      return hasKeyword;
-    }, [currentUrl, isYouTube, isDrive, isArchive, channel]);
-
-    const isPodcast = useMemo(() => {
-      if (!channel) return false;
-      const urlLower = String(currentUrl || '').toLowerCase();
-      return Boolean(
-        channel.isPodcast || 
-        channel.category === 'Podcasts' || 
-        channel.category === 'podcast' || 
-        (typeof channel.category === 'string' && channel.category.toLowerCase().includes('podcast')) ||
-        channel.type === 'podcast' ||
-        urlLower.includes('.mp3') ||
-        urlLower.includes('.m4a') ||
-        urlLower.includes('anchor.fm') ||
-        urlLower.includes('/podcast/')
-      );
-    }, [channel, currentUrl]);
-
-    // ── Sidebar Episodes filtering and sorting (Spotify/TV isolated) ───────
-    const sidebarEpisodes = useMemo(() => {
-      if (!channel) return [];
-      
-      let baseList = [];
-      
-      if (isPodcast) {
-        // Filter out only podcast items
-        const allPodcasts = playlist.filter(item => 
-          item.isPodcast || 
-          item.category === 'Podcasts' || 
-          item.category === 'podcast'
-        );
-        
-        if (channel.groupId) {
-          baseList = allPodcasts.filter(item => item.groupId === channel.groupId);
-        } else if (channel.author) {
-          baseList = allPodcasts.filter(item => item.author === channel.author);
-        } else {
-          const prefix = (channel.name || channel.title || '').split(' - ')[0]?.trim();
-          if (prefix) {
-            baseList = allPodcasts.filter(item => {
-              const itemPrefix = (item.name || item.title || '').split(' - ')[0]?.trim();
-              return itemPrefix && itemPrefix.toLowerCase() === prefix.toLowerCase();
-            });
-          } else {
-            baseList = allPodcasts;
-          }
-        }
-      } else {
-        if (!channel.groupId || !channel.isVOD) return [];
-        baseList = playlist.filter(item => item.groupId === channel.groupId);
-        baseList = baseList.filter(item => (item.season || 1) === selectedSeason);
-      }
-      
-      // Apply sidebar filter if active
-      if (sidebarFilter.trim()) {
-        const q = sidebarFilter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        baseList = baseList.filter(item => {
-          const name = (item.name || item.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          const desc = (item.description || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          return name.includes(q) || desc.includes(q);
-        });
-      }
-      
-      // Sort episodes naturally by name/title
-      return baseList.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
-    }, [channel, playlist, isPodcast, selectedSeason, sidebarFilter]);
-
-    // ── Audio & Subtitles Handlers ───────────────────────────────────────
-    const handleFileUpload = (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const rawText = event.target.result;
-        const isSrt = file.name.toLowerCase().endsWith('.srt');
-        if (externalSubtitle?.blobUrl) {
-          URL.revokeObjectURL(externalSubtitle.blobUrl);
-        }
-        const blobUrl = createSubBlobUrl(rawText, isSrt, subOffset);
-        setExternalSubtitle({
-          name: file.name,
-          rawText,
-          isSrt,
-          blobUrl
-        });
-        setSelectedSubtitleTrack('external');
-        if (hlsRef.current) {
-          hlsRef.current.subtitleTrack = -1;
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    };
-
-    const handleOffsetChange = (delta) => {
-      const newOffset = Math.round((subOffset + delta) * 10) / 10;
-      setSubOffset(newOffset);
-      if (externalSubtitle && externalSubtitle.rawText) {
-        if (externalSubtitle.blobUrl) {
-          URL.revokeObjectURL(externalSubtitle.blobUrl);
-        }
-        const newBlobUrl = createSubBlobUrl(externalSubtitle.rawText, externalSubtitle.isSrt, newOffset);
-        setExternalSubtitle(prev => ({ ...prev, blobUrl: newBlobUrl }));
-      }
-    };
-
-    const handleRemoveExternalSub = () => {
-      if (externalSubtitle?.blobUrl) {
-        URL.revokeObjectURL(externalSubtitle.blobUrl);
-      }
-      setExternalSubtitle(null);
-      setSelectedSubtitleTrack(-1);
-      setSubOffset(0);
-    };
-
-    const handleSelectAudioTrack = (trackId) => {
-      setSelectedAudioTrack(trackId);
-      if (hlsRef.current) {
-        hlsRef.current.audioTrack = trackId;
-      }
-    };
-
-    const handleSelectSubtitleTrack = (trackId) => {
-      setSelectedSubtitleTrack(trackId);
-      if (trackId === 'external') {
-        if (hlsRef.current) {
-          hlsRef.current.subtitleTrack = -1;
-        }
-      } else if (typeof trackId === 'number') {
-        if (hlsRef.current) {
-          hlsRef.current.subtitleTrack = trackId;
-          hlsRef.current.subtitleDisplay = trackId !== -1;
-        }
-      }
-    };
-
-    // Sync active text tracks in HTML5 video
-    useEffect(() => {
-      if (videoRef.current && videoRef.current.textTracks) {
-        for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-          const track = videoRef.current.textTracks[i];
-          if (selectedSubtitleTrack === 'external') {
-            track.mode = 'showing';
-          } else if (selectedSubtitleTrack === -1) {
-            track.mode = 'disabled';
-          }
-        }
-      }
-    }, [selectedSubtitleTrack, externalSubtitle?.blobUrl, subOffset]);
-
-    // ── Inicialización al cambiar canal ───────────────────────────────────
-    useEffect(() => {
-      if (!channel) return;
-      serverIndexRef.current = 0;
-      freezeRef.current = { lastTime: 0, counter: 0 };
-      setError(false);
-      setLoading(true);
+    // â”€â”€ Saltar al siguiente servidor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Inicialización del Canal ────────────────────────────────────────────────
+  useEffect(() => {
+    if (channel && channel.url) {
       setServerIndex(0);
-      setMinimized(false);
-      setLevels([]);
-      setCurrentLevel(-1);
-      setPlaybackRate(1);
-      setSidebarFilter('');
+      serverIndexRef.current = 0;
+      setLoading(true);
+      setError(false);
+      freezeRef.current = { lastTime: 0, counter: 0 };
       
-      // Reset audio/subtitles for new stream
-      setAudioTracks([]);
-      setSelectedAudioTrack(-1);
-      setSubtitleTracks([]);
-      setSelectedSubtitleTrack(-1);
-      setShowAudioSubtitlesModal(false);
-      if (externalSubtitle?.blobUrl) {
-        URL.revokeObjectURL(externalSubtitle.blobUrl);
+      let urls = [];
+      if (typeof channel.url === 'string') {
+        urls = channel.url.split(',').map(u => u.trim()).filter(Boolean);
+      } else if (Array.isArray(channel.url)) {
+        urls = channel.url;
       }
-      setExternalSubtitle(null);
-      setSubOffset(0);
       
-      // Decodificar si es necesario
-      let url = channel.url ? decodeCamouflage(channel.url) : '';
-      
-      // Lógica para Archive.org:
-      // Si es un archivo directo (.mp4, .mkv, etc.), NO lo convertimos a embed 
-      // para que funcione la función de REANUDAR y la barra de progreso.
-      if (url.includes('archive.org/')) {
-        const isDirectArchiveFile = ['.mp4', '.mkv', '.m3u8', '.ts'].some(ext => url.toLowerCase().includes(ext));
-        
-        if (!isDirectArchiveFile) {
-          if (url.includes('archive.org/details/')) {
-            url = url.replace('archive.org/details/', 'archive.org/embed/');
-          } else if (url.includes('archive.org/download/') && !isDirectArchiveFile) {
-            url = url.replace('archive.org/download/', 'archive.org/embed/');
-          }
-          console.log('🛡️ Archive.org: Usando reproductor embebido (No permite reanudar)');
-        } else {
-          console.log('🎬 Archive.org: Enlace directo detectado. ¡Función REANUDAR activada!');
-        }
-      }
-
-      setCurrentUrl(url);
-
-      // Check for saved progress (only for VOD)
-      if (channel.isVOD) {
-        const saved = localStorage.getItem(`animux_progress_${channel.id}`);
-        if (saved) {
-          try {
-            const data = JSON.parse(saved);
-            const time = data.time || 0;
-            // Only offer to resume if it's more than 10 seconds
-            if (time > 10) {
-              setSavedTime(time);
-              setShowResumePrompt(true);
-              // Auto-hide prompt after 10 seconds
-              setTimeout(() => setShowResumePrompt(false), 10000);
-            }
-          } catch (e) {
-            // Fallback for old simple string format
-            const time = parseFloat(saved);
-            if (!isNaN(time) && time > 10) {
-              setSavedTime(time);
-              setShowResumePrompt(true);
-              setTimeout(() => setShowResumePrompt(false), 10000);
-            }
-          }
-        }
-      }
-    }, [channel]);
-
-    // ── Sync Video Playback State (For Podcast Custom Controls) ───────────
-    useEffect(() => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      const onTimeUpdate = () => setCurrentTime(video.currentTime);
-      const onDurationChange = () => setDuration(video.duration || 0);
-      const onPlay = () => setIsPlaying(true);
-      const onPause = () => setIsPlaying(false);
-      const onVolumeChange = () => setIsMuted(video.muted);
-
-      video.addEventListener('timeupdate', onTimeUpdate);
-      video.addEventListener('durationchange', onDurationChange);
-      video.addEventListener('play', onPlay);
-      video.addEventListener('pause', onPause);
-      video.addEventListener('volumechange', onVolumeChange);
-
-      // Sync initial state
-      setCurrentTime(video.currentTime);
-      setDuration(video.duration || 0);
-      setIsPlaying(!video.paused);
-      setIsMuted(video.muted);
-
-      return () => {
-        video.removeEventListener('timeupdate', onTimeUpdate);
-        video.removeEventListener('durationchange', onDurationChange);
-        video.removeEventListener('play', onPlay);
-        video.removeEventListener('pause', onPause);
-        video.removeEventListener('volumechange', onVolumeChange);
-      };
-    }, [currentUrl]);
-
-    // Sync playback rate when source or speed changes
-    useEffect(() => {
-      if (videoRef.current) {
-        videoRef.current.playbackRate = playbackRate;
-      }
-    }, [currentUrl, playbackRate]);
-
-    // ── Saltar al siguiente servidor ──────────────────────────────────────
-    const tryNextServer = () => {
-      // Canales M3U directos no tienen ID de Xtream → mostrar error directamente
-      if (channel.fromM3U || !channel.streamId) {
-        console.error('❌ Canal M3U sin fallback Xtream disponible.');
-        setError(true);
-        setLoading(false);
-        
-        // Reportar al administrador
-        sendAdminAlert(`⚠️ <b>ENLACE CAÍDO</b>\n\n📺 Canal: ${channel.displayName || channel.name}\n🔗 URL: <code>${currentUrl}</code>`);
-        return;
-      }
-
-      const nextIdx = serverIndexRef.current + 1;
-      if (nextIdx < XTREAM_SERVERS.length) {
-        console.warn(`🔄 Cambiando al servidor ${nextIdx}...`);
-        serverIndexRef.current = nextIdx;
-        setServerIndex(nextIdx);
-        freezeRef.current = { lastTime: 0, counter: 0 };
-        const nextUrl = buildStreamURL(XTREAM_SERVERS[nextIdx], channel.streamId);
-        setCurrentUrl(nextUrl);
-        setLoading(true);
-        setError(false);
+      if (urls.length > 0) {
+        setCurrentUrl(urls[0] ? decodeCamouflage(urls[0]) : "");
       } else {
-        console.error('❌ Todos los servidores fallaron.');
         setError(true);
         setLoading(false);
-        
-        // Reportar al administrador que todo falló
-        sendAdminAlert(`❌ <b>CAÍDA TOTAL</b>\n\n📺 Canal: ${channel.displayName || channel.name}\n⚠️ Fallaron todos los servidores de respaldo.`);
       }
-    };
+    }
+  }, [channel]);
 
-
-    // ── Efecto principal de reproducción ──────────────────────────────────
-    useEffect(() => {
-      // Embeds se manejan en renderPlayer, solo quitamos loading
-      if (!currentUrl || isEmbed) {
-        if (isEmbed) {
-          const t = setTimeout(() => setLoading(false), 1500);
-          return () => clearTimeout(t);
-        }
+    const tryNextServer = useCallback(() => {
+      if (!channel || channel.isVOD || isEmbed) {
+        setError(true);
+        setLoading(false);
         return;
       }
-
-      const video = videoRef.current;
-      if (!video) return;
-
-      // 1. Limpiar instancia HLS previa
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+      
+      let urls = [];
+      if (typeof channel.url === "string") {
+        urls = channel.url.split(",").map(u => u.trim()).filter(Boolean);
+      } else if (Array.isArray(channel.url)) {
+        urls = channel.url;
       }
+      
+      if (serverIndexRef.current < urls.length - 1) {
+        console.warn(`ðŸ”„ FallÃ³ el servidor ${serverIndexRef.current + 1}. Intentando el siguiente...`);
+        serverIndexRef.current += 1;
+        setServerIndex(serverIndexRef.current);
+        const nextUrl = urls[serverIndexRef.current];
+        setCurrentUrl(nextUrl ? decodeCamouflage(nextUrl) : "");
+      } else {
+        console.error("âŒ Todos los servidores fallaron.");
+        setError(true);
+        setLoading(false);
+      }
+    }, [channel, isEmbed]);
+
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video || !currentUrl) return;
 
       const urlLower = currentUrl.toLowerCase();
-      const isProd = window.location.protocol === 'https:';
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const isExternal = currentUrl.startsWith('http');
+      const isExternal = currentUrl.startsWith("http");
+      const isProd = import.meta.env.PROD;
 
-      // Detección de tipo de stream
+      // DetecciÃ³n de tipo de stream
       const isM3U8 = !isPodcast && (
                      urlLower.includes('.m3u8') ||
                      urlLower.includes('jmp2.uk') ||
@@ -504,36 +147,48 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
       const isDirectMedia = isPodcast || (!isM3U8 && ['.mp4', '.mkv', '.mp3', '.m4a', '.aac', '.ogg', '.wav', '.flac', '.webm'].some(e => urlLower.includes(e)));
       
-      // Lógica de Proxy Protegida:
-      // 1. Canales con Referer obligatorio (fubo18, latamvidzfy, vivolatamz) DEBEN usar proxy para que el backend inyecte los headers
-      // 2. Contenido HTTP en sitio HTTPS (Mixed Content) DEBE usar proxy
-      // 3. Canales de TV en vivo no marcados como directos
-      const isSpecialRefererHost = urlLower.includes('fubo18.com') || urlLower.includes('latamvidzfy.org') || urlLower.includes('vivolatamz.org');
+      // Lógica de Proxy Inteligente:
+      // 1. Canales con Referer obligatorio (fubo18, latamvidzfy, vivolatamz)
+      // 2. Canales con CORS restringido (jmp2.uk, pluto.tv, tubi, etc.)
+      // 3. Contenido HTTP en sitio HTTPS (Mixed Content en producción)
+      // 4. Flags explícitos de proxy en el canal
+      const isRestrictedCorsHost = 
+        urlLower.includes('jmp2.uk') || 
+        urlLower.includes('pluto.tv') || 
+        urlLower.includes('plutotv.net') || 
+        urlLower.includes('fubo18.com') || 
+        urlLower.includes('latamvidzfy.org') || 
+        urlLower.includes('vivolatamz.org') ||
+        urlLower.includes('dailymotion.com') ||
+        urlLower.includes('voodc.com');
+
       const isMixedContent = isProd && currentUrl.startsWith('http:');
-      const needsProxy = isExternal && (isProd || isLocal) && (
-        isSpecialRefererHost || 
+      const needsProxy = isExternal && (
+        isRestrictedCorsHost || 
         isMixedContent || 
-        (!isPodcast && !isDirectMedia && !channel.direct && !channel.isVOD)
+        Boolean(channel?.needsProxy)
       );
 
       console.log(`🎬 Reproduciendo: ${currentUrl} | Proxy: ${needsProxy} | Tipo: ${isPodcast ? 'Podcast/Audio' : (isM3U8 ? 'HLS' : 'Direct')}`);
 
       let loadTimeout;
       let monitorInterval;
+      let isCancelled = false; // ← declarado aquí para que el cleanup siempre tenga acceso
 
       // SOLO aplicar timeouts y monitoreo si NO es un embed.
-      // Los embeds (Archive.org, Drive, YouTube) no deben lanzar "Enlace Caído" por timeout de video
-      if (!isEmbed) {
-        // 2. Timeout de conexión inicial (Solo para Live TV con servidores Xtream)
-        // Para VOD (Archive.org, Drive, Podcasts) permitimos que el navegador cargue sin límite de tiempo
-        if (!channel.isVOD && !isDirectMedia && !isPodcast && channel.streamId) {
-          loadTimeout = setTimeout(() => {
-            if (video && video.currentTime === 0) {
-              console.warn('⏰ Timeout de conexión (15s). Cambiando servidor...');
-              tryNextServer();
-            }
-          }, 15000);
+      // 2. Timeout de carga
+      loadTimeout = setTimeout(() => {
+        if (!isEmbed && !channel.isVOD && !isDirectMedia && !isPodcast && channel.streamId) {
+          if (video && video.currentTime === 0 && !video.paused) {
+            console.warn('⏱ Timeout de conexión (15s). Cambiando servidor...');
+            tryNextServer();
+          }
+        } else {
+          // Para VOD/Podcasts/Embeds, si pasaron 15s, forzamos ocultar el loading 
+          // para evitar que se quede la pantalla negra si el evento onLoad/oncanplay falla.
+          setLoading(false);
         }
+      }, 15000);
 
         // 3. Monitor de congelamiento (Solo para Live TV con servidores Xtream)
         if (!channel.isVOD && !isDirectMedia && !isPodcast && channel.streamId) {
@@ -552,24 +207,22 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             }
           }, 1000);
         }
-      }
-
 
       // 4. Reproducción directa (podcasts, audio, mp4, ts, etc.)
       if (isDirectMedia) {
         video.src = needsProxy ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` : currentUrl;
         video.load();
-        video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); video.play().catch(() => {}); };
+        video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); safePlay(); };
         video.onloadeddata = () => { clearTimeout(loadTimeout); setLoading(false); };
         video.onerror = (err) => { 
           clearTimeout(loadTimeout); 
           console.error('❌ Error en reproducción directa:', currentUrl, err);
           // Si falló de forma directa en HTTPS, intentar con el proxy como alternativa antes de rendirse
           if (!needsProxy && isExternal && !currentUrl.startsWith('/api/proxy')) {
-            console.warn('🔄 Reintentando podcast con proxy de respaldo...');
+            console.warn('🔄 Reintentando audio/video con proxy de respaldo...');
             video.src = `/api/proxy?url=${encodeURIComponent(currentUrl)}`;
             video.load();
-            video.play().catch(() => {});
+            safePlay();
             return;
           }
           if (isPodcast || channel.fromM3U || !channel.streamId) {
@@ -580,31 +233,79 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           tryNextServer(); 
         };
 
-      // 5. Reproducción HLS Pura (El backend inyecta los proxies a los fragmentos)
+      // 5. Reproducción HLS Pura (Con failover inteligente y reescritura de fragmentos proxy)
       } else if (Hls.isSupported() && isM3U8) {
         
-        const manifestUrl = needsProxy 
-          ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` 
-          : currentUrl;
+        let needsProxyActive = needsProxy;
+        let resolvedBaseUrl = currentUrl;
 
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: true, // Activado para arranque rápido
-          startLevel: -1,       // Empieza en auto (baja resolución) para cargar al instante
-          maxBufferLength: 30,  // Reducido de 60 a 30
-          maxMaxBufferLength: 60, // Reducido de 120 a 60
-          liveSyncDurationCount: 3, // Reducido de 5 a 3
-          liveMaxLatencyDurationCount: 10,
-          manifestLoadingMaxRetry: 5,
-          manifestLoadingRetryDelay: 1000,
-          levelLoadingMaxRetry: 5,
-          fragLoadingMaxRetry: 8,
+          lowLatencyMode: true, // Activado para arranque inmediato
+          startLevel: -1,       // Nivel automático inicial
+          initialLiveManifestSize: 1, // Iniciar reproducción tan pronto como esté disponible el 1er segmento
+          maxBufferLength: 20,  // Reducido a 20s para optimizar memoria y velocidad de buffer
+          maxMaxBufferLength: 40, 
+          liveSyncDurationCount: 3, 
+          liveMaxLatencyDurationCount: 8,
+          manifestLoadingTimeOut: 8000,
+          manifestLoadingMaxRetry: 4,
+          manifestLoadingRetryDelay: 500,
+          levelLoadingTimeOut: 8000,
+          levelLoadingMaxRetry: 4,
+          fragLoadingTimeOut: 12000,
+          fragLoadingMaxRetry: 6,
           fragLoadingRetryDelay: 500,
+          xhrSetup: (xhr, url) => {
+            // Si una petición relativa se resolvió localmente contra /api/ debido al proxy, redirigirla al proxy con la URL destino correcta
+            if (needsProxyActive && !url.includes('?url=')) {
+              try {
+                const activeBase = resolvedBaseUrl || currentUrl;
+                if (url.startsWith(window.location.origin + '/api/') || url.startsWith('/api/')) {
+                  const relativePath = url.replace(window.location.origin, '').replace(/^\/api\//, '');
+                  const targetBase = new URL(activeBase);
+                  const resolvedUrl = new URL(relativePath, targetBase).href;
+                  xhr.open('GET', `/api/proxy?url=${encodeURIComponent(resolvedUrl)}`, true);
+                } else if (!url.startsWith('http')) {
+                  const targetBase = new URL(activeBase);
+                  const resolvedUrl = new URL(url, targetBase).href;
+                  xhr.open('GET', `/api/proxy?url=${encodeURIComponent(resolvedUrl)}`, true);
+                }
+              } catch (e) {
+                console.warn('HLS proxy path rewrite fallback:', e);
+              }
+            }
+          }
         });
 
         hlsRef.current = hls;
-        hls.loadSource(manifestUrl);
-        hls.attachMedia(video);
+
+        // Si la URL es un acortador o redirección (como jmp2.uk), resolvemos primero la URL final para que los chunks y sub-playlists relativos se resuelvan en el servidor final (ej. pluto stitcher) y no den 404
+        const initHlsSource = async () => {
+          let streamUrlToLoad = currentUrl;
+          if (currentUrl.includes('jmp2.uk')) {
+            try {
+              const res = await fetch(currentUrl, { method: 'GET', redirect: 'follow' });
+              if (res.url && res.url !== currentUrl) {
+                resolvedBaseUrl = res.url;
+                streamUrlToLoad = res.url;
+                console.log(`🔗 Stream redireccionado resuelto: ${resolvedBaseUrl}`);
+              }
+            } catch (err) {
+              console.warn('⚠️ No se pudo seguir redirección anticipada, usando URL base original:', err);
+            }
+          }
+          if (isCancelled) return;
+
+          const manifestUrl = needsProxyActive 
+            ? `/api/proxy?url=${encodeURIComponent(streamUrlToLoad)}` 
+            : streamUrlToLoad;
+
+          hls.loadSource(manifestUrl);
+          hls.attachMedia(video);
+        };
+
+        initHlsSource();
 
         hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
           clearTimeout(loadTimeout);
@@ -628,7 +329,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             setSubtitleTracks(hls.subtitleTracks);
           }
           
-          video.play().catch(() => {});
+          safePlay();
         });
 
         hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (event, data) => {
@@ -644,12 +345,11 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           }
         });
 
-        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
+                hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
           if (data && data.subtitleTracks) {
             setSubtitleTracks(data.subtitleTracks);
           }
         });
-
         hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (event, data) => {
           if (data && typeof data.id === 'number') {
             if (selectedSubtitleTrack !== 'external') {
@@ -658,40 +358,44 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           }
         });
 
-        let networkRetryCount = 0;
-        // Manejo y rotación automática de caídas
+        let retriedWithProxy = false;
+        let networkErrorCount = 0;
         hls.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
-            clearInterval(monitorInterval);
-            clearTimeout(loadTimeout);
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              networkRetryCount++;
-              if (networkRetryCount <= 2) {
-                console.warn('Network error, reintentando...', networkRetryCount);
+              if (!retriedWithProxy && !needsProxy && currentUrl.startsWith('http')) {
+                console.warn('🔄 Reintentando HLS con proxy tras error de red (posible CORS)...');
+                retriedWithProxy = true;
+                needsProxyActive = true;
+                hls.loadSource(`/api/proxy?url=${encodeURIComponent(currentUrl)}`);
                 hls.startLoad();
               } else {
-                console.error('Network error persistente. Cambiando servidor...');
-                tryNextServer(); // 🔥 Fallback después de 2 intentos fallidos
+                networkErrorCount++;
+                if (networkErrorCount >= 2) {
+                  console.error('❌ Error de red fatal persistente. Cambiando de servidor...');
+                  tryNextServer();
+                } else {
+                  hls.startLoad();
+                }
               }
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-              console.warn('Media error, recuperando...');
               hls.recoverMediaError();
             } else {
-              tryNextServer(); // 🔥 Fallback de servidor de Xtream
+              console.error('❌ Error fatal en HLS. Cambiando de servidor...', data);
+              tryNextServer();
             }
           }
         });
-
-      // 6. Fallback nativo del navegador
       } else {
         video.src = needsProxy ? `/api/proxy?url=${encodeURIComponent(currentUrl)}` : currentUrl;
         video.load();
-        video.play().catch(() => {});
-        video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); };
+        safePlay();
+        video.oncanplay = () => { clearTimeout(loadTimeout); setLoading(false); safePlay(); };
         video.onerror = () => { clearTimeout(loadTimeout); tryNextServer(); };
       }
 
       return () => {
+        isCancelled = true;
         clearTimeout(loadTimeout);
         clearInterval(monitorInterval);
         if (hlsRef.current) {
@@ -701,7 +405,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       };
     }, [currentUrl, isEmbed]);
 
-    // ── Progress Saving Effect ────────────────────────────────────────────
+    // â”€â”€ Progress Saving Effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     useEffect(() => {
       const video = videoRef.current;
       if (!video || !channel || !channel.isVOD || isEmbed) return;
@@ -719,7 +423,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             };
             localStorage.setItem(`animux_progress_${channel.id}`, JSON.stringify(progressData));
             
-            // Notificar a otros componentes (tarjetas) que el progreso cambió
+            // Notificar a otros componentes (tarjetas) que el progreso cambiÃ³
             window.dispatchEvent(new CustomEvent('animux_progress_updated', { 
               detail: { channelId: channel.id, progress: progressData } 
             }));
@@ -738,7 +442,32 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       };
     }, [channel, isEmbed]);
 
+    // ── Cleanup on Unmount (exit fullscreen / PiP to avoid black screen) ─────────────
+    useEffect(() => {
+      return () => {
+        // Salir de pantalla completa si está activa
+        try {
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch (_) {}
+        // Salir de Picture-in-Picture si está activo
+        try {
+          if (document.pictureInPictureElement) {
+            document.exitPictureInPicture().catch(() => {});
+          }
+        } catch (_) {}
+        // Pausar y vaciar el video para evitar frame negro colgado
+        const v = videoRef.current;
+        if (v) {
+          try { v.pause(); } catch (_) {}
+          try { v.removeAttribute('src'); v.load(); } catch (_) {}
+        }
+      };
+    }, []);
+
     const handleResume = () => {
+
       if (videoRef.current && savedTime > 0) {
         const video = videoRef.current;
         
@@ -753,7 +482,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           applyTime();
         } else {
           video.addEventListener('loadedmetadata', applyTime, { once: true });
-          // Fallback por si ya cargó pero el readyState miente
+          // Fallback por si ya cargÃ³ pero el readyState miente
           setTimeout(applyTime, 1000);
         }
       }
@@ -761,9 +490,49 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
     if (!channel) return null;
 
+    // Funcion de cierre con fade-out animado para evitar pantalla negra
+    const triggerClose = () => {
+      setIsClosing(true);
+      const doClose = () => {
+        try {
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {}).finally(() => onClose());
+          } else {
+            onClose();
+          }
+        } catch (_) { onClose(); }
+      };
+      setTimeout(doClose, 280);
+    };
+
     const playerContainerClasses = minimized 
-      ? "fixed bottom-24 right-4 w-64 md:w-80 aspect-video z-[150] rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-600/30 animate-slide-up group bg-black"
-      : `${isInline ? 'relative h-full w-full' : 'fixed inset-0'} z-[110] flex flex-col bg-black animate-fade-in`;
+      ? "fixed bottom-20 md:bottom-6 right-4 w-[280px] sm:w-[340px] md:w-[380px] aspect-video z-[150] rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.95)] border-2 border-rose-500/40 animate-slide-up group bg-black backdrop-blur-2xl ring-1 ring-white/10"
+      : `${isInline ? 'relative h-full w-full' : 'fixed inset-0'} z-[110] flex flex-col bg-black ${
+          isClosing ? 'animate-player-fade-out' : 'animate-fade-in'
+        }`;
+    // Identificar el grupo de la serie actual
+    const currentGroupId = channel.groupId || (channel.isVOD ? (channel.displayName || channel.name || '').split('-')[0].trim() : null);
+
+    // Obtener exclusivamente los elementos pertenecientes a esta serie/podcast
+    const seriesItems = playlist.filter(item => {
+      if (channel.groupId && item.groupId) {
+        return item.groupId === channel.groupId;
+      }
+      if (currentGroupId && item.isVOD) {
+        const itemGroup = item.groupId || (item.displayName || item.name || '').split('-')[0].trim();
+        return itemGroup.toLowerCase() === currentGroupId.toLowerCase();
+      }
+      return false;
+    });
+
+    const relevantPlaylist = (seriesItems.length > 0) ? seriesItems : (channel.groupId ? [channel] : playlist);
+    const availableSeasons = [...new Set(relevantPlaylist.map(item => item.season))].filter(Boolean).sort((a,b) => a-b);
+
+    const sidebarEpisodes = relevantPlaylist.filter(item => {
+      if (item.season && item.season !== selectedSeason && !isPodcast) return false;
+      if (!sidebarFilter) return true;
+      return (item.name || item.title || '').toLowerCase().includes(sidebarFilter.toLowerCase());
+    });
 
     return (
       <div className={playerContainerClasses}>
@@ -771,7 +540,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         {!minimized && !isInline && (
           <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black via-black/80 to-transparent z-50">
             <div className="flex items-center gap-4">
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
+              <button onClick={triggerClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
                 <X className="w-6 h-6 text-white" />
               </button>
               <div className="flex flex-col min-w-0">
@@ -782,6 +551,26 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Botón de Transmitir a Smart TV / Chromecast */}
+              {!isEmbed && (
+                <button
+                  onClick={async () => {
+                    const v = videoRef.current;
+                    if (!v) return;
+                    await triggerCasting(v, {
+                      title: channel?.displayName || channel?.name,
+                      category: channel?.category,
+                      logo: channel?.logo,
+                      url: v.src || v.currentSrc
+                    });
+                  }}
+                  title="Transmitir a Smart TV o Chromecast"
+                  className="p-2.5 rounded-full bg-white/5 hover:bg-rose-600/20 hover:border-rose-500/40 border border-white/5 text-white/80 hover:text-white transition-all cursor-pointer active:scale-95"
+                >
+                  <Cast className="w-5 h-5" />
+                </button>
+              )}
+
               {/* Botón de Audio y Subtítulos */}
               {!isPodcast && !isEmbed && (
                 <button
@@ -825,16 +614,36 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           </div>
         )}
 
-        {/* Mini Controls */}
+        {/* Mini Controls Dynamic Island Pill */}
         {minimized && (
-          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-             <button onClick={() => setMinimized(false)} className="p-2 bg-black/60 backdrop-blur-md rounded-full text-white border border-white/10">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-             </button>
-             <button onClick={onClose} className="p-2 bg-black/60 backdrop-blur-md rounded-full text-white border border-white/10">
-                <X className="w-4 h-4" />
-             </button>
-          </div>
+          <>
+            <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-50">
+              <button 
+                onClick={() => setMinimized(false)} 
+                title="Maximizar Reproductor"
+                className="p-2 bg-black/80 hover:bg-rose-600 backdrop-blur-xl rounded-full text-white border border-white/10 transition-all cursor-pointer shadow-lg"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+              </button>
+              <button 
+                onClick={triggerClose} 
+                title="Cerrar"
+                className="p-2 bg-black/80 hover:bg-white/20 backdrop-blur-xl rounded-full text-white border border-white/10 transition-all cursor-pointer shadow-lg"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Bottom mini status bar */}
+            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black via-black/80 to-transparent z-40 flex items-center justify-between pointer-events-none">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                <span className="text-[10px] font-black text-white uppercase tracking-wider truncate drop-shadow">
+                  {channel.displayName || channel.name}
+                </span>
+              </div>
+            </div>
+          </>
         )}
 
         <div className={`flex-1 flex flex-col ${minimized ? '' : 'lg:flex-row'} overflow-hidden relative`}>
@@ -851,23 +660,26 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             {/* Real Video Player */}
             <div className="w-full h-full flex items-center justify-center relative">
               {isYouTube ? (
-                 <iframe src={`https://www.youtube.com/embed/${getYouTubeId(currentUrl)}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
+                 <iframe src={`https://www.youtube.com/embed/${getYouTubeId(currentUrl)}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen onLoad={() => setLoading(false)} />
               ) : isDrive ? (
-                 <iframe src={`https://drive.google.com/file/d/${getDriveId(currentUrl)}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen />
+                 <iframe src={`https://drive.google.com/file/d/${getDriveId(currentUrl)}/preview`} className="w-full h-full border-0" allow="autoplay; fullscreen" allowFullScreen onLoad={() => setLoading(false)} />
               ) : isEmbed ? (
-                 <iframe src={currentUrl} referrerPolicy="no-referrer" className="w-full h-full border-0 bg-black" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen title="Embed Player" />
+                 <iframe src={currentUrl} referrerPolicy="no-referrer" className="w-full h-full border-0 bg-black" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen title="Embed Player" onLoad={() => setLoading(false)} />
               ) : (
                  <>
                    <video 
                      ref={videoRef} 
                      className={`${isPodcast ? "opacity-0 absolute pointer-events-none w-0 h-0" : "w-full h-full object-contain shadow-2xl"} sub-color-${subColor} sub-size-${subSize}`} 
-                     controls={!isPodcast} 
                      autoPlay 
                      playsInline
-                     controlsList="nodownload"
                      onContextMenu={(e) => e.preventDefault()}
-                     onPlay={() => setLoading(false)}
-                     onPlaying={() => setLoading(false)}
+                     onPlay={() => { setLoading(false); setIsPlaying(true); }}
+                     onPlaying={() => { setLoading(false); setIsPlaying(true); }}
+                     onPause={() => setIsPlaying(false)}
+                     onWaiting={() => setLoading(true)}
+                     onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+                     onLoadedMetadata={(e) => setDuration(e.target.duration)}
+                     onDurationChange={(e) => setDuration(e.target.duration)}
                    >
                      {selectedSubtitleTrack === 'external' && externalSubtitle?.blobUrl && (
                        <track 
@@ -875,11 +687,39 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                          kind="subtitles" 
                          src={externalSubtitle.blobUrl} 
                          srcLang="es" 
-                         label={externalSubtitle.name || 'Subtítulo Personalizado'} 
+                         label={externalSubtitle.name || 'SubtÃ­tulo Personalizado'} 
                          default 
                        />
                      )}
                    </video>
+                   {/* Professional custom controls overlay (hidden for podcast which has its own UI) */}
+                   {!isPodcast && (
+                     <VideoControls
+                       videoRef={videoRef}
+                       isPlaying={isPlaying}
+                       isMuted={isMuted}
+                       currentTime={currentTime}
+                       duration={duration}
+                       isPiP={isPiP}
+                       levels={levels}
+                       currentLevel={currentLevel}
+                       channel={channel}
+                       serverIndex={serverIndex}
+                        loading={loading}
+                        onTogglePlay={() => {
+                          const v = videoRef.current;
+                          if (!v) return;
+                          if (v.paused) safePlay();
+                          else v.pause();
+                        }}
+                       onLevelChange={(lvl) => {
+                         if (hlsRef.current) {
+                           hlsRef.current.currentLevel = lvl;
+                           setCurrentLevel(lvl);
+                         }
+                       }}
+                     />
+                   )}
                    {isPodcast && (
                      <div className="absolute inset-0 flex flex-col items-center justify-between p-6 md:p-8 bg-gradient-to-b from-[#0c0c0e]/80 via-[#121216]/95 to-[#08080a]/98 text-white overflow-hidden select-none">
                        {/* Background pulsing glow */}
@@ -923,23 +763,20 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                            </p>
                          </div>
 
-                         {/* Mini Sound Equalizer Waves */}
+                         {/* Mini Sound Equalizer Waves â€” fixed durations for stable animation */}
                          <div className="flex items-end justify-center gap-1.5 h-8">
-                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((bar) => {
-                             const duration = 0.6 + Math.random() * 0.8;
-                             return (
-                               <div 
-                                 key={bar} 
-                                 className="w-1 h-full rounded-full bg-gradient-to-t from-rose-500 to-violet-500 transition-all equalizer-bar"
-                                 style={{
-                                   transform: isPlaying ? 'scaleY(1)' : 'scaleY(0.15)',
-                                   transformOrigin: 'bottom',
-                                   animation: isPlaying ? `equalizer-wave ${duration}s ease-in-out infinite alternate` : 'none',
-                                   animationDelay: `${bar * 0.07}s`
-                                 }}
-                               />
-                             );
-                           })}
+                           {EQ_DURATIONS.map((eqDuration, bar) => (
+                             <div 
+                               key={bar} 
+                               className="w-1 h-full rounded-full bg-gradient-to-t from-rose-500 to-violet-500 equalizer-bar"
+                               style={{
+                                 transform: isPlaying ? 'scaleY(1)' : 'scaleY(0.15)',
+                                 transformOrigin: 'bottom',
+                                 animation: isPlaying ? `equalizer-wave ${eqDuration}s ease-in-out infinite alternate` : 'none',
+                                 animationDelay: `${bar * 0.07}s`
+                               }}
+                             />
+                           ))}
                          </div>
                        </div>
 
@@ -1033,30 +870,15 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                               }}
                               className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 border border-white/5 text-[9px] font-black text-rose-500 uppercase tracking-widest transition-all min-w-[75px] text-center animate-pulse"
                               style={{ animationDuration: '3s' }}
-                              title="Velocidad de reproducción"
+                              title="Velocidad de reproducciÃ³n"
                             >
                               {playbackRate === 1 ? '1.0x SPEED' : `${playbackRate}x SPEED`}
                             </button>
                          </div>
                        </div>
 
-                       {/* Floating custom styles */}
-                       <style>{`
-                         @keyframes spin-slow {
-                           from { transform: rotate(0deg); }
-                           to { transform: rotate(360deg); }
-                         }
-                         .animate-spin-slow {
-                           animation: spin-slow 25s linear infinite;
-                         }
-                         @keyframes equalizer-wave {
-                           0% { transform: scaleY(0.15); }
-                           100% { transform: scaleY(1); }
-                         }
-                         .equalizer-bar {
-                           transform-origin: bottom;
-                         }
-                       `}</style>
+                       {/* Keyframes moved to index.css â€” no inline styles needed */}
+
                      </div>
                    )}
                  </>
@@ -1068,7 +890,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                   <div className="bg-neutral-950/95 backdrop-blur-2xl border border-white/15 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-6 max-w-sm sm:max-w-md w-full pointer-events-auto shadow-rose-950/40 border-rose-500/20">
                     <div className="flex flex-col min-w-0 text-center sm:text-left flex-1">
                       <span className="text-[10px] sm:text-xs font-black text-rose-500 uppercase tracking-widest">
-                        ¿Continuar Viendo?
+                        Â¿Continuar Viendo?
                       </span>
                       <span className="text-white text-xs sm:text-sm font-bold uppercase tracking-tight truncate mt-0.5">
                         Quedaste en {new Date(savedTime * 1000).toISOString().substr(11, 8)}
@@ -1098,17 +920,17 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                 <div className="absolute top-6 right-6 flex flex-col items-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-50">
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[9px] font-black text-white uppercase tracking-widest">Señal Estable</span>
+                    <span className="text-[9px] font-black text-white uppercase tracking-widest">SeÃ±al Estable</span>
                   </div>
 
-                  {/* Botón de Audio y Subtítulos en badges */}
+                  {/* BotÃ³n de Audio y SubtÃ­tulos en badges */}
                   {!isPodcast && !isEmbed && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowAudioSubtitlesModal(true);
                       }}
-                      title="Audio y Subtítulos"
+                      title="Audio y SubtÃ­tulos"
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${
                         selectedSubtitleTrack !== -1 || audioTracks.length > 1
                           ? 'bg-rose-600/30 border-rose-500 text-rose-300 shadow-lg shadow-rose-600/20'
@@ -1120,7 +942,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                     </button>
                   )}
 
-                  {/* Botón de Favorito en el Player */}
+                  {/* BotÃ³n de Favorito en el Player */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1176,7 +998,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                     <div className="flex items-center justify-between pb-3 border-b border-white/10">
                       <div className="flex items-center gap-2.5">
                         <Languages className="w-5 h-5 text-rose-500" />
-                        <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-white">Audio y Subtítulos</h3>
+                        <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-white">Audio y SubtÃ­tulos</h3>
                       </div>
                       <button 
                         onClick={() => setShowAudioSubtitlesModal(false)}
@@ -1197,7 +1019,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                         }`}
                       >
                         <Subtitles className="w-3.5 h-3.5" />
-                        Subtítulos
+                        SubtÃ­tulos
                         {selectedSubtitleTrack !== -1 && (
                           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                         )}
@@ -1253,7 +1075,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                                   : 'bg-white/[0.02] hover:bg-white/5 text-gray-300 border border-white/5'
                               }`}
                             >
-                              <span>{st.name || st.lang || `Subtítulo ${idx + 1}`}</span>
+                              <span>{st.name || st.lang || `SubtÃ­tulo ${idx + 1}`}</span>
                               {selectedSubtitleTrack === (st.id ?? idx) && <Check className="w-4 h-4 text-rose-400" />}
                             </button>
                           ))}
@@ -1272,14 +1094,14 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                                 <Subtitles className="w-4 h-4 text-rose-400 shrink-0" />
                                 <div className="truncate">
                                   <p className="text-xs font-black truncate">{externalSubtitle.name}</p>
-                                  <span className="text-[9px] text-gray-400 uppercase tracking-wider">Subtítulo Personalizado</span>
+                                  <span className="text-[9px] text-gray-400 uppercase tracking-wider">SubtÃ­tulo Personalizado</span>
                                 </div>
                               </button>
                               <div className="flex items-center gap-2">
                                 {selectedSubtitleTrack === 'external' && <Check className="w-4 h-4 text-rose-400" />}
                                 <button
                                   onClick={handleRemoveExternalSub}
-                                  title="Eliminar subtítulo externo"
+                                  title="Eliminar subtÃ­tulo externo"
                                   className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-600/20 text-gray-400 hover:text-rose-400 transition-all"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1313,7 +1135,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                             {/* Timing Delay / Offset */}
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Sincronización</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">SincronizaciÃ³n</span>
                                 <span className="text-xs font-bold text-white">
                                   {subOffset === 0 ? '0.0s (Normal)' : `${subOffset > 0 ? '+' : ''}${subOffset}s`}
                                 </span>
@@ -1329,7 +1151,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                                 <button
                                   onClick={() => setSubOffset(0)}
                                   className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold border border-white/5"
-                                  title="Restablecer sincronía"
+                                  title="Restablecer sincronÃ­a"
                                 >
                                   Reset
                                 </button>
@@ -1366,7 +1188,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                               </div>
 
                               <div>
-                                <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">Tamaño</span>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">TamaÃ±o</span>
                                 <div className="flex gap-1">
                                   {[
                                     { id: 'small', label: 'S' },
@@ -1458,25 +1280,41 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           {/* Side Panel - Vertical on Desktop, Horizontal on Mobile */}
           {!minimized && (
             <div className="w-full lg:w-[400px] bg-[#050505]/60 backdrop-blur-3xl border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-auto lg:h-full overflow-hidden z-20 relative">
-              {/* Quick Info / Description (Visible only when not minimized) */}
-              <div className="p-4 lg:p-6 border-b border-white/5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-rose-600/10 rounded-lg">
-                      <Clock className="w-4 h-4 text-rose-600" />
+              {/* Quick Info / Cinematic Header (Visible only when not minimized) */}
+              <div className="p-4 lg:p-5 border-b border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="px-2.5 py-1 bg-rose-600/15 border border-rose-500/30 rounded-lg flex items-center gap-1.5 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                      <span className="text-[10px] font-black text-rose-400 uppercase tracking-[0.18em]">
+                        {channel.groupId && channel.isVOD ? 'SERIE' : channel.isVOD ? 'PELÍCULA' : isPodcast ? 'PÓDCAST' : 'CANAL EN VIVO'}
+                      </span>
                     </div>
-                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Programación</h3>
+                    <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-gray-400">
+                      <span>4K UHD</span>
+                      <span className="w-1 h-1 rounded-full bg-gray-500" />
+                      <span>DOLBY 5.1</span>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => {
-                        if (window.confirm('¿Reportar este canal?')) onReportBroken?.(channel);
-                    }} className="p-2 hover:bg-rose-600/20 rounded-full transition-all group">
-                      <AlertCircle className="w-4 h-4 text-gray-500 group-hover:text-rose-500" />
+                  <div className="flex gap-1.5">
+                    <button 
+                      onClick={() => {
+                        if (window.confirm('¿Reportar señal de este canal?')) onReportBroken?.(channel);
+                      }} 
+                      title="Reportar Problema"
+                      className="p-2 hover:bg-rose-600/20 text-gray-400 hover:text-rose-400 rounded-xl transition-all border border-transparent hover:border-rose-500/20"
+                    >
+                      <AlertCircle className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <p className="text-gray-400 text-[11px] leading-relaxed font-medium line-clamp-2 lg:line-clamp-none">
-                  Estás viendo <span className="text-white font-bold">{channel.displayName || channel.name}</span> en alta definición. Disfruta de la mejor programación de {channel.category} sin interrupciones.
+
+                <h4 className="text-white font-extrabold text-sm lg:text-base tracking-tight leading-snug mb-1.5 line-clamp-1">
+                  {channel.displayName || channel.name}
+                </h4>
+
+                <p className="text-gray-400 text-[11px] leading-relaxed font-medium line-clamp-2">
+                  {channel.description || `Disfruta del mejor contenido en transmisión digital de alta definición sin interrupciones con calidad de estudio.`}
                 </p>
               </div>
 
@@ -1608,7 +1446,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                               </div>
                             </div>
 
-                            {/* Left highlight strip */}
+                            {/* Playing border indicator */}
                             {isCurrentlyPlaying && (
                               <div className="absolute left-0 top-3 bottom-3 w-0.5 bg-rose-600 rounded-full" />
                             )}
@@ -1617,101 +1455,138 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                       }
 
                       return (
-                      <div
-                        key={item.id}
-                        onClick={() => onPlayNext(item)}
-                        className={channel.groupId && channel.isVOD 
-                          ? `group relative flex flex-col items-center justify-center gap-2 p-0 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border overflow-hidden aspect-square lg:aspect-video w-full ${isCurrentlyPlaying ? 'bg-rose-600/20 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.3)]' : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-white/20'}`
-                          : `group flex flex-col lg:flex-row gap-3 lg:gap-4 p-3 lg:p-4 rounded-2xl lg:rounded-3xl cursor-pointer transition-all border shrink-0 w-40 lg:w-full ${isCurrentlyPlaying ? 'bg-rose-600/10 border-rose-600/30' : 'bg-white/[0.02] hover:bg-rose-600/5 border-transparent hover:border-rose-600/20'}`
-                        }
-                      >
-                        {channel.groupId && channel.isVOD ? (
-                          <>
-                             {/* Imagen de fondo con degradado */}
-                             <div className="absolute inset-0 z-0">
-                               <img src={item.logo} className="w-full h-full object-cover opacity-30 group-hover:opacity-50 group-hover:scale-110 transition-all duration-700" alt="" />
-                               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                             </div>
- 
-                             {/* Contenido Visual */}
-                             <div className="relative z-10 flex flex-col items-center justify-center p-2 text-center w-full h-full">
-                               <div className="flex flex-col items-center gap-0.5">
-                                 <span className={`text-[8px] font-black uppercase tracking-widest ${isCurrentlyPlaying ? 'text-rose-400' : 'text-white/40'}`}>EPISODIO</span>
-                                 <span className="text-xl lg:text-2xl font-black text-white leading-none">
-                                   {item.name.match(/\d+$/) ? item.name.match(/\d+$/)[0] : (idx + 1)}
-                                 </span>
-                                 <span className={`text-[6px] lg:text-[7px] font-black uppercase tracking-widest mt-1 ${isCurrentlyPlaying ? 'text-rose-500 animate-pulse' : 'text-white/40'}`}>
-                                   {isCurrentlyPlaying ? 'Viendo Ahora' : 'Reproducir'}
-                                 </span>
-                               </div>
-                               
-                               {/* Titulo pequeño solo en PC si cabe */}
-                               <span className="hidden lg:block mt-2 text-[8px] font-bold text-white/60 truncate w-full px-2 uppercase tracking-tighter">
-                                 {item.name?.split('-').pop() || 'Reproducir'}
-                               </span>
-                             </div>
- 
-                             {/* Icono Play flotante en hover */}
-                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <div className="p-1.5 bg-rose-600 rounded-full shadow-lg">
-                                  <Play className="w-2 h-2 text-white fill-current" />
-                                </div>
-                             </div>
- 
-                             {String(item.id) === String(channel.id) && (
-                               <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-600 animate-pulse" />
-                             )}
-                          </>
-                        ) : (
-                          <>
-                            <div className="rounded-xl lg:rounded-2xl overflow-hidden shrink-0 bg-black w-full lg:w-24 aspect-video relative group-hover:scale-105 transition-transform duration-500">
-                              <img src={item.logo} className="w-full h-full object-contain p-2 lg:p-3" alt="" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                <Play className="w-4 h-4 text-white fill-current" />
+                        <div
+                          key={item.id}
+                          onClick={() => onPlayNext(item)}
+                          className={channel.groupId && channel.isVOD 
+                            ? `group relative flex flex-col items-center justify-between p-0 rounded-2xl cursor-pointer transition-all duration-300 border overflow-hidden aspect-video w-full shadow-lg ${
+                                isCurrentlyPlaying 
+                                  ? 'bg-rose-950/40 border-rose-500 shadow-[0_0_25px_rgba(225,29,72,0.35)] scale-[1.02]' 
+                                  : 'bg-[#0f0f15] hover:bg-[#161622] border-white/[0.08] hover:border-white/25 hover:scale-[1.02]'
+                              }`
+                            : `group flex items-center gap-3.5 p-2.5 rounded-2xl cursor-pointer transition-all duration-300 border shrink-0 w-44 lg:w-full ${
+                                isCurrentlyPlaying 
+                                  ? 'bg-rose-600/15 border-rose-500/40 shadow-md' 
+                                  : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/5 hover:border-white/10'
+                              }`
+                          }
+                        >
+                          {channel.groupId && channel.isVOD ? (
+                            <>
+                              {/* Imagen de fondo con degradado cinemático */}
+                              <div className="absolute inset-0 z-0 overflow-hidden">
+                                <img 
+                                  src={item.logo} 
+                                  className="w-full h-full object-cover opacity-40 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500" 
+                                  alt="" 
+                                  onError={(e) => { e.target.src = '/icon-512.png'; }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                               </div>
-                            </div>
-                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                              <h4 className={`text-[11px] lg:text-[12px] font-black truncate tracking-tight uppercase group-hover:text-rose-500 transition-colors ${String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white'}`}>
-                                {item.name || item.title}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={`text-[8px] lg:text-[9px] uppercase font-black tracking-widest ${String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-gray-500'}`}>
-                                  {String(item.id) === String(channel.id) ? 'En Vivo' : 'Canal'}
+
+                              {/* Badge Superior de Episodio */}
+                              <div className="relative z-10 w-full p-2.5 flex items-center justify-between">
+                                <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider backdrop-blur-md ${
+                                  isCurrentlyPlaying 
+                                    ? 'bg-rose-600 text-white shadow-sm' 
+                                    : 'bg-black/60 text-white/80 border border-white/10'
+                                }`}>
+                                  EP {item.name.match(/\d+$/) ? item.name.match(/\d+$/)[0] : (idx + 1)}
                                 </span>
-                                <div className={`w-1 h-1 rounded-full ${String(item.id) === String(channel.id) ? 'bg-rose-500 animate-pulse' : 'bg-rose-600'}`} />
+                                
+                                {isCurrentlyPlaying && (
+                                  <span className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                                  </span>
+                                )}
                               </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      )
+
+                              {/* Pie de tarjeta con título y botón de play */}
+                              <div className="relative z-10 w-full p-2.5 flex items-end justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className={`text-[10px] font-extrabold uppercase truncate tracking-tight ${
+                                    isCurrentlyPlaying ? 'text-rose-400' : 'text-white/90 group-hover:text-white'
+                                  }`}>
+                                    {item.name?.split('-').pop()?.trim() || `Capítulo ${idx + 1}`}
+                                  </p>
+                                  <span className="text-[8px] font-bold text-gray-400 tracking-wider">
+                                    {isCurrentlyPlaying ? 'Reproduciendo' : 'Ver ahora'}
+                                  </span>
+                                </div>
+
+                                <div className={`p-2 rounded-xl backdrop-blur-md transition-all ${
+                                  isCurrentlyPlaying 
+                                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' 
+                                    : 'bg-white/10 text-white opacity-0 group-hover:opacity-100 group-hover:scale-110'
+                                }`}>
+                                  <Play className="w-2.5 h-2.5 fill-current" />
+                                </div>
+                              </div>
+
+                              {/* Indicador de progreso de reproducción inferior */}
+                              {isCurrentlyPlaying && (
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-600 shadow-[0_0_8px_#e11d48]" />
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="rounded-xl overflow-hidden shrink-0 bg-black/60 border border-white/5 w-16 lg:w-20 aspect-video relative group-hover:scale-105 transition-transform duration-300">
+                                <img src={item.logo} className="w-full h-full object-contain p-1.5" alt="" onError={(e) => { e.target.src = '/icon-512.png'; }} />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Play className="w-3.5 h-3.5 text-white fill-current" />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className={`text-[11px] font-extrabold truncate tracking-tight uppercase group-hover:text-rose-400 transition-colors ${
+                                  String(item.id) === String(channel.id) ? 'text-rose-400' : 'text-white'
+                                }`}>
+                                  {item.name || item.title}
+                                </h4>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className={`text-[8px] uppercase font-bold tracking-widest ${
+                                    String(item.id) === String(channel.id) ? 'text-rose-500' : 'text-gray-400'
+                                  }`}>
+                                    {String(item.id) === String(channel.id) ? 'En Vivo' : channel.category || 'Canal'}
+                                  </span>
+                                  {String(item.id) === String(channel.id) && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
                     })}
                   </div>
 
-                 {/* Second Section: Global Trends */}
-                 <div className="mt-6 lg:mt-8 px-2 lg:px-0">
-                    <div className="flex items-center gap-2 mb-4">
-                       <div className="w-1 h-4 bg-blue-600 rounded-full" />
-                       <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Tendencias Globales</h4>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       {playlist.slice(0, 5).map((item, index) => (
-                          <div key={`trend-${item.id}`} onClick={() => onPlayNext(item)} className="group flex items-center gap-4 p-2 rounded-xl hover:bg-white/[0.04] cursor-pointer transition-all border border-transparent hover:border-white/5">
-                             <div className="text-3xl font-black text-white/5 group-hover:text-blue-500/20 italic w-8 text-center transition-colors">
-                                {index + 1}
-                             </div>
-                             <div className="w-14 h-9 bg-black rounded-lg border border-white/5 overflow-hidden shrink-0 shadow-lg group-hover:shadow-blue-500/10 transition-shadow">
-                                <img src={item.logo} className="w-full h-full object-contain p-1.5" alt="" />
-                             </div>
-                             <div className="flex-1 min-w-0">
-                                <p className="text-[10px] md:text-[11px] font-black text-gray-500 group-hover:text-white uppercase tracking-wider truncate transition-colors">
-                                   {item.name || item.title}
-                                </p>
-                             </div>
-                          </div>
-                       ))}
-                    </div>
-                 </div>
+                 {/* Second Section: Global Trends (Solo en modo TV en vivo) */}
+                 {!channel.groupId && !channel.isVOD && !isPodcast && (
+                   <div className="mt-6 lg:mt-8 px-2 lg:px-0">
+                      <div className="flex items-center gap-2 mb-4">
+                         <div className="w-1 h-4 bg-blue-600 rounded-full" />
+                         <h4 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Tendencias Globales</h4>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                         {playlist.slice(0, 5).map((item, index) => (
+                            <div key={`trend-${item.id}`} onClick={() => onPlayNext(item)} className="group flex items-center gap-4 p-2 rounded-xl hover:bg-white/[0.04] cursor-pointer transition-all border border-transparent hover:border-white/5">
+                               <div className="text-3xl font-black text-white/5 group-hover:text-blue-500/20 italic w-8 text-center transition-colors">
+                                  {index + 1}
+                               </div>
+                               <div className="w-14 h-9 bg-black rounded-lg border border-white/5 overflow-hidden shrink-0 shadow-lg group-hover:shadow-blue-500/10 transition-shadow">
+                                  <img src={item.logo} className="w-full h-full object-contain p-1.5" alt="" />
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] md:text-[11px] font-black text-gray-500 group-hover:text-white uppercase tracking-wider truncate transition-colors">
+                                     {item.name || item.title}
+                                  </p>
+                               </div>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                 )}
               </div>
             </div>
           )}
@@ -1719,3 +1594,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       </div>
     );
   }
+
+
+
+
+

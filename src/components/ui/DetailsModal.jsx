@@ -74,7 +74,7 @@ export default function DetailsModal({ channel, onClose, onPlay, isFavorite, tog
             <Player
               channel={channel}
               onClose={() => setIsPlaying(false)}
-              playlist={allChannels.filter(c => c.category === channel.category)}
+              playlist={allChannels.length > 0 ? allChannels : [channel]}
               isInline={true}
             />
           </div>

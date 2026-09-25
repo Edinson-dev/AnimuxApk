@@ -28,7 +28,18 @@ export default function SplashScreen({ isLoading, appVersion = "1.5", onFinish }
       }, 650);
       return () => clearTimeout(timer);
     }
-  }, [isLoading]);
+  }, [isLoading, fadingOut, onFinish]);
+
+  // Safety timer de respaldo máximo: nunca bloquear la pantalla más de 3.5 segundos
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      setFadingOut(true);
+      setTimeout(() => {
+        onFinish?.();
+      }, 650);
+    }, 3500);
+    return () => clearTimeout(safetyTimer);
+  }, [onFinish]);
 
   return (
     <div 

@@ -36,7 +36,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
   const displayName = featuredChannel.displayName || featuredChannel.name;
 
   return (
-    <div className="relative w-full h-[38vh] md:h-[65vh] overflow-hidden group mb-6 md:mb-10 animate-fade-in bg-[#05050f] rounded-2xl md:rounded-3xl border-none">
+    <div className="relative w-full min-h-[290px] md:min-h-[420px] md:h-[65vh] overflow-hidden group mb-4 md:mb-8 animate-fade-in bg-[#05050f] rounded-2xl md:rounded-3xl border border-white/[0.04]">
 
       {/* Adaptive color glow */}
       <div
@@ -55,52 +55,52 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0d0d0d&color=ffffff&size=512&bold=true`;
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-12 max-w-4xl space-y-4 md:space-y-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 animate-slide-up">
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-600 text-white text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-rose-600/30">
+      <div className="relative z-10 h-full flex flex-col justify-end p-4 sm:p-7 md:p-12 max-w-4xl space-y-3 md:space-y-6">
+        <div className="space-y-2.5 md:space-y-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap animate-slide-up">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-rose-600/30">
               <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
               {featuredChannel.isNew ? 'Estreno Exclusivo' : 'Tendencia'}
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-green-500/10 backdrop-blur-md">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-green-500/10 backdrop-blur-md">
               <Shield className="w-3 h-3" />
-              <span className="hidden md:inline">Transmisión Segura</span>
-              <span className="md:hidden">Seguro</span>
+              <span>Seguro</span>
             </span>
             <span className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] hidden lg:block">
               Animux Original • Premium
             </span>
           </div>
           
-          <h1 className="text-3xl md:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] animate-slide-up animation-delay-100">
+          <h1 className="text-2xl sm:text-4xl md:text-7xl font-black text-white uppercase tracking-tighter leading-tight md:leading-[0.9] animate-slide-up animation-delay-100">
             {displayName}
           </h1>
           
-          <p className="text-xs md:text-lg text-gray-300 font-medium max-w-2xl line-clamp-2 md:line-clamp-3 animate-slide-up animation-delay-200">
+          <p className="text-[11px] md:text-base text-gray-300/90 font-medium max-w-2xl line-clamp-2 md:line-clamp-3 leading-relaxed animate-slide-up animation-delay-200">
             {featuredChannel.description || 'Disfruta de la mejor calidad de imagen y sonido envolvente. Solo aquí en la plataforma líder de streaming.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4 pt-2 animate-slide-up animation-delay-300">
+        <div className="flex items-center gap-2.5 md:gap-4 pt-1 animate-slide-up animation-delay-300">
           <button
             onClick={() => onPlay(featuredChannel)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all shadow-xl shadow-rose-600/20 active:scale-95 group/btn"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2.5 px-6 py-3 md:px-8 md:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all shadow-xl shadow-rose-600/20 active:scale-95 group/btn cursor-pointer"
           >
-            <Play className="w-5 h-5 fill-current transition-transform group-hover/btn:scale-110" />
+            <Play className="w-4 h-4 md:w-5 md:h-5 fill-current transition-transform group-hover/btn:scale-110" />
             Reproducir
           </button>
           
           <button
             onClick={() => onDetails(featuredChannel)}
-            className="flex items-center justify-center gap-3 px-6 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.2em] transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all active:scale-95 cursor-pointer"
+            title="Ver detalles"
           >
-            <Info className="w-5 h-5" />
-            <span className="hidden md:inline">Info</span>
+            <Info className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="hidden sm:inline">Info</span>
           </button>
         </div>
       </div>
