@@ -22,7 +22,7 @@ export default function Header({
   needRefresh, 
   updateServiceWorker,
   onForceRefresh,
-  appVersion = '1.4',
+  appVersion = '1.6',
   lastSync,
   isKidsMode,
   setIsKidsMode,
@@ -101,8 +101,9 @@ export default function Header({
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[80] bg-[#070709]/98 backdrop-blur-2xl border-b border-white/[0.06] safe-area-top">
-      <div className="max-w-[1920px] mx-auto px-3.5 sm:px-6 md:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
+    <>
+      <header className="fixed top-0 left-0 right-0 z-[80] bg-[#070709]/98 backdrop-blur-2xl border-b border-white/[0.06] safe-area-top">
+        <div className="max-w-[1920px] mx-auto px-3.5 sm:px-6 md:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
 
         {/* Logo */}
         <div onClick={onGoHome} className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 select-none">
@@ -184,41 +185,13 @@ export default function Header({
           </button>
 
           {/* Theme Switcher Button */}
-          <div className="relative" ref={themeRef}>
-            <button
-              onClick={() => setShowThemeModal(!showThemeModal)}
-              title="Cambiar Tema de Color"
-              className="p-2 text-gray-300 hover:text-white bg-white/5 active:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
-            >
-              <Palette className="w-4 h-4 text-rose-500" />
-            </button>
-
-            {/* Theme Selector Popover */}
-            {showThemeModal && (
-              <div className="absolute right-0 top-12 w-64 bg-[#0f0f13]/98 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-3 z-[100] animate-slide-up space-y-2">
-                <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Temas de Acento</span>
-                  <span className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: currentTheme.primary, color: currentTheme.primary }} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {THEMES.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleSelectTheme(t.id)}
-                      className={`p-2 rounded-xl border flex items-center gap-2 text-left transition-all cursor-pointer ${
-                        currentTheme.id === t.id
-                          ? 'bg-white/15 border-white/40 shadow-md'
-                          : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06]'
-                      }`}
-                    >
-                      <span className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: t.primary }} />
-                      <span className="text-[9px] font-bold text-gray-200 truncate">{t.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setShowThemeModal(true)}
+            title="Cambiar Tema de Color"
+            className="p-2 text-gray-300 hover:text-white bg-white/5 active:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
+          >
+            <Palette className="w-4 h-4 text-rose-500" />
+          </button>
 
           {/* Botón TV Guide */}
           <button
@@ -368,13 +341,56 @@ export default function Header({
         </div>
       </div>
 
-      {/* Mobile Search Overlay with Moods */}
+      </header>
+
+      {/* Theme Selector Modal (100% Solid Background, separated from header containing block) */}
+      {showThemeModal && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div 
+            className="absolute inset-0"
+            onClick={() => setShowThemeModal(false)}
+          />
+          <div className="relative w-full max-w-xs bg-[#111116] border border-white/20 rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.98)] p-5 z-10 animate-slide-up space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Palette className="w-4 h-4 text-rose-500" />
+                <span className="text-xs font-black text-white uppercase tracking-wider">Temas de Acento</span>
+              </div>
+              <button 
+                onClick={() => setShowThemeModal(false)} 
+                className="p-1 rounded-full text-gray-400 hover:text-white bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelectTheme(t.id)}
+                  className={`p-3 rounded-2xl border flex items-center gap-2.5 text-left transition-all cursor-pointer ${
+                    currentTheme.id === t.id
+                      ? 'bg-white/15 border-white/40 shadow-lg shadow-black/80 scale-[1.02]'
+                      : 'bg-[#181820] border-white/10 hover:border-white/25 active:scale-95'
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded-full shrink-0 shadow-md ring-1 ring-white/20" style={{ backgroundColor: t.primary }} />
+                  <span className="text-[10px] font-bold text-gray-200 truncate">{t.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Search Overlay (100% Solid Black Background - Zero bleed-through) */}
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[200] bg-[#07070a] animate-fade-in flex flex-col md:hidden safe-area-top">
-          <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-[#07070a]">
+        <div className="fixed inset-0 z-[450] bg-[#000000] w-full h-[100dvh] flex flex-col overflow-hidden animate-fade-in md:hidden">
+          {/* Header with search input */}
+          <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-[#0c0c10] shrink-0 safe-area-top">
             <button 
               onClick={() => setIsSearchOpen(false)} 
-              className="p-2 -ml-1 text-gray-400 hover:text-white bg-white/5 active:bg-white/10 rounded-full border border-white/5 cursor-pointer"
+              className="p-2 -ml-1 text-gray-300 hover:text-white bg-white/10 active:bg-white/20 rounded-full border border-white/10 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -391,7 +407,7 @@ export default function Header({
                     setIsSearchOpen(false);
                   }
                 }}
-                className="w-full bg-white/[0.08] border border-white/15 focus:border-rose-500 rounded-2xl py-3 pl-12 pr-10 text-sm font-bold text-white outline-none"
+                className="w-full bg-[#181820] border border-white/20 focus:border-rose-500 rounded-2xl py-3 pl-12 pr-10 text-sm font-bold text-white outline-none placeholder:text-gray-500"
               />
               {searchQuery && (
                 <button 
@@ -404,7 +420,8 @@ export default function Header({
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar pb-24 bg-[#07070a]">
+          {/* Scrollable mood & result area */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar pb-32 bg-[#000000]">
             {!searchQuery && (
               <div className="space-y-4">
                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -441,6 +458,6 @@ export default function Header({
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

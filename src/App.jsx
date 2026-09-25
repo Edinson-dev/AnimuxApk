@@ -36,6 +36,7 @@ import { matchesYear, matchesGenre, applySorting } from './utils/filters';
 import { initTvNavigation } from './utils/tvNavigation';
 import { getActiveTheme, applyTheme } from './utils/theme';
 import SplashScreen from './components/ui/SplashScreen';
+import UpdateModal from './components/ui/UpdateModal';
 import { version } from '../package.json';
 
 const APP_VERSION = version;
@@ -45,7 +46,18 @@ export default function App() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r) { r && setInterval(() => { try { r.update(); } catch(_) {} }, 60 * 1000); },
+    onRegistered(r) {
+      if (!r) return;
+      // Chequeo periódico cada 30 segundos
+      setInterval(() => { try { r.update(); } catch(_) {} }, 30 * 1000);
+      // Chequeo inmediato al reenfocar la ventana o volver a la app
+      window.addEventListener('focus', () => { try { r.update(); } catch(_) {} });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          try { r.update(); } catch(_) {}
+        }
+      });
+    },
   });
 
   const [channelData, setChannelData] = useState({ channels: [] });
@@ -79,19 +91,27 @@ export default function App() {
 
   const isCustomFiltering = selectedYear !== 'all' || selectedGenre !== 'all' || selectedPopularity !== 'default';
 
-  // Auto-Actualización Inteligente (PWA)
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  // Auto-Detección de Nueva Versión en Vivo (Cloudflare Deploy)
   useEffect(() => {
     if (needRefresh) {
-      if (activeChannel) {
-        // Si están viendo una película, no se la cortamos.
-        toast.success('Nueva actualización descargada en segundo plano.');
-      } else {
-        // Si están en el menú, recargamos automáticamente para aplicar la nueva versión.
-        toast.success('Versión más reciente detectada. Recargando...', { duration: 1500 });
-        setTimeout(() => updateServiceWorker(true), 1500);
-      }
+      setShowUpdateModal(true);
     }
-  }, [needRefresh, activeChannel, updateServiceWorker]);
+  }, [needRefresh]);
+
+  const handleApplyUpdate = async () => {
+    try {
+      if (updateServiceWorker) {
+        await updateServiceWorker(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      localStorage.removeItem('animux_last_fetch');
+      window.location.reload(true);
+    }
+  };
   const [isKidsMode, setIsKidsMode] = useState(false);
   const [logoClicks, setLogoClicks] = useState(0);
   const [visibleCount, setVisibleCount] = useState(48);
@@ -891,6 +911,14 @@ export default function App() {
               });
             }
           }}
+        />
+      )}
+
+      {showUpdateModal && (
+        <UpdateModal
+          appVersion={APP_VERSION}
+          onUpdate={handleApplyUpdate}
+          onClose={() => setShowUpdateModal(false)}
         />
       )}
 

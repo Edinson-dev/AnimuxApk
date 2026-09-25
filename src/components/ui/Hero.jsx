@@ -33,14 +33,14 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
 
   if (!featuredChannel) return null;
 
-  const displayName = featuredChannel.displayName || featuredChannel.name;
+  const displayName = featuredChannel.displayName || featuredChannel.name || 'Título Destacado';
 
   return (
-    <div className="relative w-full min-h-[290px] md:min-h-[420px] md:h-[65vh] overflow-hidden group mb-4 md:mb-8 animate-fade-in bg-[#05050f] rounded-2xl md:rounded-3xl border border-white/[0.04]">
+    <div className="relative w-full min-h-[300px] sm:min-h-[360px] md:h-[65vh] md:min-h-[440px] flex flex-col justify-end overflow-hidden group mb-4 md:mb-8 animate-fade-in bg-[#080811] rounded-2xl md:rounded-3xl border border-white/[0.08] shadow-2xl">
 
       {/* Adaptive color glow */}
       <div
-        className="absolute inset-0 z-0 transition-all duration-1000"
+        className="absolute inset-0 z-0 transition-all duration-1000 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at 30% 60%, rgba(${bgRgb},0.45) 0%, transparent 65%)` }}
       />
 
@@ -49,19 +49,19 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
         <img
           src={featuredChannel.logo}
           alt={displayName}
-          className="w-full h-full object-cover opacity-50 animate-ken-burns"
+          className="w-full h-full object-cover opacity-65 group-hover:scale-105 transition-transform duration-700 animate-ken-burns"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0d0d0d&color=ffffff&size=512&bold=true`;
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#080811] via-[#080811]/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#080811]/90 via-[#080811]/40 to-transparent" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 h-full flex flex-col justify-end p-4 sm:p-7 md:p-12 max-w-4xl space-y-3 md:space-y-6">
-        <div className="space-y-2.5 md:space-y-3">
+      {/* Content pinned nicely to bottom */}
+      <div className="relative z-10 w-full p-4 sm:p-7 md:p-12 max-w-4xl space-y-3 md:space-y-4">
+        <div className="space-y-2 md:space-y-3">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap animate-slide-up">
             <span className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-rose-600/30">
               <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
@@ -76,11 +76,11 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
             </span>
           </div>
           
-          <h1 className="text-2xl sm:text-4xl md:text-7xl font-black text-white uppercase tracking-tighter leading-tight md:leading-[0.9] animate-slide-up animation-delay-100">
+          <h1 className="text-xl sm:text-3xl md:text-6xl font-black text-white uppercase tracking-tight leading-tight line-clamp-2 animate-slide-up animation-delay-100">
             {displayName}
           </h1>
           
-          <p className="text-[11px] md:text-base text-gray-300/90 font-medium max-w-2xl line-clamp-2 md:line-clamp-3 leading-relaxed animate-slide-up animation-delay-200">
+          <p className="text-[11px] sm:text-xs md:text-base text-gray-300/90 font-medium max-w-2xl line-clamp-2 md:line-clamp-3 leading-relaxed animate-slide-up animation-delay-200">
             {featuredChannel.description || 'Disfruta de la mejor calidad de imagen y sonido envolvente. Solo aquí en la plataforma líder de streaming.'}
           </p>
         </div>
@@ -88,7 +88,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
         <div className="flex items-center gap-2.5 md:gap-4 pt-1 animate-slide-up animation-delay-300">
           <button
             onClick={() => onPlay(featuredChannel)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2.5 px-6 py-3 md:px-8 md:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all shadow-xl shadow-rose-600/20 active:scale-95 group/btn cursor-pointer"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2.5 px-6 py-3.5 md:px-8 md:py-4 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all shadow-xl shadow-rose-600/30 active:scale-95 group/btn cursor-pointer"
           >
             <Play className="w-4 h-4 md:w-5 md:h-5 fill-current transition-transform group-hover/btn:scale-110" />
             Reproducir
@@ -96,7 +96,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
           
           <button
             onClick={() => onDetails(featuredChannel)}
-            className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all active:scale-95 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-4 py-3.5 md:px-6 md:py-4 bg-white/10 hover:bg-white/15 text-white border border-white/15 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all active:scale-95 cursor-pointer"
             title="Ver detalles"
           >
             <Info className="w-4 h-4 md:w-5 md:h-5" />
