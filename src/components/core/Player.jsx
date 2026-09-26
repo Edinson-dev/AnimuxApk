@@ -64,6 +64,23 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     const [savedTime, setSavedTime] = useState(0);
 
     // ── Screen Lock State ──────────────────────────────────────────
+    // ── Forced Landscape Rotation State (Mobile Fullscreen) ────────
+  const [isForcedRotate, setIsForcedRotate] = useState(false);
+
+  useEffect(() => {
+    const handleOrientationOrResize = () => {
+      if (window.innerWidth > window.innerHeight && isForcedRotate) {
+        setIsForcedRotate(false);
+      }
+    };
+    window.addEventListener('resize', handleOrientationOrResize);
+    window.addEventListener('orientationchange', handleOrientationOrResize);
+    return () => {
+      window.removeEventListener('resize', handleOrientationOrResize);
+      window.removeEventListener('orientationchange', handleOrientationOrResize);
+    };
+  }, [isForcedRotate]);
+
   const [isLocked, setIsLocked] = useState(false);
   const [showLockNotice, setShowLockNotice] = useState(false);
   const lockTimeoutRef = useRef(null);
@@ -503,35 +520,47 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         } catch (_) {}
 
         setIsFullscreen(false);
+        setIsForcedRotate(false);
         return;
       }
 
       setIsFullscreen(true);
 
-      // Bloquear a apaisado en móviles si está soportado
-      try {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
-        }
-      } catch (_) {}
-
-      // Intentar API nativa Fullscreen
       const container = videoContainerRef.current;
       const video = videoRef.current;
 
+      // 1. Entrar a fullscreen nativo primero
       try {
         if (container && container.requestFullscreen) {
           await container.requestFullscreen().catch(() => {});
         } else if (container && container.webkitRequestFullscreen) {
           container.webkitRequestFullscreen();
         } else if (video && video.webkitEnterFullscreen) {
-          // iOS Safari iPhone
           video.webkitEnterFullscreen();
         } else if (document.documentElement.requestFullscreen) {
           await document.documentElement.requestFullscreen().catch(() => {});
         }
       } catch (err) {
-        console.warn('Native requestFullscreen failed, using CSS fullscreen fallback:', err);
+        console.warn('Native requestFullscreen failed:', err);
+      }
+
+      // 2. Intentar bloquear a horizontal DESPUÉS de estar en fullscreen
+      let locked = false;
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape').then(() => {
+            locked = true;
+          }).catch(async () => {
+            await screen.orientation.lock('landscape-primary').then(() => {
+              locked = true;
+            }).catch(() => {});
+          });
+        }
+      } catch (_) {}
+
+      // 3. Fallback inteligente: si el SO bloquea el giro o es iOS, activar rotación CSS
+      if (!locked && window.innerHeight > window.innerWidth) {
+        setIsForcedRotate(true);
       }
     }, [isFullscreen]);
 
@@ -542,11 +571,26 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
         const isFs = Boolean(fsElement);
         setIsFullscreen(isFs);
         if (!isFs) {
+          setIsForcedRotate(false);
           try {
             if (screen.orientation && screen.orientation.unlock) {
               screen.orientation.unlock();
             }
           } catch (_) {}
+        } else {
+          try {
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock('landscape').catch(() => {
+                if (window.innerHeight > window.innerWidth) {
+                  setIsForcedRotate(true);
+                }
+              });
+            }
+          } catch (_) {
+            if (window.innerHeight > window.innerWidth) {
+              setIsForcedRotate(true);
+            }
+          }
         }
       };
 
@@ -856,7 +900,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
 
           <div 
             ref={videoContainerRef}
-            className={`relative shrink-0 w-full ${
+            className={`relative shrink-0 w-full ${isForcedRotate ? "player-rotate-90 bg-black flex items-center justify-center" : 
               isFullscreen
                 ? 'w-full h-full flex-1 flex items-center justify-center bg-black'
                 : (isPodcast ? 'aspect-auto min-h-[380px] sm:min-h-[440px]' : 'aspect-video lg:aspect-auto lg:flex-1')
@@ -922,6 +966,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                        loading={loading}
                        isFullscreen={isFullscreen}
                        onToggleFullscreen={toggleFullscreen}
+                        isForcedRotate={isForcedRotate}
+                        onToggleRotate={() => setIsForcedRotate(prev => !prev)}
                         onToggleLock={handleLock}
                        videoFit={videoFit}
                        onToggleVideoFit={() => setVideoFit(f => f === 'contain' ? 'cover' : 'contain')}

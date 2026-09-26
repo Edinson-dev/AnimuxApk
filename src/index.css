@@ -659,3 +659,17 @@ html.tv-mode main {
   background-color: #000000 !important;
 }
 
+
+/* ── Force Landscape / 90deg Rotation for Mobile Fullscreen ─────────── */
+.player-rotate-90 {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 100dvh !important;
+  height: 100dvw !important;
+  transform: translate(-50%, -50%) rotate(90deg) !important;
+  transform-origin: center center !important;
+  z-index: 250 !important;
+  max-width: none !important;
+  max-height: none !important;
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play, Pause, Volume2, VolumeX, PictureInPicture,
-  Maximize, Minimize, SkipBack, SkipForward, Settings, Cast, Lock, Unlock
+  Maximize, Minimize, SkipBack, SkipForward, Settings, Cast, Lock, Unlock, RotateCw
 } from "lucide-react";
 import { triggerCasting, checkCastSupport } from "../../utils/cast";
 
@@ -36,6 +36,8 @@ export default function VideoControls({
   videoFit = 'contain',
   onToggleVideoFit,
   onToggleLock,
+  isForcedRotate = false,
+  onToggleRotate,
   onOpenAudioSubtitles,
   hasSubtitlesActive = false,
 }) {
@@ -667,6 +669,20 @@ export default function VideoControls({
                 title="Bloquear pantalla táctil"
               >
                 <Lock className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+                        {isFullscreen && onToggleRotate && (
+              <button
+                onClick={onToggleRotate}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  isForcedRotate
+                    ? "bg-rose-600/30 border-rose-500/40 text-rose-300 shadow-md shadow-rose-600/20"
+                    : "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+                }`}
+                title={isForcedRotate ? "Orientación vertical" : "Girar a horizontal (90°)"}
+              >
+                <RotateCw className="w-3.5 h-3.5" />
               </button>
             )}
 
