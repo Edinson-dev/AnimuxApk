@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -28,7 +28,7 @@ export default defineConfig({
         background_color: '#000000',
         display: 'standalone',
         display_override: ['window-controls-overlay', 'standalone', 'minimal-ui', 'browser'],
-        orientation: 'portrait',
+        orientation: 'any',
         scope: '/',
         start_url: '/?source=pwa',
         lang: 'es',

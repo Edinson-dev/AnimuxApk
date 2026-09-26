@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import { 
   X, AlertCircle, Play, Pause, Volume2, VolumeX, PictureInPicture, 
   Calendar, Clock, Heart, Search, Languages, Subtitles, Upload, 
-  Check, Trash2, Plus, Minus, Cast 
+  Check, Trash2, Plus, Minus, Cast, Maximize, Minimize, Lock, Unlock 
 } from 'lucide-react';
 import { XTREAM_SERVERS, buildStreamURL, fetchShortEPG, decodeCamouflage } from '../../config/servers';
 import { sendAdminAlert } from '../../config/telegram';
@@ -21,6 +21,7 @@ const formatTime = (secs) => {
 
 export default function Player({ channel, onClose, playlist = [], onPlayNext, onReportBroken, isInline = false, isFavorite, onToggleFavorite }) {
   const videoRef = useRef(null);
+  const videoContainerRef = useRef(null);
   const hlsRef = useRef(null);
   const serverIndexRef = useRef(0); // ref para acceder en closures sin stale state
   const freezeRef = useRef({ lastTime: 0, counter: 0 });
@@ -31,6 +32,8 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [serverIndex, setServerIndex] = useState(0);
   const [currentUrl, setCurrentUrl] = useState('');
   const [isPiP, setIsPiP] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoFit, setVideoFit] = useState('contain'); // 'contain' | 'cover'
   const [minimized, setMinimized] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   
@@ -59,6 +62,42 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   // â”€â”€ Playback Progress State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedTime, setSavedTime] = useState(0);
+
+    // ── Screen Lock State ──────────────────────────────────────────
+  const [isLocked, setIsLocked] = useState(false);
+  const [showLockNotice, setShowLockNotice] = useState(false);
+  const lockTimeoutRef = useRef(null);
+
+  const triggerShowLockNotice = useCallback(() => {
+    setShowLockNotice(true);
+    if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
+    lockTimeoutRef.current = setTimeout(() => {
+      setShowLockNotice(false);
+    }, 3000);
+  }, []);
+
+  const handleLock = useCallback(() => {
+    setIsLocked(true);
+    triggerShowLockNotice();
+  }, [triggerShowLockNotice]);
+
+  const handleUnlock = useCallback((e) => {
+    e?.stopPropagation();
+    setIsLocked(false);
+    setShowLockNotice(false);
+    if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    setIsLocked(false);
+    setShowLockNotice(false);
+  }, [channel]);
+
+  useEffect(() => {
+    return () => {
+      if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
+    };
+  }, []);
 
   const isPodcast = channel?.category === 'PODCASTS' || channel?.category === 'RADIO' || channel?.isPodcast;
   const getYouTubeId = (url) => { if (!url) return null; const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/); return match ? match[1] : null; };
@@ -442,13 +481,143 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       };
     }, [channel, isEmbed]);
 
+    // ── Gestor de Pantalla Completa (Multiplataforma: Móvil / Tablet / PC / iOS) ──
+    const toggleFullscreen = useCallback(async () => {
+      const isCurrentlyFs = isFullscreen || Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+
+      if (isCurrentlyFs) {
+        try {
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+              document.webkitExitFullscreen();
+            }
+          }
+        } catch (_) {}
+
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        } catch (_) {}
+
+        setIsFullscreen(false);
+        return;
+      }
+
+      setIsFullscreen(true);
+
+      // Bloquear a apaisado en móviles si está soportado
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (_) {}
+
+      // Intentar API nativa Fullscreen
+      const container = videoContainerRef.current;
+      const video = videoRef.current;
+
+      try {
+        if (container && container.requestFullscreen) {
+          await container.requestFullscreen().catch(() => {});
+        } else if (container && container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        } else if (video && video.webkitEnterFullscreen) {
+          // iOS Safari iPhone
+          video.webkitEnterFullscreen();
+        } else if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch (err) {
+        console.warn('Native requestFullscreen failed, using CSS fullscreen fallback:', err);
+      }
+    }, [isFullscreen]);
+
+    // Sincronizar listeners de fullscreen nativo
+    useEffect(() => {
+      const onFsChange = () => {
+        const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+        const isFs = Boolean(fsElement);
+        setIsFullscreen(isFs);
+        if (!isFs) {
+          try {
+            if (screen.orientation && screen.orientation.unlock) {
+              screen.orientation.unlock();
+            }
+          } catch (_) {}
+        }
+      };
+
+      document.addEventListener('fullscreenchange', onFsChange);
+      document.addEventListener('webkitfullscreenchange', onFsChange);
+      document.addEventListener('mozfullscreenchange', onFsChange);
+      document.addEventListener('MSFullscreenChange', onFsChange);
+
+      const video = videoRef.current;
+      const onIosBegin = () => setIsFullscreen(true);
+      const onIosEnd = () => setIsFullscreen(false);
+
+      if (video) {
+        video.addEventListener('webkitbeginfullscreen', onIosBegin);
+        video.addEventListener('webkitendfullscreen', onIosEnd);
+      }
+
+      return () => {
+        document.removeEventListener('fullscreenchange', onFsChange);
+        document.removeEventListener('webkitfullscreenchange', onFsChange);
+        document.removeEventListener('mozfullscreenchange', onFsChange);
+        document.removeEventListener('MSFullscreenChange', onFsChange);
+        if (video) {
+          video.removeEventListener('webkitbeginfullscreen', onIosBegin);
+          video.removeEventListener('webkitendfullscreen', onIosEnd);
+        }
+      };
+    }, []);
+
+    // Manejar retroceso en Android para salir de pantalla completa
+    useEffect(() => {
+      if (isFullscreen) {
+        try {
+          window.history.pushState({ animuxFullscreen: true }, '');
+        } catch (_) {}
+
+        const handlePopState = () => {
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            try {
+              if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+              else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            } catch (_) {}
+          }
+          try {
+            if (screen.orientation && screen.orientation.unlock) {
+              screen.orientation.unlock();
+            }
+          } catch (_) {}
+          setIsFullscreen(false);
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+          window.removeEventListener('popstate', handlePopState);
+        };
+      }
+    }, [isFullscreen]);
+
     // ── Cleanup on Unmount (exit fullscreen / PiP to avoid black screen) ─────────────
     useEffect(() => {
       return () => {
         // Salir de pantalla completa si está activa
         try {
-          if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+          }
+        } catch (_) {}
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
           }
         } catch (_) {}
         // Salir de Picture-in-Picture si está activo
@@ -482,7 +651,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           applyTime();
         } else {
           video.addEventListener('loadedmetadata', applyTime, { once: true });
-          // Fallback por si ya cargÃ³ pero el readyState miente
+          // Fallback por si ya cargó pero el readyState miente
           setTimeout(applyTime, 1000);
         }
       }
@@ -495,18 +664,25 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
       setIsClosing(true);
       const doClose = () => {
         try {
-          if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {}).finally(() => onClose());
-          } else {
-            onClose();
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
           }
-        } catch (_) { onClose(); }
+        } catch (_) {}
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        } catch (_) {}
+        onClose();
       };
       setTimeout(doClose, 280);
     };
 
     const playerContainerClasses = minimized 
       ? "fixed bottom-20 md:bottom-6 right-4 w-[280px] sm:w-[340px] md:w-[380px] aspect-video z-[150] rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.95)] border-2 border-rose-500/40 animate-slide-up group bg-black backdrop-blur-2xl ring-1 ring-white/10"
+      : isFullscreen
+      ? "fixed inset-0 z-[200] flex flex-col bg-black w-screen h-[100dvh] overflow-hidden"
       : `${isInline ? 'relative h-full w-full' : 'fixed inset-0'} z-[110] flex flex-col bg-black ${
           isClosing ? 'animate-player-fade-out' : 'animate-fade-in'
         }`;
@@ -537,20 +713,36 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
     return (
       <div className={playerContainerClasses}>
         {/* Full Controls */}
-        {!minimized && !isInline && (
-          <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black via-black/80 to-transparent z-50">
-            <div className="flex items-center gap-4">
-              <button onClick={triggerClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
-                <X className="w-6 h-6 text-white" />
+        {!minimized && !isInline && !isFullscreen && !isLocked && (
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3.5 bg-gradient-to-b from-black via-black/80 to-transparent z-50">
+            <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 mr-2">
+              <button onClick={triggerClose} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full transition-all shrink-0 cursor-pointer">
+                <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
               <div className="flex flex-col min-w-0">
-                <h2 className="text-white font-black text-lg md:text-xl tracking-tight truncate max-w-[200px] md:max-w-md uppercase leading-tight">
+                <h2 className="text-white font-black text-sm sm:text-lg md:text-xl tracking-tight truncate max-w-[130px] xs:max-w-[170px] sm:max-w-xs md:max-w-md uppercase leading-tight">
                   {channel.displayName || channel.name}
                 </h2>
-                <span className="text-rose-600 text-[9px] font-black uppercase tracking-[0.2em]">{channel.category}</span>
+                <span className="text-rose-600 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] truncate">{channel.category}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {/* Botón de Favorito */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onToggleFavorite) onToggleFavorite();
+                }}
+                title={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
+                className={`p-1.5 sm:p-2 rounded-full border transition-all cursor-pointer active:scale-95 ${
+                  isFavorite
+                    ? "bg-rose-600/20 border-rose-500/50 text-rose-500 shadow-lg shadow-rose-600/30"
+                    : "bg-white/5 hover:bg-white/10 border-white/5 text-white/80 hover:text-white"
+                }`}
+              >
+                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${isFavorite ? "fill-rose-500 scale-105" : ""}`} />
+              </button>
+
               {/* Botón de Transmitir a Smart TV / Chromecast */}
               {!isEmbed && (
                 <button
@@ -565,36 +757,42 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                     });
                   }}
                   title="Transmitir a Smart TV o Chromecast"
-                  className="p-2.5 rounded-full bg-white/5 hover:bg-rose-600/20 hover:border-rose-500/40 border border-white/5 text-white/80 hover:text-white transition-all cursor-pointer active:scale-95"
+                  className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-rose-600/20 hover:border-rose-500/40 border border-white/5 text-white/80 hover:text-white transition-all cursor-pointer active:scale-95"
                 >
-                  <Cast className="w-5 h-5" />
+                  <Cast className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
 
-              {/* Botón de Audio y Subtítulos */}
-              {!isPodcast && !isEmbed && (
+                            {/* Botón de Bloqueo de Pantalla Táctil */}
+              {!isPodcast && (
                 <button
-                  onClick={() => setShowAudioSubtitlesModal(true)}
-                  title="Pistas de Audio y Subtítulos"
-                  className={`p-2.5 rounded-full border transition-all relative ${
-                    (selectedSubtitleTrack !== -1 || audioTracks.length > 1)
-                      ? 'bg-rose-600/20 border-rose-600/50 text-rose-400'
-                      : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'
-                  }`}
+                  onClick={handleLock}
+                  title="Bloquear pantalla táctil"
+                  className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-rose-600/20 hover:border-rose-500/40 border border-white/5 text-white/80 hover:text-white transition-all cursor-pointer active:scale-95"
                 >
-                  <Languages className="w-5 h-5" />
-                  {selectedSubtitleTrack !== -1 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-                  )}
+                  <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
+
+              {/* Botón de Pantalla Completa */}
+              {!isPodcast && (
+                <button
+                  onClick={toggleFullscreen}
+                  title="Pantalla Completa"
+                  className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-rose-600/20 hover:border-rose-500/40 border border-white/5 text-white transition-all cursor-pointer active:scale-95"
+                >
+                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+
               <button
                 onClick={() => setMinimized(true)}
                 title="Minimizar"
-                className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-white transition-all"
+                className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-white transition-all cursor-pointer active:scale-95"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </button>
+
               <button
                 onClick={async () => {
                   try {
@@ -605,10 +803,10 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                     }
                   } catch (e) {}
                 }}
-                title={isPiP ? 'Salir de PiP' : 'Pantalla en pantalla'}
-                className={`p-2.5 rounded-full border transition-all ${isPiP ? 'bg-rose-600/20 border-rose-600/50 text-rose-400' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'}`}
+                title={isPiP ? "Salir de PiP" : "Pantalla en pantalla"}
+                className={`hidden sm:flex p-1.5 sm:p-2 rounded-full border transition-all cursor-pointer active:scale-95 ${isPiP ? "bg-rose-600/20 border-rose-600/50 text-rose-400" : "bg-white/5 hover:bg-white/10 border-white/5 text-white"}`}
               >
-                <PictureInPicture className="w-5 h-5" />
+                <PictureInPicture className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
@@ -646,9 +844,9 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           </>
         )}
 
-        <div className={`flex-1 flex flex-col ${minimized ? '' : 'lg:flex-row'} overflow-hidden relative`}>
+        <div className={`flex-1 flex flex-col ${minimized ? '' : (isFullscreen ? '' : 'lg:flex-row')} overflow-hidden relative ${isFullscreen ? 'w-full h-full' : ''}`}>
           {/* Ambience Background Layer */}
-          {!minimized && (
+          {!minimized && !isFullscreen && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <div className="absolute inset-0 bg-gradient-to-tr from-rose-900/20 via-black to-black" />
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rose-600/5 blur-[120px] rounded-full animate-pulse" />
@@ -656,9 +854,25 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
             </div>
           )}
 
-          <div className={`relative shrink-0 w-full ${isPodcast ? 'aspect-auto min-h-[380px] sm:min-h-[440px]' : 'aspect-video'} lg:aspect-auto lg:flex-1 flex items-center justify-center group overflow-hidden z-10 bg-black`}>
+          <div 
+            ref={videoContainerRef}
+            className={`relative shrink-0 w-full ${
+              isFullscreen
+                ? 'w-full h-full flex-1 flex items-center justify-center bg-black'
+                : (isPodcast ? 'aspect-auto min-h-[380px] sm:min-h-[440px]' : 'aspect-video lg:aspect-auto lg:flex-1')
+            } flex items-center justify-center group overflow-hidden z-10 bg-black`}
+          >
             {/* Real Video Player */}
             <div className="w-full h-full flex items-center justify-center relative">
+              {isEmbed && isFullscreen && (
+                <button
+                  onClick={toggleFullscreen}
+                  className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/80 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 shadow-2xl transition-all cursor-pointer active:scale-95"
+                  title="Salir de Pantalla Completa"
+                >
+                  <Minimize className="w-5 h-5" />
+                </button>
+              )}
               {isYouTube ? (
                  <iframe src={`https://www.youtube.com/embed/${getYouTubeId(currentUrl)}?autoplay=1&modestbranding=1&rel=0`} className="w-full h-full border-0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen onLoad={() => setLoading(false)} />
               ) : isDrive ? (
@@ -669,7 +883,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                  <>
                    <video 
                      ref={videoRef} 
-                     className={`${isPodcast ? "opacity-0 absolute pointer-events-none w-0 h-0" : "w-full h-full object-contain shadow-2xl"} sub-color-${subColor} sub-size-${subSize}`} 
+                     className={`${isPodcast ? "opacity-0 absolute pointer-events-none w-0 h-0" : `w-full h-full ${videoFit === 'cover' ? 'object-cover' : 'object-contain'} shadow-2xl`} sub-color-${subColor} sub-size-${subSize}`} 
                      autoPlay 
                      playsInline
                      onContextMenu={(e) => e.preventDefault()}
@@ -687,7 +901,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                          kind="subtitles" 
                          src={externalSubtitle.blobUrl} 
                          srcLang="es" 
-                         label={externalSubtitle.name || 'SubtÃ­tulo Personalizado'} 
+                         label={externalSubtitle.name || 'Subtítulo Personalizado'} 
                          default 
                        />
                      )}
@@ -705,13 +919,19 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                        currentLevel={currentLevel}
                        channel={channel}
                        serverIndex={serverIndex}
-                        loading={loading}
-                        onTogglePlay={() => {
-                          const v = videoRef.current;
-                          if (!v) return;
-                          if (v.paused) safePlay();
-                          else v.pause();
-                        }}
+                       loading={loading}
+                       isFullscreen={isFullscreen}
+                       onToggleFullscreen={toggleFullscreen}
+                        onToggleLock={handleLock}
+                       videoFit={videoFit}
+                       onToggleVideoFit={() => setVideoFit(f => f === 'contain' ? 'cover' : 'contain')}
+                                              hasSubtitlesActive={selectedSubtitleTrack !== -1 || audioTracks.length > 1}
+                       onTogglePlay={() => {
+                         const v = videoRef.current;
+                         if (!v) return;
+                         if (v.paused) safePlay();
+                         else v.pause();
+                       }}
                        onLevelChange={(lvl) => {
                          if (hlsRef.current) {
                            hlsRef.current.currentLevel = lvl;
@@ -720,7 +940,60 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                        }}
                      />
                    )}
-                   {isPodcast && (
+                                       {/* Screen Lock Overlay */}
+                    {isLocked && (
+                      <div 
+                        className="absolute inset-0 z-[160] flex flex-col items-center justify-center select-none bg-black/20"
+                        onClick={triggerShowLockNotice}
+                      >
+                        {/* Centered Unlock Prompt Button */}
+                        <div 
+                          className={`transition-all duration-300 transform ${
+                            showLockNotice 
+                              ? 'opacity-100 scale-100 pointer-events-auto' 
+                              : 'opacity-0 scale-95 pointer-events-none'
+                          }`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={handleUnlock}
+                            className="flex items-center gap-3 px-6 py-3.5 rounded-full bg-neutral-950/95 hover:bg-black active:scale-95 backdrop-blur-2xl border border-rose-500/50 shadow-[0_10px_40px_rgba(225,29,72,0.4)] text-white transition-all cursor-pointer group"
+                          >
+                            <div className="p-2 rounded-full bg-rose-600 group-hover:bg-rose-500 text-white shadow-md shadow-rose-600/40 transition-colors">
+                              <Unlock className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col text-left pr-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                                Pantalla Bloqueada
+                              </span>
+                              <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
+                                Toca aquí para desbloquear
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Subtle Floating Lock Icon in top-left when prompt is hidden */}
+                        <div 
+                          className={`absolute top-4 left-4 transition-opacity duration-300 ${
+                            showLockNotice ? 'opacity-0 pointer-events-none' : 'opacity-60 hover:opacity-100 pointer-events-auto'
+                          }`}
+                        >
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerShowLockNotice();
+                            }}
+                            className="p-2.5 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/15 text-rose-400 cursor-pointer shadow-lg active:scale-95 transition-all"
+                            title="Toca para desbloquear"
+                          >
+                            <Lock className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {isPodcast && (
                      <div className="absolute inset-0 flex flex-col items-center justify-between p-6 md:p-8 bg-gradient-to-b from-[#0c0c0e]/80 via-[#121216]/95 to-[#08080a]/98 text-white overflow-hidden select-none">
                        {/* Background pulsing glow */}
                        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -870,7 +1143,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                               }}
                               className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 border border-white/5 text-[9px] font-black text-rose-500 uppercase tracking-widest transition-all min-w-[75px] text-center animate-pulse"
                               style={{ animationDuration: '3s' }}
-                              title="Velocidad de reproducciÃ³n"
+                              title="Velocidad de reproducción"
                             >
                               {playbackRate === 1 ? '1.0x SPEED' : `${playbackRate}x SPEED`}
                             </button>
@@ -890,20 +1163,20 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                   <div className="bg-neutral-950/95 backdrop-blur-2xl border border-white/15 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-6 max-w-sm sm:max-w-md w-full pointer-events-auto shadow-rose-950/40 border-rose-500/20">
                     <div className="flex flex-col min-w-0 text-center sm:text-left flex-1">
                       <span className="text-[10px] sm:text-xs font-black text-rose-500 uppercase tracking-widest">
-                        Â¿Continuar Viendo?
+                        ¿Continuar Viendo?
                       </span>
                       <span className="text-white text-xs sm:text-sm font-bold uppercase tracking-tight truncate mt-0.5">
                         Quedaste en {new Date(savedTime * 1000).toISOString().substr(11, 8)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button 
+                      <button
                         onClick={() => setShowResumePrompt(false)}
                         className="px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 text-white/80 hover:text-white text-[10px] sm:text-xs font-black uppercase transition-all"
                       >
                         Ignorar
                       </button>
-                      <button 
+                      <button
                         onClick={handleResume}
                         className="px-4 sm:px-6 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-[10px] sm:text-xs font-black uppercase shadow-lg shadow-rose-600/30 transition-all flex items-center gap-1.5"
                       >
@@ -912,77 +1185,6 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                       </button>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Technical Badges (Hidden when minimized) */}
-              {!minimized && !loading && (
-                <div className="absolute top-6 right-6 flex flex-col items-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-50">
-                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[9px] font-black text-white uppercase tracking-widest">SeÃ±al Estable</span>
-                  </div>
-
-                  {/* BotÃ³n de Audio y SubtÃ­tulos en badges */}
-                  {!isPodcast && !isEmbed && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowAudioSubtitlesModal(true);
-                      }}
-                      title="Audio y SubtÃ­tulos"
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${
-                        selectedSubtitleTrack !== -1 || audioTracks.length > 1
-                          ? 'bg-rose-600/30 border-rose-500 text-rose-300 shadow-lg shadow-rose-600/20'
-                          : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      <Languages className="w-3.5 h-3.5" />
-                      <span>{selectedSubtitleTrack !== -1 ? 'Sub: ON' : 'Audio / Sub'}</span>
-                    </button>
-                  )}
-
-                  {/* BotÃ³n de Favorito en el Player */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onToggleFavorite) onToggleFavorite();
-                    }}
-                    className="p-2.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-white/10 transition-colors shadow-2xl group/fav"
-                  >
-                    <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500 group-hover/fav:scale-110' : 'text-white/70 group-hover/fav:text-white group-hover/fav:scale-110'}`} />
-                  </button>
-                  
-                  {levels.length > 1 ? (
-                    <div className="flex flex-col gap-1 items-end bg-black/80 backdrop-blur-xl p-2 rounded-xl border border-white/10 shadow-2xl">
-                      <span className="text-[8px] text-gray-500 font-black uppercase px-2 mb-1 tracking-widest">Calidad</span>
-                      <button 
-                         onClick={() => {
-                            if (hlsRef.current) hlsRef.current.currentLevel = -1;
-                            setCurrentLevel(-1);
-                         }} 
-                         className={`w-full text-right px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${currentLevel === -1 ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                      >
-                         Auto
-                      </button>
-                      {levels.map(l => (
-                        <button 
-                           key={l.index} 
-                           onClick={() => {
-                              if (hlsRef.current) hlsRef.current.currentLevel = l.index;
-                              setCurrentLevel(l.index);
-                           }}
-                           className={`w-full text-right px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${currentLevel === l.index ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                           {l.height}p
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-rose-600/20 backdrop-blur-md px-3 py-1 rounded-md border border-rose-600/30">
-                      <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">1080p HD</span>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -998,7 +1200,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                     <div className="flex items-center justify-between pb-3 border-b border-white/10">
                       <div className="flex items-center gap-2.5">
                         <Languages className="w-5 h-5 text-rose-500" />
-                        <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-white">Audio y SubtÃ­tulos</h3>
+                        <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-white">Audio y Subtítulos</h3>
                       </div>
                       <button 
                         onClick={() => setShowAudioSubtitlesModal(false)}
@@ -1019,7 +1221,7 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                         }`}
                       >
                         <Subtitles className="w-3.5 h-3.5" />
-                        SubtÃ­tulos
+                        Subtítulos
                         {selectedSubtitleTrack !== -1 && (
                           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                         )}
@@ -1278,31 +1480,32 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
           </div>
 
           {/* Side Panel - Vertical on Desktop, Horizontal on Mobile */}
-          {!minimized && (
+          {!minimized && !isFullscreen && (
             <div className="w-full lg:w-[400px] bg-[#050505]/60 backdrop-blur-3xl border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col h-auto lg:h-full overflow-hidden z-20 relative">
               {/* Quick Info / Cinematic Header (Visible only when not minimized) */}
-              <div className="p-4 lg:p-5 border-b border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="px-2.5 py-1 bg-rose-600/15 border border-rose-500/30 rounded-lg flex items-center gap-1.5 shadow-sm">
+              <div className="p-3.5 sm:p-4 lg:p-5 border-b border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 min-w-0">
+                    <div className="px-2.5 py-1 bg-rose-600/15 border border-rose-500/30 rounded-lg flex items-center gap-1.5 shadow-sm shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                       <span className="text-[10px] font-black text-rose-400 uppercase tracking-[0.18em]">
-                        {channel.groupId && channel.isVOD ? 'SERIE' : channel.isVOD ? 'PELÍCULA' : isPodcast ? 'PÓDCAST' : 'CANAL EN VIVO'}
+                        {channel.groupId && channel.isVOD ? "SERIE" : channel.isVOD ? "PELÍCULA" : isPodcast ? "PÓDCAST" : "CANAL EN VIVO"}
                       </span>
                     </div>
-                    <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-gray-400">
-                      <span>4K UHD</span>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-[9px] font-bold text-gray-300 shadow-sm shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-emerald-400 font-extrabold tracking-wider">SEÑAL ESTABLE</span>
                       <span className="w-1 h-1 rounded-full bg-gray-500" />
-                      <span>DOLBY 5.1</span>
+                      <span className="text-rose-400 font-extrabold tracking-wider">{currentLevel !== -1 && levels[currentLevel]?.height ? `${levels[currentLevel].height}P HD` : "1080P HD"}</span>
                     </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button 
+                    </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button
                       onClick={() => {
-                        if (window.confirm('¿Reportar señal de este canal?')) onReportBroken?.(channel);
-                      }} 
+                        if (window.confirm("¿Reportar señal de este canal?")) onReportBroken?.(channel);
+                      }}
                       title="Reportar Problema"
-                      className="p-2 hover:bg-rose-600/20 text-gray-400 hover:text-rose-400 rounded-xl transition-all border border-transparent hover:border-rose-500/20"
+                      className="p-1.5 sm:p-2 hover:bg-rose-600/20 text-gray-400 hover:text-rose-400 rounded-xl transition-all border border-transparent hover:border-rose-500/20 cursor-pointer"
                     >
                       <AlertCircle className="w-4 h-4" />
                     </button>

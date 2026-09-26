@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play, Pause, Volume2, VolumeX, PictureInPicture,
-  Maximize, Minimize, SkipBack, SkipForward, Settings, Cast
+  Maximize, Minimize, SkipBack, SkipForward, Settings, Cast, Lock, Unlock
 } from "lucide-react";
 import { triggerCasting, checkCastSupport } from "../../utils/cast";
 
@@ -31,13 +31,21 @@ export default function VideoControls({
   loading = false,
   onTogglePlay,
   onLevelChange,
+  isFullscreen: isFullscreenProp,
+  onToggleFullscreen,
+  videoFit = 'contain',
+  onToggleVideoFit,
+  onToggleLock,
+  onOpenAudioSubtitles,
+  hasSubtitlesActive = false,
 }) {
   const [visible, setVisible] = useState(true);
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreenLocal, setIsFullscreenLocal] = useState(false);
+  const isFullscreen = typeof isFullscreenProp === "boolean" ? isFullscreenProp : isFullscreenLocal;
   const [seekFlash, setSeekFlash] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isCasting, setIsCasting] = useState(false);
@@ -117,11 +125,27 @@ export default function VideoControls({
     }
   }, [videoRef]);
 
-  // Fullscreen detection
+  // Fullscreen detection (cross-browser)
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFsChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+      setIsFullscreenLocal(isFs);
+    };
     document.addEventListener("fullscreenchange", onFsChange);
-    return () => document.removeEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    document.addEventListener("mozfullscreenchange", onFsChange);
+    document.addEventListener("MSFullscreenChange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+      document.removeEventListener("mozfullscreenchange", onFsChange);
+      document.removeEventListener("MSFullscreenChange", onFsChange);
+    };
   }, []);
 
   const handlePlayPause = useCallback(() => {
@@ -149,10 +173,20 @@ export default function VideoControls({
   }, [showControls, videoRef]);
 
   const handleFullscreen = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+    if (onToggleFullscreen) {
+      onToggleFullscreen();
     } else {
-      document.documentElement.requestFullscreen?.().catch(() => {});
+      const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (isFs) {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } else {
+        const video = videoRef?.current;
+        const target = video?.parentElement || document.documentElement;
+        if (target.requestFullscreen) target.requestFullscreen().catch(() => {});
+        else if (target.webkitRequestFullscreen) target.webkitRequestFullscreen();
+        else if (video?.webkitEnterFullscreen) video.webkitEnterFullscreen();
+      }
     }
   };
 
@@ -291,7 +325,7 @@ export default function VideoControls({
     const isRightThird = x > rect.width * 0.65;
     const now = Date.now();
 
-    // Check double tap for skip -10s / +10s
+    // Check double tap for skip -10s / +10s or center double-tap fullscreen
     if (now - lastTapRef.current.time < 300) {
       clearTimeout(singleClickTimerRef.current);
       if (isLeftThird) {
@@ -300,6 +334,11 @@ export default function VideoControls({
         return;
       } else if (isRightThird) {
         handleSkip(10);
+        lastTapRef.current = { time: 0, side: null };
+        return;
+      } else {
+        // Doble toque central: alternar pantalla completa
+        handleFullscreen();
         lastTapRef.current = { time: 0, side: null };
         return;
       }
@@ -383,6 +422,30 @@ export default function VideoControls({
 
       {/* Top gradient */}
       <div className={`absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/80 via-black/30 to-transparent transition-opacity duration-300 pointer-events-none ${visible ? "opacity-100" : "opacity-0"}`} />
+
+      {/* Top bar in Fullscreen: Back/Minimize button + Channel Name */}
+      {isFullscreen && (
+        <div 
+          className={`absolute top-3 left-4 flex items-center gap-3 transition-opacity duration-300 z-50 ${visible ? "opacity-100" : "opacity-0 pointer-events-none"}`} 
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleFullscreen}
+            className="p-2 rounded-full bg-black/70 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white transition-all active:scale-95 cursor-pointer shadow-lg"
+            title="Salir de Pantalla Completa"
+          >
+            <Minimize className="w-4 h-4" />
+          </button>
+          <div className="flex flex-col min-w-0">
+            <span className="text-white text-xs sm:text-sm font-black uppercase tracking-tight truncate max-w-[180px] sm:max-w-xs drop-shadow-md">
+              {channel?.displayName || channel?.name}
+            </span>
+            <span className="text-rose-500 text-[9px] font-black uppercase tracking-widest">
+              {channel?.category}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Top badges (server, live, quality) */}
       <div className={`absolute top-3 right-4 flex items-center gap-2 transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`} onClick={(e) => e.stopPropagation()}>
@@ -580,10 +643,37 @@ export default function VideoControls({
               </button>
             )}
 
+            {isFullscreen && onToggleVideoFit && (
+              <button
+                onClick={onToggleVideoFit}
+                className={`px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  videoFit === 'cover'
+                    ? "bg-rose-600/30 border-rose-500/40 text-rose-300"
+                    : "bg-white/5 border-white/10 text-white/70 hover:text-white"
+                }`}
+                title={videoFit === 'cover' ? "Ajustar al centro (Contain)" : "Llenar pantalla completa (Cover)"}
+              >
+                {videoFit === 'cover' ? "Llenar" : "Ajustar"}
+              </button>
+            )}
+
+                        {onToggleLock && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleLock();
+                }}
+                className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer active:scale-95"
+                title="Bloquear pantalla táctil"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            )}
+
             <button
               onClick={handleFullscreen}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all cursor-pointer"
-              title="Pantalla completa (F)"
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-all cursor-pointer active:scale-95"
+              title={isFullscreen ? "Salir de pantalla completa (F)" : "Pantalla completa (F)"}
             >
               {isFullscreen
                 ? <Minimize className="w-3.5 h-3.5" />

@@ -1,25 +1,21 @@
 import React from 'react';
+import { Film } from 'lucide-react';
 
-export default function FilmLoader({ className = "w-20 h-20" }) {
+export default function FilmLoader({ className = "w-16 h-16" }) {
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
-      {/* Halo de luz cinematográfico profundo */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-rose-600/30 via-purple-600/20 to-rose-500/30 rounded-full blur-2xl animate-pulse" />
+      {/* Halo de luz suave */}
+      <div className="absolute inset-0 bg-rose-600/20 rounded-full blur-xl animate-pulse" />
 
-      {/* Anillo orbital exterior tipo HBO / Disney+ */}
-      <div className="absolute inset-0 rounded-full p-[2px] animate-spin" style={{ animationDuration: '2.5s' }}>
-        <div className="w-full h-full rounded-full bg-gradient-to-r from-rose-500 via-transparent to-rose-600" />
-      </div>
+      {/* Anillo de giro suave */}
+      <div 
+        className="w-full h-full rounded-full border-2 border-white/10 border-t-rose-500 border-r-rose-500/30 animate-spin" 
+        style={{ animationDuration: '0.9s' }} 
+      />
 
-      {/* Segundo aro inverso de alta velocidad */}
-      <div className="absolute inset-2 rounded-full p-[1.5px] animate-spin" style={{ animationDuration: '1.4s', animationDirection: 'reverse' }}>
-        <div className="w-full h-full rounded-full bg-gradient-to-t from-rose-400/80 via-transparent to-transparent" />
-      </div>
-
-      {/* Núcleo central con glow */}
-      <div className="relative z-10 w-10 h-10 rounded-full bg-[#0a0a0f] border border-rose-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(225,29,72,0.4)]">
-        <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping opacity-75" />
-        <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_#ffffff]" />
+      {/* Ícono cinematográfico sutil */}
+      <div className="absolute inset-2.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+        <Film className="w-5 h-5 text-rose-500/80" />
       </div>
     </div>
   );
