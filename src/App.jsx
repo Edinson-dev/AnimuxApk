@@ -440,6 +440,17 @@ export default function App() {
         if (lastEpisode) resolvedChannel = lastEpisode;
       }
     }
+
+    // Actualizar lista de recientemente vistos para "Continuar Viendo"
+    if (resolvedChannel?.id) {
+      setRecentlyWatched(prev => {
+        const filtered = prev.filter(id => String(id) !== String(resolvedChannel.id));
+        const next = [String(resolvedChannel.id), ...filtered].slice(0, 20);
+        localStorage.setItem('animux_recent', JSON.stringify(next));
+        return next;
+      });
+    }
+
     // Pre-roll ad: mostrar antes de reproducir si aplica
     if (shouldShowPreroll()) {
       setPendingChannel(resolvedChannel);

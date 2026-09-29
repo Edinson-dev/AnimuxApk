@@ -59,9 +59,26 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
   const [subColor, setSubColor] = useState('white'); // 'white' | 'yellow' | 'cyan' | 'green'
   const [subSize, setSubSize] = useState('medium'); // 'small' | 'medium' | 'large'
 
-  // â”€â”€ Playback Progress State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const [showResumePrompt, setShowResumePrompt] = useState(false);
-    const [savedTime, setSavedTime] = useState(0);
+  // ── Playback Progress State (Continuar Viendo) ─────────────
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedTime, setSavedTime] = useState(0);
+  const lastSavedProgRef = useRef(0);
+
+  useEffect(() => {
+    if (!channel?.id) return;
+    setShowResumePrompt(false);
+    setSavedTime(0);
+    try {
+      const saved = localStorage.getItem(`animux_prog_${channel.id}`);
+      if (saved) {
+        const t = parseFloat(saved);
+        if (t > 15) {
+          setSavedTime(t);
+          setShowResumePrompt(true);
+        }
+      }
+    } catch (_) {}
+  }, [channel?.id]);
 
     // ── Screen Lock State ──────────────────────────────────────────
     // ── Forced Landscape Rotation State (Mobile Fullscreen) ────────
@@ -933,10 +950,21 @@ export default function Player({ channel, onClose, playlist = [], onPlayNext, on
                      onContextMenu={(e) => e.preventDefault()}
                      onPlay={() => { setLoading(false); setIsPlaying(true); }}
                      onPlaying={() => { setLoading(false); setIsPlaying(true); }}
-                     onPause={() => setIsPlaying(false)}
-                     onWaiting={() => setLoading(true)}
-                     onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-                     onLoadedMetadata={(e) => setDuration(e.target.duration)}
+                     onTimeUpdate={(e) => {
+                       const curr = e.target.currentTime;
+                       setCurrentTime(curr);
+                       const nowSec = Math.floor(curr);
+                       if (channel?.id && Math.abs(nowSec - lastSavedProgRef.current) >= 4) {
+                         lastSavedProgRef.current = nowSec;
+                         try {
+                           if (e.target.duration && curr > e.target.duration - 30) {
+                             localStorage.removeItem(`animux_prog_${channel.id}`);
+                           } else if (nowSec > 10) {
+                             localStorage.setItem(`animux_prog_${channel.id}`, nowSec.toString());
+                           }
+                         } catch (_) {}
+                       }
+                     }}
                      onDurationChange={(e) => setDuration(e.target.duration)}
                    >
                      {selectedSubtitleTrack === 'external' && externalSubtitle?.blobUrl && (

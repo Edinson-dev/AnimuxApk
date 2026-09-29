@@ -2,132 +2,145 @@ import React, { useState, useEffect } from 'react';
 
 export default function SplashScreen({ isLoading, appVersion = "1.5", onFinish }) {
   const [fadingOut, setFadingOut] = useState(false);
-  const [statusTextIndex, setStatusTextIndex] = useState(0);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
-  const statusMessages = [
-    'Iniciando sistema...',
-    'Sincronizando canales y señales...',
-    'Conexión segura establecida',
-    'Bienvenido a Animux'
+  // Muestra de pósters cinemáticos de alta definición para el fondo ambiental
+  const backdropPosters = [
+    "https://image.tmdb.org/t/p/w500/1E5baAaEse26fej7uHcjOgEE2t2.jpg", // Fast X
+    "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", // Oppenheimer
+    "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg", // The Dark Knight
+    "https://image.tmdb.org/t/p/w500/r2J02Z2OpNTctfOSN2Ydg395Jv3.jpg", // Guardians of the Galaxy
+    "https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg", // Dune 2
+    "https://image.tmdb.org/t/p/w500/fiVW06jE7z9YnO4trhaMEdclSiC.jpg", // Fast & Furious
+    "https://image.tmdb.org/t/p/w500/A4j8S6moJS2zNtRR8oWF08gRwL.jpg", // Spider-Man
+    "https://image.tmdb.org/t/p/w500/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg", // Kung Fu Panda 4
+    "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg", // Avengers
+    "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg", // Inside Out 2
+    "https://image.tmdb.org/t/p/w500/gPbM0MK8CP8A174rmUwxtjYeR89.jpg", // Deadpool & Wolverine
+    "https://image.tmdb.org/t/p/w500/bXi6IQiCuHD00X97JvP2M1hq69X.jpg"  // Furiosa
   ];
 
-  // Ciclo sutil de micro-textos de estado
+  // Tiempo de exhibición natural para inicializar recursos (~2.2s)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStatusTextIndex(prev => (prev < statusMessages.length - 1 ? prev + 1 : prev));
-    }, 450);
-    return () => clearInterval(interval);
+    const minTimer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, 2200);
+    return () => clearTimeout(minTimer);
   }, []);
 
-  // Manejo de salida con desvanecimiento cinemático (Fade Out)
+  // Transición suave de disolución al terminar
   useEffect(() => {
-    if (!isLoading && !fadingOut) {
+    if (!isLoading && minTimeElapsed && !fadingOut) {
       setFadingOut(true);
-      const timer = setTimeout(() => {
+      const exitTimer = setTimeout(() => {
         onFinish?.();
-      }, 650);
-      return () => clearTimeout(timer);
+      }, 550);
+      return () => clearTimeout(exitTimer);
     }
-  }, [isLoading, fadingOut, onFinish]);
+  }, [isLoading, minTimeElapsed, fadingOut, onFinish]);
 
-  // Safety timer de respaldo máximo: nunca bloquear la pantalla más de 3.5 segundos
+  // Safety timer máximo (3.5s)
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       setFadingOut(true);
       setTimeout(() => {
         onFinish?.();
-      }, 650);
+      }, 550);
     }, 3500);
     return () => clearTimeout(safetyTimer);
   }, [onFinish]);
 
   return (
     <div 
-      className={`fixed inset-0 z-[1000] bg-[#040407] flex flex-col items-center justify-center font-sans overflow-hidden select-none transition-all duration-700 ease-out ${
-        fadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
+      className={`fixed inset-0 z-[1000] bg-[#050508] flex flex-col items-center justify-between p-6 sm:p-10 font-sans select-none transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        fadingOut ? 'opacity-0 scale-[1.03] blur-[2px] pointer-events-none' : 'opacity-100 scale-100'
       }`}
     >
-      {/* Luces atmosféricas OLED Cinema */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[550px] h-[350px] bg-rose-600/15 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-[400px] h-[250px] bg-violet-600/10 rounded-full blur-[120px]" />
-        {/* Subtle grid pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
+      {/* ── Fondo Cinematográfico Atmosférico (Estilo Netflix / Disney+) ── */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        
+        {/* Mosaico de pósters de cine con inclinación de cámara */}
+        <div className="absolute -inset-10 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3.5 opacity-25 transform -rotate-3 scale-110">
+          {backdropPosters.concat(backdropPosters).map((src, i) => (
+            <div key={i} className="aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl">
+              <img
+                src={src}
+                alt=""
+                className="w-full h-full object-cover filter saturate-125"
+                loading="eager"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Degradado de viñeta oscura para enfocar el centro */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050508] via-[#050508]/85 to-[#050508]/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#050508] via-transparent to-[#050508]" />
+        
+        {/* Resplandor ambiental carmesí centrado */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-rose-600/15 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-9">
-        {/* Logo Card Holográfico */}
-        <div className="relative group">
-          {/* Halo de luz viva respirable */}
-          <div className="absolute -inset-4 bg-gradient-to-tr from-rose-600/35 via-rose-500/20 to-violet-600/25 rounded-[3rem] blur-2xl animate-pulse" />
+      {/* Espaciador superior limpio */}
+      <div className="w-full flex justify-end relative z-10">
+        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.25em]">
+          V{appVersion}
+        </span>
+      </div>
 
-          {/* Caja squircle tvOS Glassmorphism */}
-          <div className="relative w-28 h-28 md:w-36 md:h-36 p-5 bg-white/[0.04] backdrop-blur-3xl rounded-[2.5rem] border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-center ring-1 ring-rose-500/20 transform animate-float">
-            {/* Destello sutil interior */}
-            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+      {/* ── Bloque Central de Identidad OTT ── */}
+      <div className="relative z-10 flex flex-col items-center gap-7 max-w-sm w-full text-center">
+        
+        {/* Isotipo con Reflejo de Cristal y Resplandor Vivo */}
+        <div className="relative">
+          {/* Halo sutil de luz detrás del icono */}
+          <div className="absolute -inset-5 bg-gradient-to-tr from-rose-600/35 via-red-500/20 to-purple-600/20 rounded-[3rem] blur-2xl opacity-80 animate-pulse" />
+
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 p-4 bg-gradient-to-b from-white/[0.12] to-white/[0.03] backdrop-blur-2xl border border-white/20 rounded-[2.2rem] sm:rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.9),inset_0_1px_2px_rgba(255,255,255,0.4)] flex items-center justify-center">
+            {/* Destello de cristal superior */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-[2.2rem] sm:rounded-t-[2.5rem] pointer-events-none" />
 
             <img
               src="/icon-192.png"
-              alt="Animux Logo"
-              className="w-full h-full object-contain filter drop-shadow-[0_4px_20px_rgba(225,29,72,0.65)] relative z-10"
+              alt="Animux"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_20px_rgba(225,29,72,0.65)] relative z-10"
             />
           </div>
         </div>
 
-        {/* Identidad y Tipografía Cinematográfica */}
-        <div className="text-center space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-5xl md:text-7xl font-black tracking-[-0.04em] uppercase bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-[0_2px_20px_rgba(225,29,72,0.3)]">
-              ANIMUX
-            </h1>
+        {/* Tipografía de Marca */}
+        <div className="space-y-1.5 flex flex-col items-center">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-[-0.03em] uppercase bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent font-display drop-shadow-[0_2px_25px_rgba(225,29,72,0.3)]">
+            ANIMUX
+          </h1>
+          <p className="text-[10px] sm:text-xs text-rose-400/90 font-bold uppercase tracking-[0.35em]">
+            Cinema • Series • Live TV
+          </p>
+        </div>
 
-            {/* Pill Badge Premium */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-lg shadow-black/40">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-              <span className="text-[10px] md:text-xs text-rose-400 font-black uppercase tracking-[0.35em]">
-                Live TV • Cinema • Deportes
-              </span>
-            </div>
-          </div>
-
-          {/* Barra Láser de Carga Tecnológica (Minimalista) */}
-          <div className="pt-5 flex flex-col items-center gap-3">
-            <div className="w-52 md:w-64 h-[3px] bg-white/[0.08] rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(225,29,72,0.3)]">
-              <div className="h-full bg-gradient-to-r from-transparent via-rose-500 to-white rounded-full animate-laser-flow" />
-            </div>
-
-            {/* Micro-texto dinámico */}
-            <p className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-[0.3em] h-4 transition-all duration-300">
-              {statusMessages[statusTextIndex]}
-            </p>
+        {/* ── Loader Circular Cinemático Premium (Estilo Apple TV / HBO Max) ── */}
+        <div className="pt-3 flex items-center justify-center">
+          <div className="relative w-7 h-7 flex items-center justify-center">
+            {/* Anillo de fondo translúcido */}
+            <div className="w-full h-full rounded-full border-2 border-white/10" />
+            
+            {/* Anillo giratorio con resplandor neón escarlata */}
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-rose-500 border-r-rose-400 animate-spin" />
+            
+            {/* Punto de luz central */}
+            <div className="w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
           </div>
         </div>
+
       </div>
 
-      {/* Footer Tecnológico */}
-      <div className="absolute bottom-9 text-center flex items-center gap-2 opacity-40">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]" />
-        <p className="text-[9px] font-black text-white uppercase tracking-[0.3em]">
-          V{appVersion} • Conexión Segura
+      {/* Footer Minimalista de Calidad */}
+      <div className="relative z-10 flex items-center gap-2">
+        <p className="text-[9px] sm:text-[10px] font-semibold text-zinc-400/80 uppercase tracking-[0.3em]">
+          Ultra High Definition • 4K OTT
         </p>
       </div>
 
-      <style>{`
-        @keyframes laser-flow {
-          0% {
-            transform: translateX(-100%);
-          }
-          50% {
-            transform: translateX(30%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-        .animate-laser-flow {
-          animation: laser-flow 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-      `}</style>
     </div>
   );
 }
