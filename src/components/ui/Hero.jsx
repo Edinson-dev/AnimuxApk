@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Info, Shield } from 'lucide-react';
+import { useTranslation } from '../../utils/i18n.jsx';
 
 const getDominantColor = (imgSrc, onResult) => {
   try {
@@ -23,6 +24,7 @@ const getDominantColor = (imgSrc, onResult) => {
 };
 
 export default function Hero({ featuredChannel, onPlay, onDetails }) {
+  const { t } = useTranslation();
   const [bgRgb, setBgRgb] = useState('150,10,30');
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
 
   if (!featuredChannel) return null;
 
-  const displayName = featuredChannel.displayName || featuredChannel.name || 'Título Destacado';
+  const displayName = featuredChannel.displayName || featuredChannel.name || t('featured_title');
 
   return (
     <div className="relative w-full min-h-[300px] sm:min-h-[360px] md:h-[65vh] md:min-h-[440px] flex flex-col justify-end overflow-hidden group mb-4 md:mb-8 animate-fade-in bg-[#080811] rounded-2xl md:rounded-3xl border border-white/[0.08] shadow-2xl">
@@ -65,14 +67,14 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap animate-slide-up">
             <span className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-rose-600/30">
               <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
-              {featuredChannel.isNew ? 'Estreno Exclusivo' : 'Tendencia'}
+              {featuredChannel.isNew ? t('exclusive_premiere') : t('trending')}
             </span>
             <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-green-500/10 backdrop-blur-md">
               <Shield className="w-3 h-3" />
-              <span>Seguro</span>
+              <span>{t('safe_badge')}</span>
             </span>
             <span className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] hidden lg:block">
-              Animux Original • Premium
+              {t('animux_original')}
             </span>
           </div>
           
@@ -81,7 +83,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
           </h1>
           
           <p className="text-[11px] sm:text-xs md:text-base text-gray-300/90 font-medium max-w-2xl line-clamp-2 md:line-clamp-3 leading-relaxed animate-slide-up animation-delay-200">
-            {featuredChannel.description || 'Disfruta de la mejor calidad de imagen y sonido envolvente. Solo aquí en la plataforma líder de streaming.'}
+            {featuredChannel.description || t('default_hero_desc')}
           </p>
         </div>
 
@@ -91,7 +93,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
             className="flex-1 md:flex-none flex items-center justify-center gap-2.5 px-6 py-3.5 md:px-8 md:py-4 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.15em] transition-all shadow-xl shadow-rose-600/30 active:scale-95 group/btn cursor-pointer"
           >
             <Play className="w-4 h-4 md:w-5 md:h-5 fill-current transition-transform group-hover/btn:scale-110" />
-            Reproducir
+            {t('play')}
           </button>
           
           <button
@@ -100,7 +102,7 @@ export default function Hero({ featuredChannel, onPlay, onDetails }) {
             title="Ver detalles"
           >
             <Info className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="hidden sm:inline">Info</span>
+            <span className="hidden sm:inline">{t('info')}</span>
           </button>
         </div>
       </div>

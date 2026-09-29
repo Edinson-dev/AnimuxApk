@@ -1,19 +1,22 @@
 import React from 'react';
-import { Home, Film, Tv, Heart, Search, Trophy } from 'lucide-react';
-
-const BOTTOM_TABS = [
-  { key: 'Inicio',      label: 'Inicio',     Icon: Home },
-  { key: 'Cine (VOD)',  label: 'Cine',       Icon: Film },
-  { key: 'TV Abierta',  label: 'En Vivo',    Icon: Tv },
-  { key: 'Favoritos',   label: 'Favoritos',  Icon: Heart },
-  { key: '__search',    label: 'Buscar',     Icon: Search },
-];
+import { Home, Film, Tv, Heart, Search } from 'lucide-react';
+import { useTranslation } from '../../utils/i18n.jsx';
 
 export default function BottomNav({ activeCategory, setActiveCategory, onSearchOpen }) {
+  const { t } = useTranslation();
+
+  const bottomTabs = [
+    { key: 'Inicio',      label: t('home'),         Icon: Home },
+    { key: 'Cine (VOD)',  label: t('movies_short'), Icon: Film },
+    { key: 'TV Abierta',  label: t('live_tv_short'),Icon: Tv },
+    { key: 'Favoritos',   label: t('favorites'),    Icon: Heart },
+    { key: '__search',    label: t('search'),       Icon: Search },
+  ];
+
   return (
     <nav className="md:hidden fixed bottom-2.5 sm:bottom-4 left-2.5 sm:left-4 right-2.5 sm:right-4 z-[70] safe-area-bottom pointer-events-none">
       <div className="flex items-center justify-around bg-[#08080a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] p-1 pointer-events-auto">
-        {BOTTOM_TABS.map(({ key, label, Icon }) => {
+        {bottomTabs.map(({ key, label, Icon }) => {
           const isActive = key !== '__search' && activeCategory === key;
           
           return (

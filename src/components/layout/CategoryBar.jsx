@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { getCatInfo } from './Sidebar';
+import { useTranslation } from '../../utils/i18n.jsx';
 
 export default function CategoryBar({ 
   categories = [], 
@@ -8,6 +9,7 @@ export default function CategoryBar({
   setActiveCategory, 
   onRefresh 
 }) {
+  const { t, translateCategory } = useTranslation();
   const scrollRef = useRef(null);
 
   // Auto-scroll active chip smoothly into center view
@@ -27,20 +29,10 @@ export default function CategoryBar({
         ref={scrollRef}
         className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
       >
-        {/* Quick Refresh icon */}
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            className="shrink-0 p-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-gray-400 active:text-rose-500 hover:text-white transition-all active:scale-90"
-            title="Refrescar contenidos"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
-        )}
-
         {allCats.map((cat) => {
           const isActive = activeCategory === cat;
           const { icon: Icon, color: catColor } = getCatInfo(cat);
+          const displayLabel = translateCategory(cat);
 
           return (
             <button
@@ -61,7 +53,7 @@ export default function CategoryBar({
                 style={!isActive && catColor ? { color: catColor } : undefined}
                 fill={cat === 'Favoritos' && isActive ? 'currentColor' : 'none'}
               />
-              <span>{cat}</span>
+              <span>{displayLabel}</span>
             </button>
           );
         })}

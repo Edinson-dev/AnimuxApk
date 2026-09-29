@@ -1,17 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale, Shield, Tv, Zap, Palette, Flame, Sparkles, Film, Trophy, Compass } from 'lucide-react';
+import { Search, Bell, X, RefreshCw, Download, CheckCircle, WifiOff, Smile, Scale, Shield, Tv, Zap, Palette, Flame, Sparkles, Film, Trophy, Compass, Globe } from 'lucide-react';
 import { THEMES, getActiveTheme, applyTheme } from '../../utils/theme';
-
-const MOODS = [
-  { label: '🍿 Cine & Palomitas', query: 'Cine', gradient: 'from-rose-600/30 to-pink-600/10', border: 'border-rose-500/30' },
-  { label: '⚡ Adrenalina & Acción', query: 'Acción', gradient: 'from-amber-600/30 to-orange-600/10', border: 'border-amber-500/30' },
-  { label: '⚽ Deportes en Vivo', query: 'Deportes', gradient: 'from-emerald-600/30 to-teal-600/10', border: 'border-emerald-500/30' },
-  { label: '😂 Risas & Comedia', query: 'Comedia', gradient: 'from-yellow-500/30 to-amber-600/10', border: 'border-yellow-500/30' },
-  { label: '📺 Maratón de Series', query: 'Series', gradient: 'from-purple-600/30 to-indigo-600/10', border: 'border-purple-500/30' },
-  { label: '🧠 Documentales', query: 'Documentales', gradient: 'from-cyan-600/30 to-blue-600/10', border: 'border-cyan-500/30' },
-  { label: '👶 Espacio Niños', query: 'Infantil', gradient: 'from-pink-500/30 to-yellow-500/10', border: 'border-pink-500/30' },
-  { label: '🎶 Música & Conciertos', query: 'Música', gradient: 'from-violet-600/30 to-fuchsia-600/10', border: 'border-violet-500/30' },
-];
+import { useTranslation } from '../../utils/i18n.jsx';
 
 export default function Header({ 
   searchQuery, 
@@ -31,14 +21,26 @@ export default function Header({
   onShowLegal,
   onShowTvGuide,
 }) {
+  const { t, currentLang, setLanguage, languages } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(getActiveTheme());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const panelRef = useRef(null);
-  const themeRef = useRef(null);
+
+  const moods = [
+    { label: t('mood_movies'), query: 'Cine', gradient: 'from-rose-600/30 to-pink-600/10', border: 'border-rose-500/30' },
+    { label: t('mood_action'), query: 'Acción', gradient: 'from-amber-600/30 to-orange-600/10', border: 'border-amber-500/30' },
+    { label: t('mood_sports'), query: 'Deportes', gradient: 'from-emerald-600/30 to-teal-600/10', border: 'border-emerald-500/30' },
+    { label: t('mood_comedy'), query: 'Comedia', gradient: 'from-yellow-500/30 to-amber-600/10', border: 'border-yellow-500/30' },
+    { label: t('mood_series'), query: 'Series', gradient: 'from-purple-600/30 to-indigo-600/10', border: 'border-purple-500/30' },
+    { label: t('mood_docs'), query: 'Documentales', gradient: 'from-cyan-600/30 to-blue-600/10', border: 'border-cyan-500/30' },
+    { label: t('mood_kids'), query: 'Infantil', gradient: 'from-pink-500/30 to-yellow-500/10', border: 'border-pink-500/30' },
+    { label: t('mood_music'), query: 'Música', gradient: 'from-violet-600/30 to-fuchsia-600/10', border: 'border-violet-500/30' },
+  ];
 
   // Formatea la hora del último sync
   const formatLastSync = (ts) => {
@@ -134,7 +136,7 @@ export default function Header({
             <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             <input
               type="text"
-              placeholder="Buscar canales, películas, series..."
+              placeholder={t('search_placeholder')}
               value={searchQuery}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
@@ -154,11 +156,11 @@ export default function Header({
               <div className="flex items-center justify-between">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-rose-500" />
-                  Explorar por Estados de Ánimo
+                  {t('what_to_watch')}
                 </h4>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {MOODS.map((mood) => (
+                {moods.map((mood) => (
                   <button
                     key={mood.label}
                     onClick={() => setSearchQuery(mood.query)}
@@ -175,46 +177,49 @@ export default function Header({
         {/* Right controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-          {/* Mobile Search Button */}
+          {/* Language Switcher Button */}
           <button
-            onClick={() => setIsSearchOpen(true)}
-            title="Buscar"
-            className="md:hidden p-2 text-gray-300 hover:text-white bg-white/5 active:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
+            onClick={() => setShowLanguageModal(true)}
+            title={t('language_selector')}
+            className="flex items-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 text-gray-300 hover:text-white bg-white/5 active:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer group"
           >
-            <Search className="w-4 h-4 text-rose-500" />
+            <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 group-hover:rotate-45 transition-transform duration-300" />
+            <span className="text-[9px] font-black uppercase tracking-wider text-gray-300">
+              {currentLang.toUpperCase()}
+            </span>
           </button>
 
           {/* Theme Switcher Button */}
           <button
             onClick={() => setShowThemeModal(true)}
-            title="Cambiar Tema de Color"
+            title={t('accent_themes')}
             className="p-2 text-gray-300 hover:text-white bg-white/5 active:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
           >
-            <Palette className="w-4 h-4 text-rose-500" />
+            <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500" />
           </button>
 
-          {/* Botón TV Guide */}
+          {/* Botón TV Guide (visible on tablet/desktop) */}
           <button
             onClick={onShowTvGuide}
-            title="Cómo ver en Smart TV"
-            className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 sm:bg-white/5 sm:hover:bg-white/10 text-gray-300 hover:text-white rounded-full sm:border sm:border-white/10 transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer"
+            title={t('tv_guide')}
+            className="hidden sm:flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-full border border-white/10 transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer"
           >
-            <Tv className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-            <span className="hidden sm:inline">Ver en TV</span>
+            <Tv className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{t('tv_guide')}</span>
           </button>
 
           {/* Botón Modo Kids */}
           <button
             onClick={() => setIsKidsMode(!isKidsMode)}
-            title={isKidsMode ? "Desactivar Modo Kids" : "Activar Modo Kids"}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer ${
+            title={isKidsMode ? t('kids_mode_off') : t('kids_mode_on')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full border transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer ${
               isKidsMode 
                 ? 'bg-yellow-400 text-black border-yellow-500 shadow-lg shadow-yellow-400/20' 
                 : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
             }`}
           >
             <Smile className={`w-3.5 h-3.5 ${isKidsMode ? 'fill-current' : ''}`} />
-            <span className="hidden lg:inline">{isKidsMode ? 'Modo Kids On' : 'Modo Kids'}</span>
+            <span className="hidden lg:inline">{isKidsMode ? 'Kids On' : 'Kids'}</span>
           </button>
 
           {/* Botón Instalar PWA */}
@@ -222,10 +227,10 @@ export default function Header({
             <button
               onClick={onInstall}
               title="Instalar App"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white rounded-full border border-rose-600/30 transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white rounded-full border border-rose-600/30 transition-all text-[10px] font-black uppercase tracking-widest cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Instalar</span>
+              <span>Instalar</span>
             </button>
           )}
 
@@ -233,8 +238,8 @@ export default function Header({
           <button
             onClick={handleForceRefresh}
             disabled={isRefreshing}
-            className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-all relative group cursor-pointer"
-            title="Actualizar datos"
+            className="hidden sm:flex p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-all relative group cursor-pointer"
+            title={t('refresh_data')}
           >
             <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${isRefreshing ? 'animate-spin text-rose-500' : 'group-hover:rotate-180 duration-500'}`} />
           </button>
@@ -262,7 +267,7 @@ export default function Header({
                 className="absolute right-0 top-12 w-80 bg-[#0f0f13]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-[100] animate-slide-up"
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                  <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Centro de Control</h3>
+                  <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">{t('control_center')}</h3>
                   <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
                     <X className="w-4 h-4" />
                   </button>
@@ -274,8 +279,8 @@ export default function Header({
                       <span className="text-rose-500 text-[10px] font-black">v</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-white">Versión {appVersion}</p>
-                      <p className="text-[10px] text-gray-500">Último sync: {formatLastSync(lastSync)}</p>
+                      <p className="text-[11px] font-black text-white">{t('up_to_date')} (v{appVersion})</p>
+                      <p className="text-[10px] text-gray-500">{t('last_sync')}: {formatLastSync(lastSync)}</p>
                     </div>
                     <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
                   </div>
@@ -284,14 +289,14 @@ export default function Header({
                     <div className="bg-rose-600/10 border border-rose-600/20 rounded-xl p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <WifiOff className="w-4 h-4 text-rose-400" />
-                        <p className="text-[11px] font-black text-rose-300">Nueva versión disponible</p>
+                        <p className="text-[11px] font-black text-rose-300">{t('new_version_available')}</p>
                       </div>
-                      <p className="text-[10px] text-gray-400 mb-3">Hay una actualización lista para instalarse.</p>
+                      <p className="text-[10px] text-gray-400 mb-3">{t('new_version_desc')}</p>
                       <button
                         onClick={handleSWUpdate}
                         className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer"
                       >
-                        Aplicar Actualización
+                        {t('update_now')}
                       </button>
                     </div>
                   )}
@@ -299,14 +304,14 @@ export default function Header({
                   <div className="bg-[#0088cc]/10 border border-[#0088cc]/20 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <Zap className="w-4 h-4 text-[#0088cc] fill-current" />
-                      <p className="text-[11px] font-black text-[#0088cc] uppercase tracking-widest">Comunidad Telegram</p>
+                      <p className="text-[11px] font-black text-[#0088cc] uppercase tracking-widest">{t('telegram_group')}</p>
                     </div>
-                    <p className="text-[10px] text-gray-500 mb-3">Únete para noticias, pedir contenido y reportar fallos.</p>
+                    <p className="text-[10px] text-gray-500 mb-3">{t('telegram_desc')}</p>
                     <button
-                      onClick={() => window.open('https://t.me/AnimuxOficial', '_blank')}
+                      onClick={() => window.open('https://t.me/animux_oficial', '_blank')}
                       className="w-full py-2 bg-[#0088cc] hover:bg-[#0099e6] text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Unirme al Grupo
+                      {t('join_telegram')}
                     </button>
                   </div>
 
@@ -319,8 +324,8 @@ export default function Header({
                       <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
                     </div>
                     <div className="text-left">
-                      <p className="text-[11px] font-black text-white">Actualizar datos</p>
-                      <p className="text-[10px] text-gray-500">Recarga canales y películas desde Firebase</p>
+                      <p className="text-[11px] font-black text-white">{t('refresh_data')}</p>
+                      <p className="text-[10px] text-gray-500">{t('reloading_data')}</p>
                     </div>
                   </button>
                 </div>
@@ -331,7 +336,7 @@ export default function Header({
                     className="w-full flex items-center justify-center gap-2 py-2 text-[9px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                   >
                     <Scale className="w-3 h-3" />
-                    Términos y Privacidad
+                    {t('terms_privacy')}
                   </button>
                 </div>
               </div>
@@ -342,6 +347,57 @@ export default function Header({
       </div>
 
       </header>
+
+      {/* Language Selector Modal (100% Solid Background, clean flags & regions) */}
+      {showLanguageModal && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div 
+            className="absolute inset-0"
+            onClick={() => setShowLanguageModal(false)}
+          />
+          <div className="relative w-full max-w-xs bg-[#111116] border border-white/20 rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.98)] p-5 z-10 animate-slide-up space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-rose-500" />
+                <span className="text-xs font-black text-white uppercase tracking-wider">{t('language_selector')}</span>
+              </div>
+              <button 
+                onClick={() => setShowLanguageModal(false)} 
+                className="p-1 rounded-full text-gray-400 hover:text-white bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {languages.map((l) => {
+                const isSelected = currentLang === l.code;
+                return (
+                  <button
+                    key={l.code}
+                    onClick={() => { setLanguage(l.code); setShowLanguageModal(false); }}
+                    className={`w-full p-3.5 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-rose-600/20 border-rose-500 text-white shadow-lg shadow-rose-600/20 font-black'
+                        : 'bg-[#181820] border-white/10 hover:border-white/25 text-gray-200 active:scale-95'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl leading-none">{l.flag}</span>
+                      <div className="text-left">
+                        <p className="text-xs font-bold text-white">{l.name}</p>
+                        <p className="text-[9px] text-gray-400">{l.region}</p>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(225,29,72,1)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Theme Selector Modal (100% Solid Background, separated from header containing block) */}
       {showThemeModal && (
@@ -354,7 +410,7 @@ export default function Header({
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Palette className="w-4 h-4 text-rose-500" />
-                <span className="text-xs font-black text-white uppercase tracking-wider">Temas de Acento</span>
+                <span className="text-xs font-black text-white uppercase tracking-wider">{t('accent_themes')}</span>
               </div>
               <button 
                 onClick={() => setShowThemeModal(false)} 
@@ -399,7 +455,7 @@ export default function Header({
               <input
                 autoFocus
                 type="text"
-                placeholder="Buscar canales, películas, series..."
+                placeholder={t('search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -426,10 +482,10 @@ export default function Header({
               <div className="space-y-4">
                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-                  ¿Qué te apetece ver hoy?
+                  {t('what_to_watch')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {MOODS.map((mood) => (
+                  {moods.map((mood) => (
                     <button
                       key={mood.label}
                       onClick={() => { setSearchQuery(mood.query); setIsSearchOpen(false); }}
@@ -445,13 +501,13 @@ export default function Header({
             {searchQuery && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                  <Search className="w-12 h-12 text-rose-500 mb-3 animate-pulse" />
-                 <p className="text-base font-black text-white uppercase tracking-wider">Buscando "{searchQuery}"</p>
-                 <p className="text-xs text-gray-400 mt-1">Explora todos los canales y películas coincidentes</p>
+                 <p className="text-base font-black text-white uppercase tracking-wider">{t('searching_for')} "{searchQuery}"</p>
+                 <p className="text-xs text-gray-400 mt-1">{t('searching_desc')}</p>
                  <button 
                    onClick={() => setIsSearchOpen(false)} 
                    className="mt-6 px-8 py-3.5 bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-rose-600/30 active:scale-95 cursor-pointer"
                  >
-                   Ver Resultados
+                   {t('see_results')}
                  </button>
               </div>
             )}

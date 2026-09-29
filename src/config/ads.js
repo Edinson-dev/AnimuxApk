@@ -13,7 +13,7 @@ export const ADS_CONFIG = {
   enabled: true,                    // Master switch para activar/desactivar TODOS los anuncios
   socialBarEnabled: true,           // ✅ Social Bar (Notificación flotante pequeña y cerrable de Adsterra)
   nativeBannerEnabled: true,       // ❌ Banner nativo grande (desactivado por estética)
-  binanceEnabled: false,            // Activar/desactivar Binance
+  binanceEnabled: true,            // Activar/desactivar Binance
   prerollEnabled: false,            // Pre-roll antes de reproducir
   prerollDuration: 5,               // Segundos de cuenta regresiva
   bannerEnabled: false,             // Banners en la página principal

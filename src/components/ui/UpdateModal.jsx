@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Sparkles, RefreshCw, X, Zap, Rocket, ShieldCheck } from 'lucide-react';
+import { useTranslation } from '../../utils/i18n.jsx';
 
 export default function UpdateModal({ onUpdate, onClose, appVersion = '1.6' }) {
+  const { t } = useTranslation();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdateClick = async () => {
@@ -33,7 +35,7 @@ export default function UpdateModal({ onUpdate, onClose, appVersion = '1.6' }) {
           <button 
             onClick={onClose}
             className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 active:bg-white/20 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
-            title="Cerrar"
+            title={t('close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -46,34 +48,34 @@ export default function UpdateModal({ onUpdate, onClose, appVersion = '1.6' }) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-rose-600/20 border border-rose-500/30 rounded-full text-rose-400">
-                  Actualización en Vivo
+                  {t('new_version_available')}
                 </span>
                 <span className="text-[9px] font-bold text-gray-400">v{appVersion}</span>
               </div>
               <h3 className="text-xl font-black uppercase tracking-tight text-white mt-1">
-                ¡Nueva Versión Lista!
+                {t('new_version_ready')}
               </h3>
             </div>
           </div>
 
           {/* Body description */}
           <p className="text-xs text-gray-300/90 leading-relaxed font-medium">
-            Se ha desplegado una nueva versión de <strong>Animux</strong> con mejoras de rendimiento, soporte de mandos Smart TV y temas dinámicos.
+            {t('new_version_body')}
           </p>
 
           {/* Highlights List */}
           <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-3.5 space-y-2 text-[11px] text-gray-300">
             <div className="flex items-center gap-2.5">
               <Zap className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span>Nuevos temas de acento visual (Paleta 🎨)</span>
+              <span>{t('feature_themes')}</span>
             </div>
             <div className="flex items-center gap-2.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>Soporte total para Smart TV & Chromecast / AirPlay</span>
+              <span>{t('feature_smart_tv')}</span>
             </div>
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="w-3.5 h-3.5 text-green-400 shrink-0" />
-              <span>Canales y transmisiones 100% optimizados</span>
+              <span>{t('feature_optimized')}</span>
             </div>
           </div>
 
@@ -85,14 +87,14 @@ export default function UpdateModal({ onUpdate, onClose, appVersion = '1.6' }) {
               className="flex-1 flex items-center justify-center gap-2.5 py-3.5 px-6 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-rose-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
-              {isUpdating ? 'Actualizando...' : 'Actualizar Ahora'}
+              {isUpdating ? t('updating_btn') : t('update_now')}
             </button>
 
             <button
               onClick={onClose}
               className="px-5 py-3.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer"
             >
-              Más Tarde
+              {t('later')}
             </button>
           </div>
 

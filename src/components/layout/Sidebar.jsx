@@ -5,6 +5,7 @@ import {
   Flame, Radio, Sparkles, Compass, Trophy, Mic, Clapperboard, Globe
 } from 'lucide-react';
 import { BINANCE_REFERRAL, ADS_CONFIG } from '../../config/ads';
+import { useTranslation } from '../../utils/i18n.jsx';
 
 export const ICON_MAP = {
   'inicio': { icon: Home, color: 'var(--accent-primary, #e11d48)', gradient: 'from-rose-500/20 to-rose-600/5' },
@@ -61,6 +62,7 @@ export default function Sidebar({
   onShowLegal, 
   onShowTvGuide 
 }) {
+  const { t, translateCategory } = useTranslation();
   const [copiedCode, setCopiedCode] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -81,12 +83,13 @@ export default function Sidebar({
     const { icon: Icon, color: catColor, gradient } = getCatInfo(cat);
     const isActive = activeCategory === cat;
     const count = counts[cat];
+    const displayLabel = translateCategory(cat);
 
     return (
       <button
         key={cat}
         onClick={() => setActiveCategory(cat)}
-        title={isCollapsed ? `${cat} ${count ? `(${count})` : ''}` : undefined}
+        title={isCollapsed ? `${displayLabel} ${count ? `(${count})` : ''}` : undefined}
         className={`
           group relative flex items-center rounded-xl transition-all duration-200 cursor-pointer
           focus:outline-none focus:ring-2 focus:ring-rose-500/60
@@ -123,7 +126,7 @@ export default function Sidebar({
         {!isCollapsed && (
           <div className="flex-1 flex items-center justify-between min-w-0 gap-2">
             <span className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? 'text-white font-extrabold' : ''}`}>
-              {cat}
+              {displayLabel}
             </span>
 
             {/* Badge count */}

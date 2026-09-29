@@ -1,7 +1,10 @@
 import React from 'react';
 import { X, Tv, Globe, MousePointerClick, MonitorPlay, Zap } from 'lucide-react';
+import { useTranslation } from '../../utils/i18n.jsx';
 
 export default function TvGuideModal({ onClose }) {
+  const { t } = useTranslation();
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
       <div 
@@ -20,10 +23,10 @@ export default function TvGuideModal({ onClose }) {
               <MonitorPlay className="w-10 h-10 text-rose-500" />
             </div>
             <h2 className="text-2xl font-black text-white uppercase tracking-tight leading-tight">
-              Lleva Animux<br/>a tu TV
+              {t('tv_guide_title')}
             </h2>
             <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
-              Sin Chromecast • Sin Cables
+              {t('tv_guide_subtitle')}
             </p>
           </div>
         </div>
@@ -33,6 +36,7 @@ export default function TvGuideModal({ onClose }) {
           <button 
             onClick={onClose}
             className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+            title={t('close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -44,9 +48,9 @@ export default function TvGuideModal({ onClose }) {
                 <Tv className="w-5 h-5 text-gray-400 group-hover:text-rose-400" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">1. Enciende tu Smart TV</h3>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">{t('tv_step1_title')}</h3>
                 <p className="text-xs text-gray-400 leading-relaxed font-medium">
-                  Busca la aplicación de <strong>Navegador Web</strong> o <strong>Internet</strong> que viene instalada de fábrica en tu televisor (LG, Samsung, Android TV).
+                  {t('tv_step1_desc')}
                 </p>
               </div>
             </div>
@@ -57,9 +61,9 @@ export default function TvGuideModal({ onClose }) {
                 <Globe className="w-5 h-5 text-gray-400 group-hover:text-rose-400" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">2. Escribe la dirección</h3>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">{t('tv_step2_title')}</h3>
                 <p className="text-xs text-gray-400 leading-relaxed font-medium">
-                  En la barra de direcciones de arriba, escribe exactamente: <br/>
+                  {t('tv_step2_desc')} <br/>
                   <span className="inline-block mt-2 px-3 py-1.5 bg-rose-600/10 border border-rose-600/30 text-rose-400 rounded-lg text-sm font-black tracking-widest font-mono">
                     animux.site
                   </span>
@@ -73,9 +77,9 @@ export default function TvGuideModal({ onClose }) {
                 <MousePointerClick className="w-5 h-5 text-gray-400 group-hover:text-rose-400" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">3. Usa tu Control Remoto</h3>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">{t('tv_step3_title')}</h3>
                 <p className="text-xs text-gray-400 leading-relaxed font-medium">
-                  ¡No necesitas mouse! Usa las <strong>flechas</strong> de tu control para moverte por las películas y presiona el botón <strong>OK / Select</strong> para reproducir.
+                  {t('tv_step3_desc')}
                 </p>
               </div>
             </div>
@@ -86,7 +90,7 @@ export default function TvGuideModal({ onClose }) {
             className="w-full py-4 mt-4 bg-white/5 hover:bg-rose-600 text-white rounded-xl font-black text-[11px] uppercase tracking-widest border border-white/10 hover:border-rose-500 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
             <Zap className="w-4 h-4" />
-            ¡Entendido, a disfrutar!
+            {t('tv_enjoy_btn')}
           </button>
 
         </div>

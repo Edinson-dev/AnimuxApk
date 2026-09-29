@@ -38,10 +38,12 @@ import { getActiveTheme, applyTheme } from './utils/theme';
 import SplashScreen from './components/ui/SplashScreen';
 import UpdateModal from './components/ui/UpdateModal';
 import { version } from '../package.json';
+import { useTranslation } from './utils/i18n.jsx';
 
 const APP_VERSION = version;
 
 export default function App() {
+  const { t, translateCategory } = useTranslation();
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -598,7 +600,7 @@ export default function App() {
                     <div className="space-y-4 md:space-y-5">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-6 bg-yellow-400 rounded-full" />
-                        <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Top Infantiles</h3>
+                        <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('top_kids')}</h3>
                       </div>
                       <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                         {allUnique.filter(c => (c.category || '').toLowerCase().includes('infantil')).slice(0, 15).map(c => (
@@ -613,7 +615,7 @@ export default function App() {
                       <div className="space-y-4 md:space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-blue-400 rounded-full" />
-                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Anime y Dibujos</h3>
+                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('anime_cartoons')}</h3>
                         </div>
                         <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                           {groupedChannels.filter(c => (c.category || '').toLowerCase().includes('anime') || (c.category || '').toLowerCase().includes('muñeco')).slice(0, 15).map(c => (
@@ -630,7 +632,7 @@ export default function App() {
                       <div className="space-y-4 md:space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-purple-400 rounded-full" />
-                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Mundo Disney & Nick</h3>
+                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('disney_nick')}</h3>
                         </div>
                         <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                           {groupedChannels.filter(c => {
@@ -653,7 +655,7 @@ export default function App() {
                         <div className="space-y-4 md:space-y-5">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Cine (VOD)</h3>
+                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('movies_vod')}</h3>
                           </div>
                           <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                             {allUnique.filter(c => matchesCat(c, 'cine (vod)')).slice(0, 15).map(c => (
@@ -672,7 +674,7 @@ export default function App() {
                         <div className="space-y-4 md:space-y-5">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Series (VOD)</h3>
+                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('series_vod')}</h3>
                           </div>
                           <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                             {groupedChannels.filter(c => matchesCat(c, 'series (vod)')).slice(0, 15).map(c => (
@@ -691,7 +693,7 @@ export default function App() {
                         <div className="space-y-4 md:space-y-5">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Deportes en Vivo</h3>
+                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('live_sports')}</h3>
                           </div>
                           <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                             {allUnique.filter(c => matchesCat(c, 'deportes')).slice(0, 15).map(c => (
@@ -709,7 +711,7 @@ export default function App() {
                       <div className="space-y-4 md:space-y-5">
                         <div className="flex items-center gap-3">
                           <div className="w-1.5 h-6 bg-rose-600 rounded-full" />
-                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Continuar Viendo</h3>
+                          <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{t('continue_watching')}</h3>
                         </div>
                         <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                           {recentChannels.map(c => (
@@ -739,9 +741,9 @@ export default function App() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="w-1.5 h-6 bg-white/20 rounded-full" />
-                                <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{cat}</h3>
+                                <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter">{translateCategory(cat)}</h3>
                               </div>
-                              <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest bg-rose-500/10 px-4 py-2 rounded-full transition-all">Explorar Todo</button>
+                              <button onClick={() => setActiveCategory(cat)} className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest bg-rose-500/10 px-4 py-2 rounded-full transition-all">{t('explore_all')}</button>
                             </div>
                             <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-3 md:pb-4 -mx-3.5 sm:-mx-6 md:-mx-8 px-3.5 sm:px-6 md:px-8 scroll-smooth">
                               {items.slice(0, 15).map(c => <div key={c.id} className="w-[125px] min-[420px]:w-[145px] sm:w-[170px] md:w-[200px] lg:w-[220px] shrink-0"><ChannelCard channel={c} onPlay={handlePlay} isFavorite={favorites.includes(String(c.id))} /></div>)}
@@ -760,14 +762,14 @@ export default function App() {
                     <div className="w-2 h-8 bg-rose-600 rounded-full" />
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter">
                       {searchQuery
-                        ? `Búsqueda: "${searchQuery}"`
+                        ? `${t('searching_for')}: "${searchQuery}"`
                         : isCustomFiltering && activeCategory === 'Inicio'
-                        ? 'Explorar Catálogo'
-                        : activeCategory}
+                        ? t('explore_catalog')
+                        : translateCategory(activeCategory)}
                     </h2>
                   </div>
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5">
-                    {filteredChannels.length} Resultados
+                    {filteredChannels.length} {filteredChannels.length === 1 ? t('result_singular') : t('results_plural')}
                   </p>
                 </div>
 
@@ -789,16 +791,16 @@ export default function App() {
                       <SlidersHorizontal className="w-8 h-8" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-xl font-black text-white uppercase tracking-tight">No se encontraron resultados</h3>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight">{t('no_results')}</h3>
                       <p className="text-xs text-gray-400 max-w-md mx-auto font-medium">
-                        No hay contenidos que coincidan con la combinación de filtros seleccionada (año, género o búsqueda).
+                        {t('no_results_desc')}
                       </p>
                     </div>
                     <button
                       onClick={handleResetFilters}
                       className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-600/20 active:scale-95"
                     >
-                      Restablecer Filtros
+                      {t('clean_filters')}
                     </button>
                   </div>
                 ) : (
@@ -839,7 +841,7 @@ export default function App() {
                 className="flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-600/20 group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">💛</span>
-                Apoyar el Proyecto
+                {t('support_project')}
               </button>
 
               <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
@@ -848,14 +850,14 @@ export default function App() {
                   className="text-[10px] font-black text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-2"
                 >
                   <Scale className="w-3 h-3" />
-                  Términos y Condiciones
+                  {t('terms_and_conditions')}
                 </button>
                 <button
                   onClick={() => setShowLegal(true)}
                   className="text-[10px] font-black text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-2"
                 >
                   <Shield className="w-3 h-3" />
-                  Privacidad
+                  {t('privacy_policy')}
                 </button>
               </div>
 
