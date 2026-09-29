@@ -174,7 +174,8 @@ export default function App() {
       const cachedChans = localStorage.getItem('animux_cache_chans');
       const cachedMovs = localStorage.getItem('animux_cache_movs');
 
-      if (!force && cachedCats && cachedChans && (now - lastFetch < CACHE_TIME)) {
+      // 1. Restaurar datos en memoria de inmediato desde caché para arranque instantáneo (0ms)
+      if (cachedCats || cachedChans || cachedMovs) {
         try {
           if (cachedCats) setCloudCategories(JSON.parse(cachedCats));
           if (cachedChans) setChannelData({ channels: JSON.parse(cachedChans) });
@@ -182,15 +183,18 @@ export default function App() {
         } catch (e) {
           console.warn('Error al restaurar caché local:', e);
         }
+      }
 
-        setTimeout(() => setIsAppLoading(false), 800);
+      // Si el caché está fresco (<15min) y no es recarga forzada, desbloquear de inmediato
+      if (!force && cachedCats && cachedChans && cachedMovs && (now - lastFetch < CACHE_TIME)) {
+        setTimeout(() => setIsAppLoading(false), 500);
         return;
       }
 
-      if (!force) setIsAppLoading(true);
+      if (!force && (!cachedCats || !cachedChans)) setIsAppLoading(true);
 
-      // Wrapper con timeout para evitar bloqueos si Firestore o red tardan
-      const withTimeout = (promise, ms = 3500, fallback = null) => {
+      // Wrapper con timeout extendido a 7 segundos para conexiones móviles lentas
+      const withTimeout = (promise, ms = 7000, fallback = null) => {
         return Promise.race([
           promise,
           new Promise((resolve) => setTimeout(() => resolve(fallback), ms))
@@ -198,9 +202,9 @@ export default function App() {
       };
 
       const [catSnapshot, chanSnapshot, movSnapshot, m3uRes, localRes] = await Promise.all([
-        withTimeout(getDocs(collection(db, 'categories')), 3500, { docs: [] }),
-        withTimeout(getDocs(collection(db, 'channels')), 3500, { docs: [] }),
-        withTimeout(getDocs(collection(db, 'movies')), 3500, { docs: [] }),
+        withTimeout(getDocs(collection(db, 'categories')), 7000, { docs: [] }),
+        withTimeout(getDocs(collection(db, 'channels')), 7000, { docs: [] }),
+        withTimeout(getDocs(collection(db, 'movies')), 7000, { docs: [] }),
         fetch('/m3u_channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] })),
         fetch('/channels.json').then(r => r.ok ? r.json() : { channels: [] }).catch(() => ({ channels: [] }))
       ]);
@@ -209,27 +213,58 @@ export default function App() {
       const firebaseChans = (chanSnapshot?.docs || []).map(doc => ({ ...doc.data(), id: doc.id, fromCloud: true }));
       const firebaseMovs = (movSnapshot?.docs || []).map(doc => ({ ...doc.data(), id: doc.id, isVOD: true, fromCloud: true }));
 
+      // Protección contra vaciado: si Firestore tardó o devolvió vacío, retener caché previo
+      let finalMovs = firebaseMovs;
+      if (finalMovs.length === 0 && cachedMovs) {
+        try {
+          const parsed = JSON.parse(cachedMovs);
+          if (Array.isArray(parsed) && parsed.length > 0) finalMovs = parsed;
+        } catch (_) {}
+      }
+
       const allChans = [
         ...(m3uRes?.channels || []).map(c => ({ ...c, isExternal: true })),
         ...firebaseChans,
         ...(localRes?.channels || []).map(c => ({ ...c, isLocal: true }))
       ];
 
-      setCloudCategories(cats);
-      setChannelData({ channels: allChans });
-      setLocalMovies(firebaseMovs);
+      let finalChans = allChans;
+      if (finalChans.length === 0 && cachedChans) {
+        try {
+          const parsed = JSON.parse(cachedChans);
+          if (Array.isArray(parsed) && parsed.length > 0) finalChans = parsed;
+        } catch (_) {}
+      }
 
-      localStorage.setItem('animux_cache_cats', JSON.stringify(cats));
-      localStorage.setItem('animux_cache_chans', JSON.stringify(allChans));
-      localStorage.setItem('animux_cache_movs', JSON.stringify(firebaseMovs));
+      let finalCats = cats;
+      if (finalCats.length === 0 && cachedCats) {
+        try {
+          const parsed = JSON.parse(cachedCats);
+          if (Array.isArray(parsed) && parsed.length > 0) finalCats = parsed;
+        } catch (_) {}
+      }
+
+      if (finalCats.length > 0) {
+        setCloudCategories(finalCats);
+        localStorage.setItem('animux_cache_cats', JSON.stringify(finalCats));
+      }
+      if (finalChans.length > 0) {
+        setChannelData({ channels: finalChans });
+        localStorage.setItem('animux_cache_chans', JSON.stringify(finalChans));
+      }
+      if (finalMovs.length > 0) {
+        setLocalMovies(finalMovs);
+        localStorage.setItem('animux_cache_movs', JSON.stringify(finalMovs));
+      }
+
       localStorage.setItem('animux_last_fetch', now.toString());
       setLastSyncTime(now.toString());
 
-      if (force) toast.success('Canales actualizados correctamente');
+      if (force) toast.success('Canales y películas sincronizados');
 
     } catch (err) {
       console.error('Error loading app data:', err);
-      // Fallback a caché si existe
+      // Fallback robusto a caché si la red falla totalmente
       try {
         const cachedCats = localStorage.getItem('animux_cache_cats');
         const cachedChans = localStorage.getItem('animux_cache_chans');
@@ -241,8 +276,7 @@ export default function App() {
       toast.error('Error al sincronizar contenidos');
     }
     finally {
-      // Garantizar que la app siempre desbloquee la pantalla inicial
-      setTimeout(() => setIsAppLoading(false), 800);
+      setTimeout(() => setIsAppLoading(false), 500);
     }
   };
 
