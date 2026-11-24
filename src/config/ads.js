@@ -11,15 +11,15 @@
 // ── Configuración Global ────────────────────────────────────────────
 export const ADS_CONFIG = {
   enabled: true,                    // Master switch para activar/desactivar TODOS los anuncios
-  socialBarEnabled: true,           // ✅ Social Bar (Notificación flotante pequeña y cerrable de Adsterra)
-  nativeBannerEnabled: true,       // ❌ Banner nativo grande (desactivado por estética)
-  binanceEnabled: true,            // Activar/desactivar Binance
-  prerollEnabled: false,            // Pre-roll antes de reproducir
+  socialBarEnabled: false,           // Social Bar de Adsterra desactivada
+  nativeBannerEnabled: true,       // Banner nativo desactivado
+  binanceEnabled: true,            // Binance desactivado
+  prerollEnabled: false,            // Pre-roll antes de reproducir desactivado
   prerollDuration: 5,               // Segundos de cuenta regresiva
-  bannerEnabled: false,             // Banners en la página principal
-  inGridEnabled: false,             // Anuncios nativos entre tarjetas
+  bannerEnabled: true,             // Banners en la página principal desactivados
+  inGridEnabled: false,             // Anuncios nativos entre tarjetas desactivados
   inGridInterval: 8,                // Cada cuántas tarjetas mostrar un ad
-  showCloseButton: true,            // Permitir cerrar banners
+  showCloseButton: false,            // Permitir cerrar banners
   cooldownMinutes: 15,              // Minutos antes de repetir un pre-roll
 };
 

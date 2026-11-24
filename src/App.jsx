@@ -14,11 +14,7 @@ import Skeleton from './components/ui/Skeleton';
 import Toast, { toast } from './components/ui/Toast';
 import NewsBanner from './components/ui/NewsBanner';
 import CommunityCard from './components/ui/CommunityCard';
-import BinancePromoCard from './components/ui/BinancePromoCard';
-import AdsterraNativeBanner from './components/ui/AdsterraNativeBanner';
-import AdsterraSocialBar from './components/ui/AdsterraSocialBar';
 import FilterControls from './components/ui/FilterControls';
-import AdBanner from './components/ui/AdBanner';
 import NativeAdCard from './components/ui/NativeAdCard';
 import PrerollAd from './components/ui/PrerollAd';
 import { ADS_CONFIG, shouldShowPreroll } from './config/ads';
@@ -36,7 +32,8 @@ import { matchesYear, matchesGenre, applySorting } from './utils/filters';
 import { initTvNavigation } from './utils/tvNavigation';
 import { getActiveTheme, applyTheme } from './utils/theme';
 import SplashScreen from './components/ui/SplashScreen';
-import UpdateModal from './components/ui/UpdateModal';
+import PlatformUpdateModal from './components/ui/PlatformUpdateModal';
+import { usePlatformUpdate } from './hooks/usePlatformUpdate';
 import { version } from '../package.json';
 import { useTranslation } from './utils/i18n.jsx';
 
@@ -93,27 +90,13 @@ export default function App() {
 
   const isCustomFiltering = selectedYear !== 'all' || selectedGenre !== 'all' || selectedPopularity !== 'default';
 
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-
-  // Auto-Detección de Nueva Versión en Vivo (Cloudflare Deploy)
-  useEffect(() => {
-    if (needRefresh) {
-      setShowUpdateModal(true);
-    }
-  }, [needRefresh]);
-
-  const handleApplyUpdate = async () => {
-    try {
-      if (updateServiceWorker) {
-        await updateServiceWorker(true);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      localStorage.removeItem('animux_last_fetch');
-      window.location.reload(true);
-    }
-  };
+  // Sistema Inteligente de Notificación de Actualización de Plataforma
+  const {
+    showNotice: showPlatformUpdate,
+    noticeData: platformUpdateData,
+    applyUpdate: handleApplyPlatformUpdate,
+    dismissNotice: handleDismissPlatformUpdate
+  } = usePlatformUpdate({ needRefresh, updateServiceWorker });
   const [isKidsMode, setIsKidsMode] = useState(false);
   const [logoClicks, setLogoClicks] = useState(0);
   const [visibleCount, setVisibleCount] = useState(48);
@@ -540,9 +523,6 @@ export default function App() {
         />
       )}
 
-      {/* Adsterra Social Bar (Notificación flotante pequeña y cerrable) */}
-      <AdsterraSocialBar />
-
       {/* Thematic Spotlights Background (Mundial / Deportes) */}
       {/* Ambient glow — estático para no consumir GPU con animate-pulse constante */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -629,15 +609,6 @@ export default function App() {
                 />
 
                 <CommunityCard />
-
-                {/* 📢 Banner / Promo (solo se muestra si la publicidad está activa) */}
-                {ADS_CONFIG.enabled && (
-                  <>
-                    {ADS_CONFIG.bannerEnabled && <AdBanner />}
-                    {ADS_CONFIG.binanceEnabled && <BinancePromoCard />}
-                    {ADS_CONFIG.nativeBannerEnabled && <AdsterraNativeBanner />}
-                  </>
-                )}
 
                 {isKidsMode ? (
                   <div className="space-y-6 md:space-y-8">
@@ -961,11 +932,12 @@ export default function App() {
         />
       )}
 
-      {showUpdateModal && (
-        <UpdateModal
+      {showPlatformUpdate && (
+        <PlatformUpdateModal
+          noticeData={platformUpdateData}
+          onApply={handleApplyPlatformUpdate}
+          onClose={handleDismissPlatformUpdate}
           appVersion={APP_VERSION}
-          onUpdate={handleApplyUpdate}
-          onClose={() => setShowUpdateModal(false)}
         />
       )}
 

@@ -1,9 +1,47 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const buildTimestamp = Date.now()
+
+function versionTrackerPlugin() {
+  return {
+    name: 'version-tracker-plugin',
+    buildStart() {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'))
+        const versionData = {
+          version: pkg.version || '1.6',
+          buildTime: buildTimestamp,
+          buildDate: new Date(buildTimestamp).toISOString(),
+          title: '¡Actualización de la Plataforma!',
+          message: 'En estos momentos se está realizando una actualización en la plataforma. Se han aplicado mejoras en velocidad, nuevos canales y novedades listas para disfrutar.',
+          highlights: [
+            '⚡ Servidores y velocidad optimizados',
+            '🎬 Nuevos canales, series y películas agregados',
+            '🛡️ Mayor estabilidad y reproducción fluida'
+          ]
+        }
+        const pubDir = path.resolve(__dirname, 'public')
+        if (!fs.existsSync(pubDir)) fs.mkdirSync(pubDir, { recursive: true })
+        fs.writeFileSync(path.resolve(pubDir, 'version.json'), JSON.stringify(versionData, null, 2))
+      } catch (e) {
+        console.error('Error generando version.json:', e)
+      }
+    }
+  }
+}
 
 export default defineConfig({
+  define: {
+    __APP_BUILD_TIME__: JSON.stringify(buildTimestamp),
+  },
   plugins: [
+    versionTrackerPlugin(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -93,6 +131,11 @@ export default defineConfig({
 
         // Runtime caching strategies
         runtimeCaching: [
+          // Platform version.json — NetworkOnly to always get fresh status
+          {
+            urlPattern: /version\.json.*/i,
+            handler: 'NetworkOnly',
+          },
           // Google Fonts
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
