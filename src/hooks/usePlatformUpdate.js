@@ -65,15 +65,15 @@ export function usePlatformUpdate({ needRefresh = false, updateServiceWorker = n
       return;
     }
 
-    // Comprobar si es una nueva compilación que el usuario aún no ha reconocido
+    // 1. Mostrar Pop-up de novedades si es una versión recién instalada/actualizada
     if (UPDATE_NOTICE_CONFIG.notifyOnFirstOpen) {
-      const lastAck = localStorage.getItem('animux_last_build_ack');
-      if (lastAck && Number(lastAck) < CURRENT_BUILD_TIME) {
+      const lastSeenBuild = localStorage.getItem('animux_last_seen_build');
+      if (lastSeenBuild !== String(CURRENT_BUILD_TIME)) {
         setNoticeData({
           type: 'installed',
-          title: '¡Plataforma Actualizada!',
-          badge: 'VERSIÓN AL DÍA',
-          message: UPDATE_NOTICE_CONFIG.welcomeMessage,
+          title: '¡Novedades de la Actualización!',
+          badge: 'ACTUALIZACIÓN APLICADA',
+          message: UPDATE_NOTICE_CONFIG.welcomeMessage || 'La plataforma se ha actualizado con éxito con nuevas mejoras, canales y optimizaciones.',
           version: '1.6',
           highlights: UPDATE_NOTICE_CONFIG.highlights,
           remoteBuildTime: CURRENT_BUILD_TIME
@@ -127,6 +127,7 @@ export function usePlatformUpdate({ needRefresh = false, updateServiceWorker = n
   // Acción para aplicar la actualización y recargar
   const applyUpdate = useCallback(async () => {
     try {
+      localStorage.setItem('animux_last_seen_build', String(noticeData?.remoteBuildTime || CURRENT_BUILD_TIME));
       localStorage.setItem('animux_last_build_ack', String(noticeData?.remoteBuildTime || CURRENT_BUILD_TIME));
 
       // Si la versión ya está instalada y el usuario pulsa "Entendido / A disfrutar", cerramos sin recargar
@@ -154,6 +155,7 @@ export function usePlatformUpdate({ needRefresh = false, updateServiceWorker = n
     if (noticeData?.remoteBuildTime) {
       sessionStorage.setItem(`animux_dismissed_update_${noticeData.remoteBuildTime}`, 'true');
     }
+    localStorage.setItem('animux_last_seen_build', String(CURRENT_BUILD_TIME));
     localStorage.setItem('animux_last_build_ack', String(CURRENT_BUILD_TIME));
   }, [noticeData]);
 

@@ -17,7 +17,7 @@ export const ADS_CONFIG = {
   prerollEnabled: false,            // Pre-roll antes de reproducir desactivado
   prerollDuration: 5,               // Segundos de cuenta regresiva
   bannerEnabled: true,             // Banners en la página principal desactivados
-  inGridEnabled: false,             // Anuncios nativos entre tarjetas desactivados
+  inGridEnabled: true,             // Anuncios nativos entre tarjetas desactivados
   inGridInterval: 8,                // Cada cuántas tarjetas mostrar un ad
   showCloseButton: false,            // Permitir cerrar banners
   cooldownMinutes: 15,              // Minutos antes de repetir un pre-roll

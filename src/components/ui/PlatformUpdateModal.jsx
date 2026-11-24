@@ -126,7 +126,11 @@ export default function PlatformUpdateModal({
               disabled={isUpdating}
               className="flex-1 flex items-center justify-center gap-2.5 py-4 px-6 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white rounded-2xl text-xs sm:text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+              {isInstalled ? (
+                <CheckCircle2 className="w-4 h-4 text-white" />
+              ) : (
+                <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+              )}
               <span>
                 {isUpdating ? 'Cargando actualización...' : isInstalled ? '¡Entendido, a disfrutar!' : 'Actualizar y Cargar Ahora'}
               </span>

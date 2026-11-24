@@ -26,7 +26,7 @@ export const UPDATE_NOTICE_CONFIG = {
   // Títulos y textos por defecto
   title: '¡Actualización de la Plataforma!',
   statusBadge: 'EN ESTOS MOMENTOS',
-  liveMessage: 'En estos momentos se está realizando una actualización en la plataforma. Hay mejoras de velocidad, nuevos canales y novedades listas para aplicar.',
+  liveMessage: 'En estos momentos se está realizando una actualización en la plataforma. se deshabilitaron los anuncios ADS para mejor rendimiento.',
   welcomeMessage: '¡La plataforma ha sido actualizada con éxito! Disfruta de la mejor calidad, mayor fluidez y contenido renovado.',
 
   // Puntos clave de la actualización que se muestran en el Pop-up
